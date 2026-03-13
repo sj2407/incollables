@@ -165,7 +165,7 @@ test.describe('Exam Flow', () => {
     // Score should be visible
     const scoreEl = page.locator('text=/%');
     // Results page should have stat badges
-    const correctBadge = page.locator('text=Correctes');
+    const correctBadge = page.getByText('Correctes', { exact: true });
     await expect(correctBadge).toBeVisible();
   });
 
