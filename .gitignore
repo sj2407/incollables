@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build
+.next/
+out/
+build/
+dist/
+
+# Environment
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Original Word documents (large binary files)
+*.doc
+*.docx
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Vercel
+.vercel
+
+# PWA
+sw.*
+workbox-*
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# Test results (Playwright)
+physioquiz/test-results/
+physioquiz/e2e/screenshots/
+
+# Supabase CLI temp
+physioquiz/supabase/.temp/

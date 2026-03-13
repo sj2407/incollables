@@ -1,0 +1,15 @@
+-- ============================================================================
+-- 006_create_rls_policies.sql
+-- Placeholder / audit note.
+-- ============================================================================
+
+-- All Row Level Security policies are defined inline within their respective
+-- table migration files:
+--
+--   001_create_profiles.sql   — profiles RLS
+--   002_create_topics.sql     — topics RLS
+--   003_create_questions.sql  — questions, choices, question_images RLS
+--   004_create_sessions.sql   — sessions, session_answers, session_answer_choices RLS
+--
+-- This file exists only to keep the numbering consistent with the migration plan.
+-- No additional SQL is required here.

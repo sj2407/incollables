@@ -1,0 +1,3 @@
+-- PhysioQuiz — Seed data
+-- This file will be populated during Sprint 2 (import script)
+-- Topics and questions are imported from the standardized Word document

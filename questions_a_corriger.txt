@@ -1,0 +1,94 @@
+=== QUESTIONS REQUIRING MANUAL CORRECTION ===
+
+--- ZERO PROPOSITIONS (10) ---
+  Q137 (orig: no num): stem='Electroencéphalogramme  (EEG) et Potentiels évoqués (PEV)'
+  Q193 (orig: no num): stem=''
+  Q219 (orig: no num): stem=''
+  Q319 (orig: no num): stem='2.4.1. L'élimination rénale L'élimination rénale reflète la calcémie. La réabsor'
+  Q336 (orig: no num): stem='L’hyperparathyroïdie s’accompagne PHYSIOLGIE DE LA DIGESTION (56) Motricité dige'
+  Q398 (orig: no num): stem='Pour  9 litres d'eau qui passent par le tractus gastro-intestinal par jour, les '
+  Q412 (orig: no num): stem='Au cours de la phase folliculaire : A.'
+  Q415 (orig: no num): stem=''
+  Q439 (orig: no num): stem=''
+  Q443 (orig: no num): stem=''
+
+--- MISSING ANSWERS (30) ---
+  Q136 (orig: no num): stem='Pour les potentiels évoqués auditifs :'
+  Q137 (orig: no num): stem='Electroencéphalogramme  (EEG) et Potentiels évoqués (PEV)'
+  Q193 (orig: no num): stem=''
+  Q219 (orig: no num): stem=''
+  Q283 (orig: no num): stem='L’ingestion d’une solution saline concentrée  entraîne :'
+  Q301 (orig: no num): stem='Quand  le rapport [ insuline]  / [glucagon ] plasmatiques augmente, le métabolis'
+  Q302 (orig: no num): stem='Les organes glucodépendants et insulinoindépendants sont :'
+  Q318 (orig: no num): stem='Le Ca++ non ultra filtrable :'
+  Q319 (orig: no num): stem='2.4.1. L'élimination rénale L'élimination rénale reflète la calcémie. La réabsor'
+  Q332 (orig: no num): stem='Une  dissociation entre les concentrations de Ca++ sérique peut être observée en'
+  Q333 (orig: no num): stem='Chez un adulte normal de sexe masculin, l’excrétion urinaire de Ca++ varie en fo'
+  Q334 (orig: no num): stem='La  1  alpha hydroxylase est stimulée en cas :'
+  Q335 (orig: no num): stem='L’excrétion urinaire de phosphates augmente  dans les situations suivantes :'
+  Q336 (orig: no num): stem='L’hyperparathyroïdie s’accompagne PHYSIOLGIE DE LA DIGESTION (56) Motricité dige'
+  Q412 (orig: no num): stem='Au cours de la phase folliculaire : A.'
+  Q415 (orig: no num): stem=''
+  Q433 (orig: no num): stem='Au cours de la spermatogenèse :'
+  Q435 (orig: no num): stem='L’inhibine'
+  Q438 (orig: no num): stem='La  température centrale est un paramètre homéostatique car :'
+  Q439 (orig: no num): stem=''
+  Q442 (orig: no num): stem='Sachant que : M = métabolisme C =  convection R =  radiation S =  stock de chale'
+  Q443 (orig: no num): stem=''
+  Q444 (orig: no num): stem='Dans la thermorégulation, l’hypothalamus :'
+  Q446 (orig: no num): stem='Pour lutter contre le chaud, la thermolyse :'
+  Q448 (orig: no num): stem='Dans les échanges thermiques par évaporation :'
+  Q451 (orig: no num): stem='Les thermorécepteurs :'
+  Q457 (orig: no num): stem='Les échanges par radiation entre l’enveloppe et la surface :'
+  Q459 (orig: no num): stem='Le métabolisme de base :'
+  Q460 (orig: no num): stem='Les réponses thermorégulatrices impliquent :'
+  Q461 (orig: no num): stem='A l’état de repos, les échanges thermiques  sont contrôles grâce :'
+
+--- ANSWER MISMATCHES (45) ---
+  Q1: Answer mismatch: line says ['A', 'C', 'E'], bold says ['A', 'B']. Using line.
+  Q17: Answer mismatch: line says ['A', 'D', 'E'], bold says ['A', 'D']. Using line.
+  Q27: Answer mismatch: line says ['A', 'B', 'D'], bold says ['D']. Using line.
+  Q38: Answer mismatch: line says ['A'], bold says ['B']. Using line.
+  Q49: Answer mismatch: line says ['A', 'I', 'E'], bold says ['A', 'D', 'E']. Using line.
+  Q61: Answer mismatch: line says ['A', 'E'], bold says ['A']. Using line.
+  Q62: Answer mismatch: line says ['A', 'D'], bold says ['B', 'D']. Using line.
+  Q64: Answer mismatch: line says ['B'], bold says ['B', 'D']. Using line.
+  Q75: Answer mismatch: line says ['D', 'E'], bold says ['B', 'D', 'E']. Using line.
+  Q97: Answer mismatch: line says ['A', 'B'], bold says ['B', 'C', 'E']. Using line.
+  Q99: Answer mismatch: line says ['E'], bold says ['D', 'E']. Using line.
+  Q130: Answer mismatch: line says ['A', 'D'], bold says ['D']. Using line.
+  Q134: Answer mismatch: line says ['A', 'C'], bold says ['A', 'B', 'D']. Using line.
+  Q145: Answer mismatch: line says ['A'], bold says ['A', 'B', 'C']. Using line.
+  Q153: Answer mismatch: line says ['A', 'B'], bold says ['A', 'D']. Using line.
+  Q160: Answer mismatch: line says ['A', 'C', 'D', 'E'], bold says ['A', 'C', 'D']. Using line.
+  Q162: Answer mismatch: line says ['A', 'D'], bold says ['B', 'D']. Using line.
+  Q175: Answer mismatch: line says ['A', 'E'], bold says ['A', 'B']. Using line.
+  Q181: Answer mismatch: line says ['A'], bold says ['A', 'B']. Using line.
+  Q192: Answer mismatch: line says ['A', 'B', 'E'], bold says ['A', 'B', 'C', 'E']. Using line.
+  Q194: Answer mismatch: line says ['B', 'E'], bold says ['C']. Using line.
+  Q195: Answer mismatch: line says ['A', 'D'], bold says ['A', 'C', 'D']. Using line.
+  Q201: Answer mismatch: line says ['A', 'C', 'D'], bold says ['C', 'D']. Using line.
+  Q202: Answer mismatch: line says ['B'], bold says ['A', 'C', 'D', 'E']. Using line.
+  Q209: Answer mismatch: line says ['C', 'E'], bold says ['C', 'D']. Using line.
+  Q215: Answer mismatch: line says ['B', 'E'], bold says ['A', 'E']. Using line.
+  Q225: Answer mismatch: line says ['A', 'D'], bold says ['A', 'C']. Using line.
+  Q228: Answer mismatch: line says ['A', 'C', 'E'], bold says ['A', 'C', 'D']. Using line.
+  Q229: Answer mismatch: line says ['A', 'C', 'D', 'E'], bold says ['B']. Using line.
+  Q231: Answer mismatch: line says ['C'], bold says ['A', 'B', 'D', 'E']. Using line.
+  Q232: Answer mismatch: line says ['A', 'D', 'E'], bold says ['B', 'C']. Using line.
+  Q239: Answer mismatch: line says ['A', 'B', 'D'], bold says ['A', 'C']. Using line.
+  Q250: Answer mismatch: line says ['B'], bold says ['B', 'E']. Using line.
+  Q298: Answer mismatch: line says ['B', 'D'], bold says ['C']. Using line.
+  Q312: Answer mismatch: line says ['A', 'C'], bold says ['A', 'C', 'D']. Using line.
+  Q342: Answer mismatch: line says ['A'], bold says ['A', 'C', 'D']. Using line.
+  Q344: Answer mismatch: line says ['A', 'B', 'D'], bold says ['A', 'B', 'C']. Using line.
+  Q351: Answer mismatch: line says ['A', 'C', 'D'], bold says ['C', 'D']. Using line.
+  Q357: Answer mismatch: line says ['C', 'D', 'E'], bold says ['D']. Using line.
+  Q378: Answer mismatch: line says ['A', 'B', 'C'], bold says ['B']. Using line.
+  Q379: Answer mismatch: line says ['A', 'C', 'E'], bold says ['A', 'B', 'D', 'E']. Using line.
+  Q381: Answer mismatch: line says ['A', 'B', 'E'], bold says ['B', 'E']. Using line.
+  Q389: Answer mismatch: line says ['B', 'D', 'E'], bold says ['B', 'E']. Using line.
+  Q392: Answer mismatch: line says ['D'], bold says ['A']. Using line.
+  Q399: Answer mismatch: line says ['A', 'C', 'D'], bold says ['A', 'C']. Using line.
+
+--- UNUSUAL PROPOSITION COUNT (>6) (0) ---
