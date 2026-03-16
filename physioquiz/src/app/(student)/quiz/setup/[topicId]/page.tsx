@@ -149,10 +149,10 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
       </p>
 
       {/* Setup card */}
-      <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
+      <div className="mt-6 space-y-6">
         {/* Subtopics toggle */}
         {hasSubtopics && (
-          <label className="mb-6 flex min-h-[44px] cursor-pointer items-center gap-3">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4">
             <input
               type="checkbox"
               checked={includeSubtopics}
@@ -162,80 +162,96 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
               }}
               className="h-5 w-5 rounded-md border-neutral-300 text-primary focus:ring-primary"
             />
-            <span className="text-sm font-medium text-neutral-700">
-              Inclure les sous-chapitres
-            </span>
-            {includeSubtopics && directCount !== totalCount && (
-              <span className="text-xs text-neutral-400">
-                ({totalCount} questions au total)
+            <div>
+              <span className="text-sm font-semibold text-neutral-700">
+                Inclure les sous-chapitres
               </span>
-            )}
+              {includeSubtopics && directCount !== totalCount && (
+                <p className="text-xs text-neutral-400">
+                  {totalCount} questions au total
+                </p>
+              )}
+            </div>
           </label>
         )}
 
         {/* Question count selection */}
-        <p className="mb-3 text-sm font-semibold text-neutral-700">
-          Nombre de questions
-        </p>
-        <div className="flex flex-wrap gap-3">
-          <CountOption
-            label="10"
-            selected={selectedCount === 10}
-            available={availableCount >= 10}
-            onSelect={() => setSelectedCount(selectedCount === 10 ? null : 10)}
-          />
-          <CountOption
-            label="25"
-            selected={selectedCount === 25}
-            available={availableCount >= 25}
-            onSelect={() => setSelectedCount(selectedCount === 25 ? null : 25)}
-          />
-          <CountOption
-            label={`Toutes (${availableCount})`}
-            selected={selectedCount === 'all'}
-            available={availableCount >= 1}
-            onSelect={() =>
-              setSelectedCount(selectedCount === 'all' ? null : 'all')
-            }
-          />
+        <div>
+          <p className="mb-3 text-sm font-semibold text-neutral-700">
+            Nombre de questions
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <CountOption
+              label="10"
+              sublabel="Rapide"
+              selected={selectedCount === 10}
+              available={availableCount >= 10}
+              onSelect={() => setSelectedCount(selectedCount === 10 ? null : 10)}
+            />
+            <CountOption
+              label="25"
+              sublabel="Standard"
+              selected={selectedCount === 25}
+              available={availableCount >= 25}
+              onSelect={() => setSelectedCount(selectedCount === 25 ? null : 25)}
+            />
+            <CountOption
+              label={`${availableCount}`}
+              sublabel="Toutes"
+              selected={selectedCount === 'all'}
+              available={availableCount >= 1}
+              onSelect={() =>
+                setSelectedCount(selectedCount === 'all' ? null : 'all')
+              }
+            />
+          </div>
         </div>
+
+        {/* Exam mode link */}
+        <Link
+          href={`/exam/setup/${topic.id}`}
+          className="flex min-h-[44px] items-center justify-between rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:bg-neutral-50"
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
+              <span className="text-lg text-amber-600">⏱</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-neutral-900">Mode examen blanc</p>
+              <p className="text-xs text-neutral-500">Chronomètre et sans corrections immédiates</p>
+            </div>
+          </div>
+          <span className="text-neutral-400">&rarr;</span>
+        </Link>
 
         {/* Start button */}
         <button
           type="button"
           disabled={selectedCount === null || availableCount === 0 || starting}
           onClick={startSession}
-          className="mt-6 min-h-[44px] w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:bg-neutral-200 disabled:text-neutral-400"
+          className="min-h-[44px] w-full rounded-xl bg-primary px-5 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
         >
           {starting ? 'Préparation...' : 'Démarrer la session'}
         </button>
 
         {availableCount === 0 && (
-          <p role="alert" className="mt-4 text-sm text-warning">
+          <p role="alert" className="text-sm text-warning">
             Aucune question disponible pour ce chapitre.
           </p>
         )}
 
         {error && (
-          <p role="alert" className="mt-4 text-sm text-error">
+          <p role="alert" className="text-sm text-error">
             {error}
           </p>
         )}
       </div>
 
-      {/* Exam mode link */}
-      <Link
-        href={`/exam/setup/${topic.id}`}
-        className="mt-4 flex min-h-[44px] items-center justify-center rounded-lg border border-primary-200 bg-white px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary-50"
-      >
-        Mode examen blanc &rarr;
-      </Link>
-
       {/* Back link */}
       <button
         type="button"
         onClick={() => router.push('/practice')}
-        className="mt-3 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
+        className="mt-4 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
       >
         &larr; Retour aux cours
       </button>
@@ -245,11 +261,13 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
 
 function CountOption({
   label,
+  sublabel,
   selected,
   available,
   onSelect,
 }: {
   label: string;
+  sublabel: string;
   selected: boolean;
   available: boolean;
   onSelect: () => void;
@@ -259,9 +277,10 @@ function CountOption({
       <button
         type="button"
         disabled
-        className="min-h-[44px] rounded-lg border border-neutral-200 bg-neutral-100 px-5 py-2.5 text-sm font-semibold text-neutral-400"
+        className="flex min-h-[44px] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-neutral-100 p-4 text-neutral-400"
       >
-        {label}
+        <span className="text-xl font-bold">{label}</span>
+        <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">{sublabel}</span>
       </button>
     );
   }
@@ -271,13 +290,14 @@ function CountOption({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`min-h-[44px] rounded-lg border-2 px-5 py-2.5 text-sm font-semibold transition-colors ${
+      className={`flex min-h-[44px] flex-col items-center justify-center rounded-xl border-2 p-4 transition-all ${
         selected
-          ? 'border-primary bg-primary-50 text-primary'
-          : 'border-neutral-200 bg-white text-neutral-700 hover:border-primary-200 hover:bg-primary-50'
+          ? 'border-primary bg-primary/5 text-primary'
+          : 'border-neutral-200 bg-white text-neutral-600 hover:border-primary/50'
       }`}
     >
-      {label}
+      <span className="text-xl font-bold">{label}</span>
+      <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">{sublabel}</span>
     </button>
   );
 }

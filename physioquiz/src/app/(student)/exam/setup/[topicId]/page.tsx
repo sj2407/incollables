@@ -149,39 +149,42 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
         {topic.title}
       </p>
 
-      {/* Setup card */}
-      <div className="mt-6 rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
+      {/* Setup */}
+      <div className="mt-6 space-y-6">
         {/* Subtopics toggle */}
         {hasSubtopics && (
-          <label className="mb-6 flex min-h-[44px] cursor-pointer items-center gap-3">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4">
             <input
               type="checkbox"
               checked={includeSubtopics}
               onChange={(e) => setIncludeSubtopics(e.target.checked)}
               className="h-5 w-5 rounded-md border-neutral-300 text-primary focus:ring-primary"
             />
-            <span className="text-sm font-medium text-neutral-700">
-              Inclure les sous-chapitres
-            </span>
-            {includeSubtopics && directCount !== totalCount && (
-              <span className="text-xs text-neutral-400">
-                ({totalCount} questions au total)
+            <div>
+              <span className="text-sm font-semibold text-neutral-700">
+                Inclure les sous-chapitres
               </span>
-            )}
+              {includeSubtopics && directCount !== totalCount && (
+                <p className="text-xs text-neutral-400">
+                  {totalCount} questions au total
+                </p>
+              )}
+            </div>
           </label>
         )}
 
         {/* Exam info summary */}
-        <div className="mb-6 rounded-lg border border-neutral-200 bg-neutral-50 p-4">
-          <div className="flex items-center justify-between">
+        <div className="rounded-xl border border-neutral-200 bg-white p-4">
+          <div className="flex items-center justify-between py-2">
             <span className="text-sm text-neutral-500">Questions</span>
-            <span className="text-sm font-semibold text-neutral-900">
+            <span className="text-sm font-bold text-neutral-900">
               {questionCount} / {availableCount}
             </span>
           </div>
-          <div className="mt-2 flex items-center justify-between">
+          <div className="border-t border-neutral-100" />
+          <div className="flex items-center justify-between py-2">
             <span className="text-sm text-neutral-500">Durée</span>
-            <span className="text-sm font-semibold text-neutral-900">
+            <span className="text-sm font-bold text-neutral-900">
               {durationMin} min
             </span>
           </div>
@@ -192,13 +195,13 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
           type="button"
           disabled={!canStart}
           onClick={startExam}
-          className="min-h-[44px] w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:bg-neutral-200 disabled:text-neutral-400"
+          className="min-h-[44px] w-full rounded-xl bg-primary px-5 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
         >
           {starting ? 'Préparation...' : 'Démarrer l\u2019examen'}
         </button>
 
         {error && (
-          <p role="alert" className="mt-4 text-sm text-error">
+          <p role="alert" className="text-sm text-error">
             {error}
           </p>
         )}
@@ -208,7 +211,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
       <button
         type="button"
         onClick={() => router.push(`/quiz/setup/${topicId}`)}
-        className="mt-3 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
+        className="mt-4 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
       >
         &larr; Mode entraînement
       </button>

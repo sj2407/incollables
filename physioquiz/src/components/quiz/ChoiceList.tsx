@@ -43,36 +43,39 @@ export default memo(function ChoiceList({
   const correctSet = new Set(correctChoiceIds ?? []);
 
   return (
-    <div className="flex flex-col gap-2" role="group" aria-label="Propositions">
+    <div className="flex flex-col gap-3" role="group" aria-label="Propositions">
       {choices.map((choice) => {
         const isSelected = selectedIds.has(choice.id);
         const isCorrect = correctSet.has(choice.id);
 
-        let borderColor = 'border-neutral-200';
+        let borderColor = 'border-neutral-100';
         let bgColor = 'bg-white';
         let animClass = '';
         let icon: React.ReactNode = null;
+        let badgeBg = 'bg-neutral-100 text-neutral-500';
 
         if (isValidated) {
           if (isSelected && isCorrect) {
-            // Correct + checked → green
             borderColor = 'border-secondary-500';
             bgColor = 'bg-secondary-50';
             animClass = 'animate-correct-reveal';
             icon = <CheckIcon className="text-secondary-500" />;
+            badgeBg = 'bg-secondary-500 text-white';
           } else if (isSelected && !isCorrect) {
-            // Incorrect + checked → red
             borderColor = 'border-error';
             bgColor = 'bg-red-50';
             animClass = 'animate-wrong-shake';
             icon = <XIcon className="text-error" />;
+            badgeBg = 'bg-error text-white';
           } else if (!isSelected && isCorrect) {
-            // Correct + not checked → pale green
             borderColor = 'border-secondary-500/50';
             bgColor = 'bg-secondary-50/50';
             animClass = 'animate-correct-reveal';
             icon = <CheckIcon className="text-secondary-500/60" />;
+            badgeBg = 'bg-secondary-100 text-secondary-600';
           }
+        } else if (isSelected) {
+          badgeBg = 'bg-primary text-white';
         }
 
         return (
@@ -82,46 +85,30 @@ export default memo(function ChoiceList({
             onClick={() => onToggle(choice.id)}
             disabled={disabled}
             aria-pressed={isSelected}
-            className={`flex min-h-[44px] items-center gap-3 rounded-lg border-2 px-3 py-3 text-left transition-colors sm:px-4 ${borderColor} ${bgColor} ${animClass} ${
+            className={`flex min-h-[44px] items-center gap-4 rounded-xl border-2 p-4 text-left transition-all ${borderColor} ${bgColor} ${animClass} ${
               !disabled
-                ? isSelected
-                  ? 'border-primary bg-primary-50'
-                  : 'hover:border-primary-200 hover:bg-primary-50/50'
+                ? isSelected && !isValidated
+                  ? 'border-primary bg-primary/5'
+                  : 'hover:border-primary/50 hover:bg-primary/5'
                 : ''
             } ${disabled ? 'cursor-default' : 'cursor-pointer'}`}
           >
-            {/* Checkbox indicator */}
-            <span
-              className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
-                isSelected && !isValidated
-                  ? 'border-primary bg-primary text-white'
-                  : isValidated && icon
-                    ? 'border-transparent'
-                    : 'border-neutral-300'
-              }`}
+            {/* Letter badge */}
+            <div
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors ${badgeBg}`}
             >
-              {isValidated ? (
-                icon
-              ) : isSelected ? (
-                <svg
-                  className="h-3 w-3"
-                  fill="currentColor"
-                  viewBox="0 0 12 12"
-                >
-                  <path d="M10.28 2.28a.75.75 0 0 1 0 1.06l-5.25 5.25a.75.75 0 0 1-1.06 0L1.72 6.34a.75.75 0 1 1 1.06-1.06L4.5 7l4.72-4.72a.75.75 0 0 1 1.06 0z" />
-                </svg>
-              ) : null}
-            </span>
-
-            {/* Label */}
-            <span className="shrink-0 text-sm font-semibold text-neutral-500">
-              {choice.label}.
-            </span>
+              {isValidated && icon ? icon : choice.label}
+            </div>
 
             {/* Text */}
-            <span className="flex-1 text-sm text-neutral-700 sm:text-base">
+            <span className="flex-1 text-sm font-semibold text-neutral-700">
               {choice.choice_text}
             </span>
+
+            {/* Check icon when selected (pre-validation) */}
+            {isSelected && !isValidated && (
+              <CheckIcon className="h-5 w-5 shrink-0 text-primary" />
+            )}
           </button>
         );
       })}

@@ -13,17 +13,17 @@ const options = [
   {
     label: 'Je devine',
     value: CONFIDENCE_VALUES.GUESS,
-    selectedBg: 'bg-warning text-white',
+    icon: '?',
   },
   {
     label: 'Hésitant',
     value: CONFIDENCE_VALUES.HESITANT,
-    selectedBg: 'bg-info text-white',
+    icon: '~',
   },
   {
     label: 'Sûr',
     value: CONFIDENCE_VALUES.SURE,
-    selectedBg: 'bg-secondary-500 text-white',
+    icon: '✓',
   },
 ] as const;
 
@@ -34,10 +34,10 @@ export default memo(function ConfidenceSelector({
 }: ConfidenceSelectorProps) {
   return (
     <div>
-      <p className="mb-2 text-xs font-medium text-neutral-500">
-        Confiance (optionnel) :
+      <p className="mb-3 text-center text-xs font-bold uppercase tracking-widest text-neutral-400">
+        Niveau de confiance
       </p>
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Niveau de confiance">
+      <div className="grid grid-cols-3 gap-3" role="group" aria-label="Niveau de confiance">
         {options.map((opt) => {
           const isSelected = value === opt.value;
           return (
@@ -47,13 +47,18 @@ export default memo(function ConfidenceSelector({
               onClick={() => onChange(opt.value)}
               disabled={disabled}
               aria-pressed={isSelected}
-              className={`min-h-[44px] rounded-lg px-4 py-2 text-sm font-semibold transition-colors ${
+              className={`flex min-h-[44px] flex-col items-center gap-1 rounded-xl border-2 p-3 transition-all ${
                 isSelected
-                  ? opt.selectedBg
-                  : 'text-neutral-500 hover:bg-neutral-100'
+                  ? 'border-primary bg-primary/5 text-primary'
+                  : 'border-neutral-200 text-neutral-500 hover:border-primary/40 hover:bg-primary/5'
               } ${disabled ? 'cursor-default opacity-60' : ''}`}
             >
-              {opt.label}
+              <span className={`text-lg ${isSelected ? 'text-primary' : 'text-neutral-400'}`}>
+                {opt.icon}
+              </span>
+              <span className="text-[10px] font-bold uppercase">
+                {opt.label}
+              </span>
             </button>
           );
         })}

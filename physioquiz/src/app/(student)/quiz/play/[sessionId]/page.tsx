@@ -197,7 +197,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
           type="button"
           onClick={quiz.validateAnswer}
           disabled={quiz.isValidating || !hasSelections}
-          className="mt-6 min-h-[44px] w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97] disabled:bg-neutral-200 disabled:text-neutral-400"
+          className="mt-6 min-h-[44px] w-full rounded-xl bg-primary px-5 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
         >
           {quiz.isValidating ? 'Validation...' : 'Valider ma réponse'}
         </button>
@@ -223,7 +223,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
             <button
               type="button"
               onClick={quiz.nextQuestion}
-              className="mt-4 min-h-[44px] w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97]"
+              className="mt-4 min-h-[44px] w-full rounded-xl bg-primary px-5 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98]"
             >
               Question suivante
             </button>

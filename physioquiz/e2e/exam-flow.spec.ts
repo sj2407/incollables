@@ -66,7 +66,7 @@ test.describe('Exam Flow', () => {
     await page.goto(`/exam/play/${sessionId}`);
 
     // Wait for question to load
-    await page.waitForSelector('text=Question 1/', { timeout: 15_000 });
+    await page.waitForSelector('text=Question 1', { timeout: 15_000 });
 
     // Countdown should be visible (MM:SS format)
     const countdown = page.locator('span[aria-label*="Temps restant"]');
@@ -96,7 +96,7 @@ test.describe('Exam Flow', () => {
   test('T-E4: Select answer + flag + navigate', async ({ page }) => {
     await login(page);
     await page.goto(`/exam/play/${sessionId}`);
-    await page.waitForSelector('text=Question 1/', { timeout: 15_000 });
+    await page.waitForSelector('text=Question 1', { timeout: 15_000 });
 
     // Select a choice
     const firstChoice = page.locator('div[role="group"] button').first();
@@ -113,12 +113,12 @@ test.describe('Exam Flow', () => {
     // Navigate to next question
     const nextBtn = page.locator('button:has-text("Suivante")');
     await nextBtn.click();
-    await page.waitForSelector('text=Question 2/', { timeout: 5_000 });
+    await page.waitForSelector('text=Question 2', { timeout: 5_000 });
 
     // Navigate back
     const prevBtn = page.locator('button:has-text("dente")');
     await prevBtn.click();
-    await page.waitForSelector('text=Question 1/', { timeout: 5_000 });
+    await page.waitForSelector('text=Question 1', { timeout: 5_000 });
 
     // Previous answer should still be selected (persisted)
     const pressed = page.locator('div[role="group"] button[aria-pressed="true"]');
