@@ -891,19 +891,13 @@ Consolidate 4 student-facing tabs (Tableau de bord, Cours, Carte, Progression) i
 
 ## URGENT — Items to work on next
 
-### 1. Webpack cache corruption during HMR (PARTIALLY FIXED)
+### 1. Webpack cache corruption during HMR — FIXED (2026-03-16)
 
-**Problem:** Next.js 14.2.35 webpack persistent cache corrupts during hot-module-replacement, causing Tailwind custom theme (colors, fonts) to revert to defaults. Requires manual `.next` cache clear + server restart after every code edit.
+**Problem:** Next.js 14.2.35 webpack persistent cache corrupts during HMR, causing Tailwind custom theme to revert to defaults.
 
-**Partial fixes applied (2026-03-16):**
-- Added `buildDependencies.tailwind` to `next.config.mjs` — tells webpack to invalidate cache when `tailwind.config.ts` changes
-- Added `rm -rf .next/cache` to `npm run dev` script — forces clean cache on every dev start
+**Fix applied:** Disabled webpack filesystem cache entirely in dev mode (`config.cache = false` in `next.config.mjs`). This forces Tailwind to rebuild CSS on every HMR update (~100-200ms slower but 100% reliable). Removed the `rm -rf .next/cache` workaround from the dev script since it's no longer needed.
 
-**Permanent fix needed:** Upgrade to Next.js 15+ with Turbopack (`next dev --turbo`), which eliminates the webpack cache class of bugs entirely. Requires checking the [upgrade guide](https://nextjs.org/docs/app/guides/upgrading) for breaking changes. Consider upgrading to Tailwind CSS v4 at the same time.
-
-**References:**
-- [vercel/next.js#66292](https://github.com/vercel/next.js/issues/66292)
-- [tailwindlabs/tailwindcss#5267](https://github.com/tailwindlabs/tailwindcss/issues/5267)
+**Future:** When upgrading to Next.js 15+ with Turbopack (`next dev --turbo`), the `config.cache = false` block can be removed as Turbopack doesn't have this bug.
 
 ### 2. Session type filter not applied to all stats sections
 

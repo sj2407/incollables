@@ -3,6 +3,7 @@
 import DOMPurify from 'isomorphic-dompurify';
 import Link from 'next/link';
 import { useState } from 'react';
+import ScoreCircle from '@/components/ui/ScoreCircle';
 
 interface AnswerDetail {
   question_id: string;
@@ -75,9 +76,9 @@ export default function SessionSummary({
           Résultats de la session
         </h1>
 
-        <p className={`mt-4 text-4xl font-bold ${getScoreColor(computedAvgScore)}`}>
-          {computedAvgScore}%
-        </p>
+        <div className="mt-4 flex justify-center">
+          <ScoreCircle score={computedAvgScore} size={96} strokeWidth={4} fontSize={28} />
+        </div>
         <p className="mt-1 text-sm text-neutral-500">
           {correctCount}/{questionCount} correctes
         </p>

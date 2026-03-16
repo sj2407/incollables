@@ -47,10 +47,18 @@ function TreemapCell(props: {
 }) {
   const { x, y, width, height, name, mastery, coverage, depth } = props;
 
-  if (depth !== 1 || width < 4 || height < 4) return null;
+  // Inset each cell by a gap to create padding between blocks
+  const gap = 4;
+  const cx = x + gap;
+  const cy = y + gap;
+  const cw = width - gap * 2;
+  const ch = height - gap * 2;
+
+  if (depth !== 1 || cw < 4 || ch < 4) return null;
 
   const color = getMasteryColor(mastery);
-  const showText = width > 40 && height > 25;
+  const showText = cw > 40 && ch > 35;
+  const showBar = cw > 50 && ch > 55;
 
   // Use dark text on light backgrounds for contrast
   const needsDarkText = mastery !== null && mastery >= 60 && mastery < 90;
@@ -58,32 +66,33 @@ function TreemapCell(props: {
   const subTextColor = needsDarkText ? 'rgba(31,41,55,0.75)' : 'rgba(255,255,255,0.85)';
 
   const masteryText = mastery !== null && mastery >= 0 ? `${Math.round(mastery)}%` : '—';
-  const tooltipText = `${name}\nMaîtrise : ${masteryText}\nCouverture : ${Math.round(coverage)}%`;
+  const tooltipText = `${name}\nScore : ${masteryText}\nCouverture : ${Math.round(coverage)}%`;
+
+  const barTrackColor = needsDarkText ? 'rgba(31,41,55,0.15)' : 'rgba(255,255,255,0.3)';
+  const barFillColor = needsDarkText ? 'rgba(31,41,55,0.5)' : 'rgba(255,255,255,0.8)';
 
   return (
     <g>
       <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={4}
+        x={cx}
+        y={cy}
+        width={cw}
+        height={ch}
+        rx={12}
         fill={color}
-        stroke="#fff"
-        strokeWidth={2}
+        stroke="none"
         style={{ cursor: 'pointer' }}
       >
         <title>{tooltipText}</title>
       </rect>
       {showText && (
-        <foreignObject x={x + 4} y={y + 4} width={width - 8} height={height - 8} style={{ pointerEvents: 'none' }}>
+        <foreignObject x={cx + 8} y={cy + 6} width={cw - 16} height={ch - 12} style={{ pointerEvents: 'none' }}>
           <div
             style={{
               width: '100%',
               height: '100%',
               display: 'flex',
               flexDirection: 'column',
-              alignItems: 'center',
               justifyContent: 'center',
               overflow: 'hidden',
               padding: '2px',
@@ -95,7 +104,6 @@ function TreemapCell(props: {
                 fontWeight: 600,
                 color: textColor,
                 wordBreak: 'break-word',
-                textAlign: 'center',
                 lineHeight: 1.2,
                 display: '-webkit-box',
                 WebkitLineClamp: 2,
@@ -107,23 +115,36 @@ function TreemapCell(props: {
             </span>
             <span
               style={{
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: 700,
                 color: subTextColor,
-                marginTop: 2,
+                marginTop: 3,
               }}
             >
               {masteryText}
             </span>
-            <span
-              style={{
-                fontSize: 9,
-                color: subTextColor,
-                marginTop: 1,
-              }}
-            >
-              Couv. {Math.round(coverage)}%
-            </span>
+            {showBar && (
+              <div
+                style={{
+                  marginTop: 6,
+                  width: '100%',
+                  maxWidth: 80,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor: barTrackColor,
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${Math.round(coverage)}%`,
+                    height: '100%',
+                    borderRadius: 2,
+                    backgroundColor: barFillColor,
+                  }}
+                />
+              </div>
+            )}
           </div>
         </foreignObject>
       )}
@@ -294,10 +315,11 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
     );
   }
 
+  // Use log scale so a topic with 200 questions isn't 200x bigger than one with 1
   const treemapData = data.map((node) => ({
     name: node.name,
     topic_id: node.topic_id,
-    size: Math.max(node.size, 1),
+    size: Math.log2(Math.max(node.size, 1) + 1),
     mastery: node.mastery,
     coverage: node.coverage,
     color: getMasteryColor(node.mastery),
@@ -353,7 +375,7 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
             data={treemapData}
             dataKey="size"
             aspectRatio={4 / 3}
-            stroke="#fff"
+            stroke="none"
             content={<TreemapCell x={0} y={0} width={0} height={0} name="" mastery={null} coverage={0} topic_id="" depth={0} index={0} />}
             onClick={handleTreemapClick}
           />

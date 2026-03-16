@@ -4,6 +4,7 @@ import type { ExamQuestionResult, ExamResults as ExamResultsType } from '@/hooks
 import DOMPurify from 'isomorphic-dompurify';
 import Link from 'next/link';
 import { useState } from 'react';
+import ScoreCircle from '@/components/ui/ScoreCircle';
 
 interface ExamResultsProps {
   results: ExamResultsType;
@@ -45,9 +46,9 @@ export default function ExamResultsView({ results, topicId }: ExamResultsProps) 
         <h1 className="mb-2 text-lg font-bold text-neutral-900 sm:text-xl">
           Résultat de l&apos;examen blanc
         </h1>
-        <p className={`text-4xl font-extrabold ${scoreColor}`}>
-          {Math.round(score_percent)}%
-        </p>
+        <div className="flex justify-center">
+          <ScoreCircle score={score_percent} size={96} strokeWidth={4} fontSize={28} />
+        </div>
         <p className="mt-1 text-sm text-neutral-500">
           {correct_count}/{question_count} correctes
         </p>

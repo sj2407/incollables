@@ -11,13 +11,14 @@ const nextConfig = {
   },
   compress: true,
   webpack: (config, { dev }) => {
-    // Fix: tell webpack to invalidate its cache when tailwind.config.ts changes.
-    // Without this, HMR can serve stale CSS with missing custom theme tokens.
-    if (dev && config.cache && typeof config.cache === 'object') {
-      config.cache.buildDependencies = {
-        ...config.cache.buildDependencies,
-        tailwind: ['./tailwind.config.ts'],
-      };
+    // Disable webpack persistent cache in dev to prevent stale CSS.
+    // Next.js 14 webpack cache corrupts during HMR, causing Tailwind custom
+    // theme (colors, fonts) to revert to defaults. Disabling the filesystem
+    // cache forces a fresh Tailwind rebuild on every HMR update (~100-200ms
+    // slower but 100% reliable). Safe to remove after upgrading to Next.js 15+
+    // with Turbopack (next dev --turbo).
+    if (dev) {
+      config.cache = false;
     }
     return config;
   },

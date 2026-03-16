@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 import { MetricCard, ChartIcon, SessionsIcon, TimerIcon, FlaskIcon } from '@/components/stats/MetricCards';
 import { WeakQuestionsSection, type WeakQuestion } from '@/components/stats/WeakQuestions';
 import type { HeatmapNode } from '@/components/stats/Heatmap';
+import ScoreCircle from '@/components/ui/ScoreCircle';
 
 const ProgressChart = dynamic(() => import('@/components/stats/ProgressChart'), { ssr: false });
 const CalibrationChart = dynamic(() => import('@/components/stats/CalibrationChart'), { ssr: false });
@@ -497,13 +498,11 @@ export default function StatsPage() {
             </div>
             <div className="mt-3 flex flex-col gap-2">
               {visibleSessions.map((s) => {
-                const scoreColor =
-                  s.score_percent >= 75 ? 'text-secondary-500' : s.score_percent >= 40 ? 'text-warning' : 'text-error';
                 return (
                   <Link
                     key={s.id}
                     href={s.session_type === 'exam' ? `/exam/results/${s.id}` : `/quiz/results/${s.id}`}
-                    className="flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-3 shadow-md transition-colors hover:bg-neutral-50 sm:p-4"
+                    className="flex items-center justify-between rounded-xl border border-neutral-200 border-l-4 border-l-primary bg-white p-3 shadow-md transition-colors hover:bg-neutral-50 sm:p-4"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium text-neutral-700">
@@ -513,9 +512,9 @@ export default function StatsPage() {
                         {s.question_count} questions · {s.session_type === 'exam' ? 'Examen' : 'Entraînement'} · {formatDate(s.completed_at)}
                       </p>
                     </div>
-                    <span className={`shrink-0 text-sm font-bold ${scoreColor}`}>
-                      {s.score_percent}%
-                    </span>
+                    <div className="shrink-0">
+                      <ScoreCircle score={s.score_percent} size={40} strokeWidth={2.5} fontSize={11} />
+                    </div>
                   </Link>
                 );
               })}

@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useMemo } from 'react';
+import ScoreCircle from '@/components/ui/ScoreCircle';
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -221,12 +222,10 @@ export default memo(function CalibrationChart({
           </p>
           <div className="mt-2 max-h-[300px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
             <div className="flex flex-col gap-1.5 p-2">
-              {falseCertainties.map((fc) => {
-                const scoreColor = fc.score_percent >= 40 ? 'text-warning' : 'text-error';
-                return (
+              {falseCertainties.map((fc) => (
                   <div
                     key={fc.question_id}
-                    className="flex items-start justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-2.5"
+                    className="flex items-center gap-3 rounded-lg border-l-4 border-l-warning border border-neutral-200 bg-white p-2.5"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-neutral-700 line-clamp-1">
@@ -237,12 +236,11 @@ export default memo(function CalibrationChart({
                         {fc.topic_title}
                       </p>
                     </div>
-                    <span className={`shrink-0 text-sm font-bold ${scoreColor}`}>
-                      {fc.score_percent}%
-                    </span>
+                    <div className="shrink-0">
+                      <ScoreCircle score={fc.score_percent} size={40} strokeWidth={2.5} fontSize={11} />
+                    </div>
                   </div>
-                );
-              })}
+              ))}
             </div>
           </div>
         </div>

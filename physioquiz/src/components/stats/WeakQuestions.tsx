@@ -1,5 +1,7 @@
 'use client';
 
+import ScoreCircle from '@/components/ui/ScoreCircle';
+
 export interface WeakQuestion {
   question_id: string;
   question_text: string;
@@ -30,14 +32,9 @@ export function WeakQuestionsSection({ questions }: { questions: WeakQuestion[] 
 }
 
 function WeakQuestionCard({ question }: { question: WeakQuestion }) {
-  const scoreColor =
-    question.avg_score >= 40
-      ? 'text-warning'
-      : 'text-error';
-
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-3 shadow-sm sm:p-4">
-      <div className="flex items-start gap-3">
+    <div className="rounded-xl border border-neutral-200 border-l-4 border-l-error bg-white p-3 shadow-sm sm:p-4">
+      <div className="flex items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-neutral-700">
             {question.question_number ? `Q${question.question_number}. ` : ''}
@@ -47,9 +44,9 @@ function WeakQuestionCard({ question }: { question: WeakQuestion }) {
             {question.topic_title} · {question.attempt_count} session{question.attempt_count > 1 ? 's' : ''}
           </p>
         </div>
-        <span className={`shrink-0 text-sm font-bold ${scoreColor}`}>
-          {question.avg_score}%
-        </span>
+        <div className="shrink-0">
+          <ScoreCircle score={question.avg_score} size={40} strokeWidth={2.5} fontSize={11} />
+        </div>
       </div>
     </div>
   );
