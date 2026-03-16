@@ -3,13 +3,13 @@ import { test, expect, type Page } from '@playwright/test';
 const TEST_EMAIL = 'teste2e@gmail.com';
 const TEST_PASSWORD = 'TestPass123';
 
-// Helper: login and wait for dashboard
+// Helper: login and wait for practice page
 async function login(page: Page) {
   await page.goto('/login');
   await page.fill('#email', TEST_EMAIL);
   await page.fill('#password', TEST_PASSWORD);
   await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.waitForURL('**/practice', { timeout: 10_000 });
 }
 
 test.describe('Exam Flow', () => {
@@ -21,8 +21,8 @@ test.describe('Exam Flow', () => {
   test('T-E1: Login + navigate to exam setup', async ({ page }) => {
     await login(page);
 
-    // Go to topics to get a topicId
-    await page.goto('/topics');
+    // Go to practice to get a topicId
+    await page.goto('/practice');
     await page.waitForSelector('h1', { timeout: 10_000 });
 
     // Click on first topic that has questions
@@ -37,36 +37,20 @@ test.describe('Exam Flow', () => {
 
     const heading = await page.textContent('h1');
     expect(heading).toContain('Examen blanc');
-
-    // Check warning is visible
-    const warning = page.locator('text=Correction');
-    await expect(warning).toBeVisible();
   });
 
-  test('T-E2: Configure and start exam', async ({ page }) => {
+  test('T-E2: See exam info and start exam', async ({ page }) => {
     await login(page);
     await page.goto(`/exam/setup/${topicId}`);
     await page.waitForSelector('h1', { timeout: 10_000 });
 
-    // Select 20 questions (or first available option)
-    const countButton = page.locator('button[aria-pressed]').first();
-    if (await countButton.isVisible()) {
-      // Click the "20" button if available, otherwise click first available
-      const btn20 = page.locator('button:has-text("20"):not([disabled])');
-      if (await btn20.isVisible()) {
-        await btn20.click();
-      } else {
-        // Click "Toutes" if 20 isn't available
-        const btnAll = page.locator('button:has-text("Toutes"):not([disabled])');
-        await btnAll.click();
-      }
-    }
+    // Exam info summary should show auto-computed values
+    const questionsInfo = page.getByText('Questions', { exact: true });
+    await expect(questionsInfo).toBeVisible();
+    const durationInfo = page.getByText('Durée', { exact: true });
+    await expect(durationInfo).toBeVisible();
 
-    // Select 30 min duration
-    const btn30 = page.locator('button:has-text("30 min")');
-    await btn30.click();
-
-    // Start exam
+    // Start exam — button should be enabled immediately (no user selection needed)
     const startButton = page.locator('button:has-text("marrer")');
     await expect(startButton).toBeEnabled({ timeout: 5_000 });
     await startButton.click();

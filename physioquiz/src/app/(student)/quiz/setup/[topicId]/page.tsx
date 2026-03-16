@@ -234,7 +234,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
       {/* Back link */}
       <button
         type="button"
-        onClick={() => router.push('/topics')}
+        onClick={() => router.push('/practice')}
         className="mt-3 min-h-[44px] text-sm font-medium text-primary-500 hover:text-primary-600"
       >
         &larr; Retour aux cours

@@ -55,7 +55,7 @@ export async function updateSession(request: NextRequest) {
   // If authenticated and on auth route, redirect to dashboard
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
+    url.pathname = '/practice';
     return NextResponse.redirect(url);
   }
 
@@ -69,7 +69,7 @@ export async function updateSession(request: NextRequest) {
 
     if (profile?.role !== 'admin') {
       const url = request.nextUrl.clone();
-      url.pathname = '/dashboard';
+      url.pathname = '/practice';
       return NextResponse.redirect(url);
     }
   }

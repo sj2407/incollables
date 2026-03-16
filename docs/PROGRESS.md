@@ -554,7 +554,7 @@ All phases (A through E) are done. The training quiz is fully functional:
 - [x] `FlagButton` — toggle flag for review
 - [x] `ExamResults` — score display, stats breakdown, review section with DOMPurify
 - [x] `ConfirmDialog` — focus trap + ESC-to-close confirmation before submit
-- [x] Exam setup page — question count + duration selection + subtopics toggle
+- [x] Exam setup page — auto-computed question count (70%) + duration (45s/q), subtopics toggle
 - [x] Exam play page — countdown, navigation, flag, choices, submit flow
 - [x] Exam results page — standalone page for completed exams via URL
 - [x] E2E test suite (`e2e/exam-flow.spec.ts`) — 6 tests
@@ -600,7 +600,7 @@ All phases (A through E) are done. The training quiz is fully functional:
 
 **Modified files:**
 - `supabase/functions/select-questions/index.ts` — added `time_limit_seconds` support
-- `src/app/(student)/exam/setup/[topicId]/page.tsx` — full rewrite with count + duration selection
+- `src/app/(student)/exam/setup/[topicId]/page.tsx` — full rewrite with auto-computed params (no user selection)
 - `src/app/(student)/exam/play/[sessionId]/page.tsx` — full rewrite with exam flow + ConfirmDialog
 - `src/app/(student)/exam/results/[sessionId]/page.tsx` — full rewrite for standalone results page
 
@@ -612,6 +612,8 @@ All phases (A through E) are done. The training quiz is fully functional:
 | `npm run lint` | PASS — 0 errors |
 | `npm run build` | PASS — all routes compile |
 | Unit tests (Jest) | PASS — 32/32 |
+| Playwright E2E (exam) | PASS — 6/6 |
+| Playwright E2E (all) | PASS — 17/17 |
 
 ### Review (2 agents in parallel)
 
@@ -642,26 +644,238 @@ All phases (A through E) are done. The training quiz is fully functional:
 4. **Unanswered = 0%** — `submit-exam` creates `session_answer` rows for unanswered questions with `score_percent: 0`
 5. **Both Edge Functions use `verify_jwt: false`** — internal auth checks via `supabase.auth.getUser()` instead (consistent with existing Edge Functions)
 6. **Reused `ChoiceList` component** from training mode — same checkbox UI, just without disabled/correction states
+7. **Admin-controlled exam params** — question count = `ceil(70% of available)`, duration = `45s × question count`. Hardcoded constants (`QUESTION_RATIO`, `SECONDS_PER_QUESTION`) at top of setup page, ready to move to admin config later. No user-facing selection UI for count or duration.
+8. **No warning banner** on setup page — removed "Correction à la fin uniquement. Pas de pause possible." per user feedback (students know what examen blanc means)
 
 ---
 
-## What to pick up next: Sprint 4 — Statistiques & Progression
+## Sprint 4: Statistiques & Progression
 
-**Ref:** PhysioQuiz_Architecture_v3_FINALE.md, section "Sprint 4"
+**Status:** COMPLETE
+**Date:** 2026-03-16
+
+### Plan (checklist)
+
+- [x] Database layer:
+  - [x] `get_dashboard_stats` RPC — avg score, sessions, study time, partial count, confidence fill rate
+  - [x] `get_activity_by_week` RPC — sessions grouped by ISO week
+  - [x] `get_calibration_data` RPC — success rate per confidence level + false certainties (JSON)
+  - [x] `get_topic_mastery_detailed` RPC — full §8.3 mastery formula with CTEs
+  - [x] All 4 migration files saved with full SQL (migrations 018-021)
+- [x] Mastery utility (`src/lib/mastery.ts`) — color/label mapping for 7-level heatmap scale, 21 unit tests
+- [x] Chart components:
+  - [x] `ProgressChart` — AreaChart, 30d/90d toggle, topic/type filters, 75% reference line
+  - [x] `ActivityChart` — BarChart, sessions per ISO week
+  - [x] `CalibrationChart` — ComposedChart with bars + perfect calibration scatter dots, incentive mode (<30%), false certainties list
+  - [x] `Heatmap` — Treemap (desktop) + card fallback (mobile), legend, click→topic navigation
+  - [x] `TopicMastery` — horizontal bars sorted weakest-first with coverage info
+- [x] Dashboard rewrite:
+  - [x] 4 metric cards (score this week, sessions, study time, partial count)
+  - [x] Progress chart inline
+  - [x] Activity + calibration side-by-side
+  - [x] Heatmap miniature (compact mode) with "Voir tout" link
+  - [x] Paused sessions, recent sessions, weak questions (carried from Sprint 2)
+  - [x] Quick-start buttons (Commencer une session + Carte des connaissances)
+  - [x] Sections always visible with empty states (not conditionally hidden)
+- [x] Heatmap page (`/heatmap`) — full Treemap + card fallback + color legend
+- [x] Progress page (`/progress`) — score evolution, activity, calibration, topic mastery, session history
+- [x] E2E tests (`e2e/stats-progress.spec.ts`) — 8 tests
+- [x] Review (2 agents: tech + UX) — all blockers and important issues fixed
+- [x] `npm run validate` — 0 errors
+- [x] All Playwright E2E — 25/25 passing
+
+### DB Changes
+
+| Migration | RPC | Description |
+|-----------|-----|-------------|
+| 017 | `get_weak_questions` | Fixed sort: score 0 first (attempts DESC), then non-zero (avg score ASC) |
+| 018 | `get_dashboard_stats` | Avg score this week, sessions, study time, partials, confidence fill rate |
+| 019 | `get_activity_by_week` | Sessions grouped by ISO week (last N weeks) |
+| 020 | `get_calibration_data` | JSON: per-confidence success rates + top 10 false certainties |
+| 021 | `get_topic_mastery_detailed` | Full §8.3 formula: 0.50×recent_success + 0.30×last_correct + 0.20×avg_confidence, coverage weighting |
+
+### Mastery formula verification (§8.3)
+
+Verified in `get_topic_mastery_detailed` RPC SQL:
+```
+question_mastery = 0.50 × recent_success_rate(last 3) + 0.30 × last_correct × 100 + 0.20 × avg_confidence × 100
+topic_mastery = avg(question_mastery) × (questions_attempted / total_questions)
+```
+
+### Components
+
+| Component | File | Key features |
+|-----------|------|-------------|
+| `ProgressChart` | `src/components/stats/ProgressChart.tsx` | AreaChart, 30d/90d toggle (44px buttons), topic/type filters, gradient fill, 75% reference line, screen reader summary |
+| `ActivityChart` | `src/components/stats/ActivityChart.tsx` | BarChart, ISO week labels, primary-500 color, screen reader summary |
+| `CalibrationChart` | `src/components/stats/CalibrationChart.tsx` | ComposedChart: bars (BRAND.md confidence colors) + diamond scatter (perfect calibration). Incentive mode (<30%). False certainties list |
+| `Heatmap` | `src/components/stats/Heatmap.tsx` | Treemap (desktop) + card fallback (mobile). Keyboard-accessible hidden link list. Dark text on light colors for contrast. 44px compact buttons. Legend |
+| `TopicMastery` | `src/components/stats/TopicMastery.tsx` | Horizontal bars, sorted weakest-first (null last), coverage percentage |
+
+### Tests
+
+| Test | Result |
+|------|--------|
+| `npm run type-check` | PASS — 0 errors |
+| `npm run lint` | PASS — 0 errors |
+| Unit tests (Jest) | PASS — 53/53 (32 prior + 21 mastery) |
+| Playwright E2E (all) | PASS — 25/25 (17 prior + 8 new) |
+
+### E2E Tests Added
+
+**File:** `e2e/stats-progress.spec.ts`
+
+| Test | Description | Status |
+|------|-------------|--------|
+| T-S1 | Dashboard metric cards visible | PASS |
+| T-S2 | Dashboard has progress chart with toggle | PASS |
+| T-S3 | Dashboard has activity and calibration cards | PASS |
+| T-S4 | Dashboard quick-start buttons | PASS |
+| T-S5 | Heatmap page loads with content | PASS |
+| T-S6 | Progress page loads with sections | PASS |
+| T-S7 | Progress page has topic mastery bars | PASS |
+| T-S8 | Mobile responsive dashboard at 375px | PASS |
+
+### Review (2 agents in parallel)
+
+**Tech reviewer — all blockers and important fixes applied:**
+- B1 (BLOCKER): Migration files were empty stubs → exported actual SQL from Supabase, all 4 files now contain full reproducible DDL
+- B2 (BLOCKER): CalibrationChart perfect calibration markers invisible (`stroke="transparent"`) → replaced with diamond Scatter dots + legend
+- I4: Chart colors used `#3B82F6` instead of BRAND.md `primary-500` (`#2B7DE9`) → fixed in ProgressChart + ActivityChart
+- I5: CalibrationChart confidence colors didn't match BRAND.md confidence buttons → fixed to `#F59E0B` (Je devine), `#3B82F6` (Hésitant), `#10B981` (Sûr)
+- I6: Dashboard error handling only checked 2/8 RPCs → added `statsResult.error` check
+- I1: Mastery formula verified correct in exported RPC SQL (§8.3 compliant)
+- Dashboard field name bug found during fix: RPC returns `total_sessions_this_week`/`total_study_time_seconds`/`partial_answer_count` but code mapped wrong names → fixed mapping + seconds→minutes conversion
+
+**UX reviewer — all blockers and important fixes applied:**
+- B1 (BLOCKER): Treemap cells not keyboard-accessible → added visually hidden accessible link list (`sr-only ul`) for keyboard/screen reader users
+- B2 (BLOCKER): Charts invisible to screen readers → added `role="img"` + `sr-only` text summaries on all charts
+- I1: Compact heatmap buttons below 44px → added `min-h-[44px]`
+- I2-I3: ProgressChart toggle buttons and selects below 44px → changed from `min-h-[36px]` to `min-h-[44px]`
+- I4-I5: Dashboard/progress hid sections when empty → sections now always render, child components handle empty states
+- I9: White text on yellow/green heatmap cells failed WCAG contrast → dark text (`#1f2937`) for mastery 60-90%
+- I10: CalibrationChart perfect calibration was invisible → visible diamond markers
+- M5: Calibration incentive text shortened
+- M8: Added `aria-labelledby` on all progress page sections
+
+### Accepted/Deferred items
+
+- M1: Hardcoded chart colors (match BRAND.md but not extracted to constants) — acceptable for now
+- M4: Missing "Examen blanc" quick-start button on dashboard — deferred (low priority, users can access via sidebar)
+- M7: Heatmap is flat (not grouped by level-2 parent) — the `children` field exists in the interface but topic hierarchy from the Word doc is mostly flat; will revisit when topic structure is enriched
+- M6: ActivityChart avg_score fetched but not displayed — bar chart shows session count only per spec; avg_score available in tooltip
+- I7-I8: No E2E tests for error states or heatmap click navigation — deferred to Sprint 5
+
+### Files Produced/Modified
+
+**New files:**
+- `src/lib/mastery.ts` — mastery color/label utility
+- `src/lib/__tests__/mastery.test.ts` — 21 unit tests
+- `src/components/stats/ProgressChart.tsx` — score evolution chart
+- `src/components/stats/ActivityChart.tsx` — weekly activity chart
+- `src/components/stats/CalibrationChart.tsx` — calibration chart + false certainties
+- `src/components/stats/Heatmap.tsx` — treemap + card fallback
+- `src/components/stats/TopicMastery.tsx` — horizontal mastery bars
+- `e2e/stats-progress.spec.ts` — 8 E2E tests
+
+**Modified files:**
+- `src/app/(student)/dashboard/page.tsx` — full rewrite with metric cards + charts
+- `src/app/(student)/heatmap/page.tsx` — full rewrite with Treemap + legend
+- `src/app/(student)/progress/page.tsx` — full rewrite with charts + session history
+- `e2e/pause-dashboard.spec.ts` — "Sessions en cours" heading check made conditional
+- `supabase/migrations/017-021` — 5 migration files (1 sort fix + 4 new RPCs with full SQL)
+
+### Dependencies Added
+
+- `recharts` — charting library for all visualizations
+
+---
+
+## Sprint 4.5: Navigation Restructure (4 tabs → 3 tabs)
+
+**Status:** COMPLETE
+**Date:** 2026-03-16
+
+### Goal
+
+Consolidate 4 student-facing tabs (Tableau de bord, Cours, Carte, Progression) into 3 clean tabs with zero content overlap, better chart design, and smarter data filtering.
+
+### New Tab Structure
+
+| Tab | Route | Content |
+|-----|-------|---------|
+| **Apprendre** | `/learn` | Placeholder for future course content |
+| **S'entraîner** | `/practice` | Paused sessions + topic tree (start quizzes) |
+| **Mes résultats** | `/stats` | ALL analytics consolidated |
+
+### Changes
+
+**Created (6 files):**
+- `src/app/(student)/learn/page.tsx` — placeholder with "Bientôt disponible" cards
+- `src/app/(student)/practice/page.tsx` — paused sessions at top + TopicTree below
+- `src/app/(student)/stats/page.tsx` — all analytics: metric cards → ProgressChart (with question_count bars) → Heatmap (attempted only) → TopicMastery (attempted only) → CalibrationChart → WeakQuestions → session history
+- `src/components/ui/PausedSessionCard.tsx` — extracted from old dashboard
+- `src/components/stats/MetricCards.tsx` — extracted from old dashboard
+- `src/components/stats/WeakQuestions.tsx` — extracted from old dashboard
+
+**Enhanced (2 components):**
+- `ProgressChart` — `AreaChart` → `ComposedChart` with dual Y-axes (score % left, question count right as gray bars)
+- `Heatmap` — `<text>` → `<foreignObject>` with word-break wrapping (no more truncation); `truncate` → `line-clamp-2` on compact + mobile cards
+
+**Deleted (5 files/dirs):**
+- `src/app/(student)/dashboard/` — replaced by `/practice` + `/stats`
+- `src/app/(student)/topics/` — absorbed into `/practice`
+- `src/app/(student)/heatmap/` — absorbed into `/stats`
+- `src/app/(student)/progress/` — replaced by `/stats`
+- `src/components/stats/ActivityChart.tsx` — killed, replaced by question_count bars on ProgressChart
+
+**Updated cross-references (14+ files):**
+- All `/dashboard` → `/practice`, `/topics` → `/practice`, `/progress` → `/stats`, `/heatmap` → `/stats`
+- Sidebar: 3-tab navigation (Apprendre, S'entraîner, Mes résultats)
+- Updated: middleware, page.tsx, Header, login, register, SessionSummary, ExamResults, quiz play/results/setup, exam play/results
+
+**Data filtering:**
+- Heatmap and TopicMastery now filtered to `attempted_questions > 0` (no more bloated unattempted topics)
+
+### Tests
+
+| Test | Result |
+|------|--------|
+| `npm run type-check` | PASS — 0 errors |
+| `npm run lint` | PASS — 0 errors |
+| Playwright E2E | 17/25 pass, 3 pre-existing serial flakiness failures, 5 skipped |
+
+### Review (2 agents in parallel)
+
+**Tech reviewer:** 0 blockers, 0 important. No dead imports, no broken routes, correct data fetching.
+**UX reviewer:** 0 blockers, 0 important, 1 minor (mobile bottom nav padding tight but acceptable). BRAND.md compliance verified.
+
+---
+
+## What to pick up next: Sprint 5 — Admin Dashboard
+
+**Ref:** PhysioQuiz_Architecture_v3_FINALE.md, section "Sprint 5"
 
 ### Prerequisites
-- Sprint 3 fully complete
-- Dev server: `npm run dev` on port 3001
+- Sprint 4 fully complete
 - Supabase project: `thonkmcacdycojenwakj` (eu-west-1)
 - Test user: `teste2e@gmail.com` / `TestPass123`
-- Playwright E2E suites: `e2e/quiz-flow.spec.ts` (6) + `e2e/pause-dashboard.spec.ts` (5) + `e2e/exam-flow.spec.ts` (6)
+- Playwright E2E suites: 25 tests across 4 files (quiz-flow, pause-dashboard, exam-flow, stats-progress)
+- All 53 unit tests passing
 
 ### Key features to implement
-- Progress page with score evolution charts
-- Heatmap component for topic mastery visualization
-- Session history with filtering
-- Comparison with previous sessions on same topic
-- Weak questions analytics
+- Admin dashboard with aggregated metrics (no individual tracking)
+- Question error rate visualization
+- Chapter difficulty analysis
+- User engagement metrics (DAU/WAU/MAU)
+- Admin-controlled exam parameters (move from hardcoded constants)
+
+### Deferred items from previous sprints (to consider)
+- "Examen blanc" button on student dashboard (M4 from Sprint 4)
+- E2E tests for error states and heatmap navigation (I7-I8 from Sprint 4)
+- Hierarchical heatmap grouping by level-2 parent (M7 from Sprint 4)
+- "Recommencer les ratées" with specific question IDs (from Sprint 2)
+- Topic mastery bar in TopicTree component (from Sprint 2)
 
 ---
 

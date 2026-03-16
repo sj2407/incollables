@@ -90,10 +90,10 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
           {exam.error}
         </p>
         <Link
-          href="/dashboard"
+          href="/practice"
           className="mt-3 inline-block min-h-[44px] text-sm font-medium text-primary-500 hover:text-primary-600"
         >
-          &larr; Retour au tableau de bord
+          &larr; Retour
         </Link>
       </div>
     );
@@ -124,7 +124,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
 
   return (
     <div className="mx-auto max-w-2xl">
-      {/* Header: countdown + submit */}
+      {/* Header: countdown */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {exam.startedAt && exam.timeLimitSeconds && (
@@ -136,14 +136,6 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
             />
           )}
         </div>
-        <button
-          type="button"
-          onClick={() => setShowConfirmDialog(true)}
-          aria-label="Terminer et soumettre l'examen"
-          className="min-h-[44px] rounded-lg border border-primary-200 bg-white px-4 py-2 text-sm font-semibold text-primary-500 transition-colors hover:bg-primary-50"
-        >
-          Terminer l&apos;examen
-        </button>
       </div>
 
       {/* Time warning toast */}
@@ -195,19 +187,29 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
           >
             &larr; Pr&eacute;c&eacute;dente
           </button>
-          <button
-            type="button"
-            disabled={exam.currentIndex >= exam.questions.length - 1}
-            onClick={exam.nextQuestion}
-            aria-label="Question suivante"
-            className="min-h-[44px] rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:bg-neutral-200 disabled:text-neutral-400"
-          >
-            Suivante &rarr;
-          </button>
+          {exam.currentIndex >= exam.questions.length - 1 ? (
+            <button
+              type="button"
+              onClick={() => setShowConfirmDialog(true)}
+              aria-label="Terminer et soumettre l'examen"
+              className="min-h-[44px] rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+            >
+              Terminer l&apos;examen
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={exam.nextQuestion}
+              aria-label="Question suivante"
+              className="min-h-[44px] rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+            >
+              Suivante &rarr;
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Navigator grid */}
+      {/* Navigator grid + submit */}
       <div className="mt-4">
         <ExamNavigator
           totalQuestions={exam.questions.length}
@@ -216,6 +218,15 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
           flaggedIndices={flaggedIndices}
           onGoTo={exam.goToQuestion}
         />
+        {exam.currentIndex < exam.questions.length - 1 && (
+          <button
+            type="button"
+            onClick={() => setShowConfirmDialog(true)}
+            className="mt-3 min-h-[44px] w-full rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50"
+          >
+            Terminer l&apos;examen
+          </button>
+        )}
       </div>
 
       {/* Confirmation dialog with focus trap + ESC */}

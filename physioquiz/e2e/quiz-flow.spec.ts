@@ -3,13 +3,13 @@ import { test, expect, type Page } from '@playwright/test';
 const TEST_EMAIL = 'teste2e@gmail.com';
 const TEST_PASSWORD = 'TestPass123';
 
-// Helper: login and wait for dashboard
+// Helper: login and wait for practice page
 async function login(page: Page) {
   await page.goto('/login');
   await page.fill('#email', TEST_EMAIL);
   await page.fill('#password', TEST_PASSWORD);
   await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.waitForURL('**/practice', { timeout: 10_000 });
 }
 
 test.describe('Full Quiz Flow', () => {
@@ -22,10 +22,10 @@ test.describe('Full Quiz Flow', () => {
   test('T-C4: Login + Topics page', async ({ page }) => {
     // Login
     await login(page);
-    expect(page.url()).toContain('/dashboard');
+    expect(page.url()).toContain('/practice');
 
-    // Navigate to topics
-    await page.goto('/topics');
+    // Navigate to practice (topic tree)
+    await page.goto('/practice');
     await page.waitForSelector('h1', { timeout: 10_000 });
 
     // Wait for topics to load
@@ -55,8 +55,8 @@ test.describe('Full Quiz Flow', () => {
     await login(page);
 
     if (!topicId) {
-      // Fallback: find topic from topics page
-      await page.goto('/topics');
+      // Fallback: find topic from practice page
+      await page.goto('/practice');
       await page.waitForFunction(() => !document.querySelector('.animate-pulse'), { timeout: 10_000 });
       const link = page.locator('a[href*="/quiz/setup/"]:not(.pointer-events-none)').first();
       topicId = (await link.getAttribute('href'))!.split('/quiz/setup/')[1];
@@ -265,12 +265,12 @@ test.describe('Full Quiz Flow', () => {
     await page.setViewportSize({ width: 375, height: 667 });
     await login(page);
 
-    // Topics page
-    await page.goto('/topics');
+    // Practice page (topics)
+    await page.goto('/practice');
     await page.waitForFunction(() => !document.querySelector('.animate-pulse'), { timeout: 10_000 });
     const bodyWidth = await page.evaluate(() => document.body.scrollWidth);
     expect(bodyWidth).toBeLessThanOrEqual(375);
-    await page.screenshot({ path: 'e2e/screenshots/mobile-topics.png' });
+    await page.screenshot({ path: 'e2e/screenshots/mobile-practice.png' });
 
     // Setup page
     if (topicId) {

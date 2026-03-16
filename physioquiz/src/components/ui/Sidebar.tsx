@@ -10,10 +10,9 @@ interface NavItem {
 }
 
 const studentNav: NavItem[] = [
-  { href: '/dashboard', label: 'Tableau de bord', icon: '📊' },
-  { href: '/topics', label: 'Cours', icon: '📚' },
-  { href: '/heatmap', label: 'Carte', icon: '🗺️' },
-  { href: '/progress', label: 'Progression', icon: '📈' },
+  { href: '/learn', label: 'Apprendre', icon: '📖' },
+  { href: '/practice', label: "S'entraîner", icon: '🎯' },
+  { href: '/stats', label: 'Mes résultats', icon: '📊' },
 ];
 
 const adminNav: NavItem[] = [

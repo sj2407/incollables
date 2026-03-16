@@ -9,7 +9,7 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <Link href="/dashboard" className="text-xl font-extrabold text-primary-500 md:text-2xl">
+        <Link href="/practice" className="text-xl font-extrabold text-primary-500 md:text-2xl">
           Les Incollables
         </Link>
 

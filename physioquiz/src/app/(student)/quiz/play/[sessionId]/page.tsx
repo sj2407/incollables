@@ -27,7 +27,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
   const onPause = useCallback(async () => {
     const result = await handlePause();
     if (!result.error) {
-      router.push('/dashboard');
+      router.push('/practice');
     }
   }, [handlePause, router]);
 
@@ -59,7 +59,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
           </p>
           <button
             type="button"
-            onClick={() => router.push('/topics')}
+            onClick={() => router.push('/practice')}
             className="mt-4 min-h-[44px] rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
           >
             Commencer une nouvelle session
@@ -148,7 +148,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
     <div className="mx-auto max-w-2xl" ref={quiz.questionRef} tabIndex={-1}>
       {/* Back link */}
       <Link
-        href="/dashboard"
+        href="/practice"
         className="mb-3 inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
       >
         ← Retour

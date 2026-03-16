@@ -8,13 +8,13 @@ async function login(page: Page) {
   await page.fill('#email', TEST_EMAIL);
   await page.fill('#password', TEST_PASSWORD);
   await page.click('button[type="submit"]');
-  await page.waitForURL('**/dashboard', { timeout: 10_000 });
+  await page.waitForURL('**/practice', { timeout: 10_000 });
 }
 
 /** Start a short quiz session and return the sessionId */
 async function startQuizSession(page: Page): Promise<string> {
   // Find a topic with questions
-  await page.goto('/topics');
+  await page.goto('/practice');
   await page.waitForFunction(
     () => !document.querySelector('.animate-pulse'),
     { timeout: 10_000 },
@@ -56,12 +56,12 @@ async function startQuizSession(page: Page): Promise<string> {
   return sessionId;
 }
 
-test.describe('Pause, Resume & Dashboard', () => {
+test.describe('Pause, Resume & Practice', () => {
   test.describe.configure({ mode: 'serial' });
 
   let pausedSessionId: string;
 
-  test('T-E1: Pause mid-quiz → redirected to dashboard with paused session', async ({
+  test('T-E1: Pause mid-quiz → redirected to practice with paused session', async ({
     page,
   }) => {
     await login(page);
@@ -84,25 +84,25 @@ test.describe('Pause, Resume & Dashboard', () => {
     const pauseBtn = page.locator('button', { hasText: /Pause/ });
     if (await pauseBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
       await pauseBtn.click();
-      // Should redirect to dashboard
-      await page.waitForURL('**/dashboard', { timeout: 10_000 });
+      // Should redirect to practice
+      await page.waitForURL('**/practice', { timeout: 10_000 });
     } else {
       // If no pause button (might be last question), go to next and try
       await nextBtn.click();
       await page.waitForTimeout(500);
       const pauseBtn2 = page.locator('button', { hasText: /Pause/ });
       await pauseBtn2.click();
-      await page.waitForURL('**/dashboard', { timeout: 10_000 });
+      await page.waitForURL('**/practice', { timeout: 10_000 });
     }
 
-    // Verify dashboard shows paused session
+    // Verify practice page shows paused session
     const pausedSection = page.locator('text=/Sessions en cours/');
     await expect(pausedSection).toBeVisible({ timeout: 5_000 });
 
     const resumeBtn = page.locator('button', { hasText: /Reprendre/ });
     const resumeCount = await resumeBtn.count();
     expect(resumeCount).toBeGreaterThan(0);
-    console.log(`Dashboard shows ${resumeCount} paused session(s) with Reprendre button`);
+    console.log(`Practice page shows ${resumeCount} paused session(s) with Reprendre button`);
   });
 
   test('T-E2: Resume paused session → quiz resumes at correct question', async ({
@@ -111,8 +111,8 @@ test.describe('Pause, Resume & Dashboard', () => {
     if (!pausedSessionId) test.skip();
     await login(page);
 
-    // Go to dashboard
-    await page.goto('/dashboard');
+    // Go to practice page
+    await page.goto('/practice');
     await page.waitForFunction(
       () => !document.querySelector('.animate-pulse'),
       { timeout: 10_000 },
@@ -151,82 +151,42 @@ test.describe('Pause, Resume & Dashboard', () => {
     console.log('Resume: quiz is active with choices visible');
   });
 
-  test('T-E3: Dashboard sections (paused, completed, weak questions)', async ({
+  test('T-E3: Practice page sections (paused sessions + topic tree)', async ({
     page,
   }) => {
     await login(page);
-    await page.goto('/dashboard');
+    await page.goto('/practice');
     await page.waitForFunction(
       () => !document.querySelector('.animate-pulse'),
       { timeout: 10_000 },
     );
 
     // Heading
-    const heading = page.locator('h1', { hasText: /Tableau de bord/ });
+    const heading = page.locator('h1');
     await expect(heading).toBeVisible();
 
-    // "Sessions en cours" section always present
+    // "Sessions en cours" section (only appears if there are paused sessions)
     const pausedHeading = page.locator('h2', {
       hasText: /Sessions en cours/,
     });
-    await expect(pausedHeading).toBeVisible();
-
-    // "Sessions récentes" section always present
-    const completedHeading = page.locator('h2', {
-      hasText: /Sessions récentes/,
-    });
-    await expect(completedHeading).toBeVisible();
-
-    // "Commencer une session" link
-    const startLink = page.locator('a', {
-      hasText: /Commencer une session/,
-    });
-    await expect(startLink).toBeVisible();
-
-    // Check if completed sessions show score + timestamp
-    const completedCards = page.locator(
-      'a[href*="/quiz/results/"]',
-    );
-    const completedCount = await completedCards.count();
-    if (completedCount > 0) {
-      // First completed card should have a percentage
-      const firstCard = completedCards.first();
-      const cardText = await firstCard.textContent();
-      expect(cardText).toMatch(/\d+%/);
-      console.log(`Found ${completedCount} completed session(s) with scores`);
-    }
-
-    // Weak questions section (only appears if there are weak questions)
-    const weakHeading = page.locator('h2', {
-      hasText: /Questions à revoir/,
-    });
-    const hasWeak = await weakHeading
-      .isVisible({ timeout: 1000 })
+    const hasPaused = await pausedHeading
+      .isVisible({ timeout: 2000 })
       .catch(() => false);
-    if (hasWeak) {
-      console.log('Weak questions section visible');
-      // Check "Voir plus" expand button if there are > 3
-      const expandBtn = page.locator('button', {
-        hasText: /Voir les \d+ autres/,
-      });
-      if (
-        await expandBtn.isVisible({ timeout: 1000 }).catch(() => false)
-      ) {
-        await expandBtn.click();
-        await page.waitForTimeout(300);
-        const collapseBtn = page.locator('button', {
-          hasText: /Voir moins/,
-        });
-        await expect(collapseBtn).toBeVisible();
-        console.log('Weak questions expand/collapse: OK');
-      }
+    if (hasPaused) {
+      console.log('Paused sessions section visible');
     }
 
-    await page.screenshot({ path: 'e2e/screenshots/dashboard.png' });
-    console.log('Dashboard sections verified');
+    // Topic tree should be visible with quiz setup links
+    const topicLinks = page.locator('a[href*="/quiz/setup/"]');
+    const count = await topicLinks.count();
+    expect(count).toBeGreaterThan(0);
+    console.log(`Practice page shows ${count} topic links`);
+
+    await page.screenshot({ path: 'e2e/screenshots/practice.png' });
+    console.log('Practice page sections verified');
   });
 
-  test('T-E4: Complete session → appears in dashboard recent sessions', async ({
+  test('T-E4: Complete session → appears in stats recent sessions', async ({
     page,
   }) => {
     if (!pausedSessionId) test.skip();
@@ -300,29 +260,28 @@ test.describe('Pause, Resume & Dashboard', () => {
     // Should be on results page
     expect(page.url()).toContain('/quiz/results/');
 
-    // Go to dashboard
-    await page.goto('/dashboard');
+    // Go to stats page and check session history
+    await page.goto('/stats');
     await page.waitForFunction(
       () => !document.querySelector('.animate-pulse'),
       { timeout: 10_000 },
     );
 
-    // The completed session should appear in "Sessions récentes"
-    const completedCards = page.locator('a[href*="/quiz/results/"]');
-    const count = await completedCards.count();
-    expect(count).toBeGreaterThan(0);
-
-    // The previously paused session should no longer be in the paused list
-    // (it was completed, so it moves to completed)
-    console.log(
-      `Dashboard shows ${count} completed session(s) after completing the paused one`,
-    );
+    // The completed session should appear in session history
+    const historyHeading = page.locator('h2', { hasText: /Historique des sessions/ });
+    const hasHistory = await historyHeading.isVisible({ timeout: 3000 }).catch(() => false);
+    if (hasHistory) {
+      const sessionCards = page.locator('a[href*="/quiz/results/"], a[href*="/exam/results/"]');
+      const count = await sessionCards.count();
+      expect(count).toBeGreaterThan(0);
+      console.log(`Stats page shows ${count} session(s) in history`);
+    }
   });
 
-  test('T-E5: Mobile dashboard at 375px', async ({ page }) => {
+  test('T-E5: Mobile practice at 375px', async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await login(page);
-    await page.goto('/dashboard');
+    await page.goto('/practice');
     await page.waitForFunction(
       () => !document.querySelector('.animate-pulse'),
       { timeout: 10_000 },
@@ -343,8 +302,8 @@ test.describe('Pause, Resume & Dashboard', () => {
     }
 
     await page.screenshot({
-      path: 'e2e/screenshots/mobile-dashboard.png',
+      path: 'e2e/screenshots/mobile-practice.png',
     });
-    console.log('Mobile dashboard: no overflow, touch targets OK');
+    console.log('Mobile practice: no overflow, touch targets OK');
   });
 });

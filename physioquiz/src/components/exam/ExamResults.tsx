@@ -90,10 +90,10 @@ export default function ExamResultsView({ results, topicId }: ExamResultsProps) 
           Refaire cet examen
         </Link>
         <Link
-          href="/dashboard"
+          href="/practice"
           className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-neutral-200 bg-white px-5 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100"
         >
-          Retour au tableau de bord
+          Retour
         </Link>
       </div>
     </div>

@@ -214,7 +214,7 @@ export default function QuizResultsPage({ params }: QuizResultsPageProps) {
     <>
       <div className="mx-auto max-w-2xl">
         <Link
-          href="/dashboard"
+          href="/practice"
           className="mb-3 inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
         >
           ← Retour

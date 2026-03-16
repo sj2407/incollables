@@ -148,13 +148,13 @@ export default function SessionSummary({
           </Link>
         )}
         <Link
-          href="/progress"
+          href="/stats"
           className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-primary-200 bg-white px-5 py-3 text-center text-sm font-semibold text-primary-500 transition-colors hover:bg-primary-50 active:scale-[0.97]"
         >
           Voir ma progression
         </Link>
         <Link
-          href="/topics"
+          href="/practice"
           className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-neutral-200 bg-white px-5 py-3 text-center text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 active:scale-[0.97]"
         >
           Retour aux cours

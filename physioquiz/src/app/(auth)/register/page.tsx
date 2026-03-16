@@ -56,7 +56,7 @@ export default function RegisterPage() {
         })
         .eq('id', data.user.id);
 
-      router.push('/dashboard');
+      router.push('/practice');
       router.refresh();
       return;
     }

@@ -178,10 +178,10 @@ export default function ExamResultsPage({ params }: ExamResultsPageProps) {
           {error ?? 'Erreur de chargement.'}
         </p>
         <Link
-          href="/dashboard"
+          href="/practice"
           className="mt-3 inline-block min-h-[44px] text-sm font-medium text-primary-500 hover:text-primary-600"
         >
-          &larr; Retour au tableau de bord
+          &larr; Retour
         </Link>
       </div>
     );
