@@ -24,11 +24,6 @@ export default function ExamResultsView({ results, topicId }: ExamResultsProps) 
     results: questionResults,
   } = results;
 
-  // Score color
-  let scoreColor = 'text-error';
-  if (score_percent >= 75) scoreColor = 'text-secondary-500';
-  else if (score_percent >= 50) scoreColor = 'text-warning';
-
   // Duration formatting
   const durationMin = Math.floor(duration_seconds / 60);
   const durationSec = duration_seconds % 60;

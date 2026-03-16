@@ -414,11 +414,12 @@ export default function StatsPage() {
 
       {/* 4. Calibration */}
       <section className="mt-6" aria-labelledby="calibration-heading">
-        <h2 id="calibration-heading" className="mb-1 text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
+        <h2 id="calibration-heading" className="mb-1 text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]" title="Chaque point = une réponse individuelle. Si vous répondez à la même question deux fois, elle apparaît deux fois.">
           Calibration
         </h2>
         <p className="mb-3 text-xs text-neutral-500">
           Votre taux de réussite réel vs votre confiance déclarée
+          <span className="ml-1 text-neutral-400" title="Chaque point = une réponse individuelle (non moyennée par question)">ⓘ</span>
         </p>
         <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
           <CalibrationChart

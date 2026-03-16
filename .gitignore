@@ -28,6 +28,11 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+.cursor/
+.windsurfrules
+
+# Extensions
+.superdesign/
 
 # Original Word documents (large binary files)
 *.doc
@@ -51,6 +56,7 @@ workbox-*
 next-env.d.ts
 
 # Test results (Playwright)
+test-results/
 physioquiz/test-results/
 physioquiz/e2e/screenshots/
 

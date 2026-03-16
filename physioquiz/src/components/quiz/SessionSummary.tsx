@@ -34,12 +34,6 @@ interface SessionSummaryProps {
   answers: AnswerDetail[];
 }
 
-function getScoreColor(percent: number): string {
-  if (percent >= 75) return 'text-secondary-500';
-  if (percent >= 40) return 'text-warning';
-  return 'text-error';
-}
-
 export default function SessionSummary({
   topicId,
   questionCount,

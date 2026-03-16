@@ -170,14 +170,29 @@ export function useQuiz(sessionId: string) {
 
     const questionIds = sessionQuestions.map((sq) => sq.question_id);
 
-    // Fetch questions + images
-    const { data: questions, error: qError } = await supabase
-      .from('questions')
-      .select(
-        `id, question_number, question_text, topic_id,
-        question_images (id, storage_path, original_name, sort_order)`,
-      )
-      .in('id', questionIds);
+    // Fetch questions, choices, and answered count in PARALLEL
+    // (all three only need questionIds / sessionId — no interdependencies)
+    const [questionsResult, choicesResult, answeredResult] = await Promise.all([
+      supabase
+        .from('questions')
+        .select(
+          `id, question_number, question_text, topic_id,
+          question_images (id, storage_path, original_name, sort_order)`,
+        )
+        .in('id', questionIds),
+      supabase
+        .from('safe_choices')
+        .select('id, question_id, label, choice_text, sort_order')
+        .in('question_id', questionIds),
+      supabase
+        .from('session_answers')
+        .select('id', { count: 'exact', head: true })
+        .eq('session_id', sessionId),
+    ]);
+
+    const { data: questions, error: qError } = questionsResult;
+    const { data: choices, error: cError } = choicesResult;
+    const { count: answeredCount } = answeredResult;
 
     if (qError || !questions) {
       setState((prev) => ({
@@ -188,12 +203,6 @@ export function useQuiz(sessionId: string) {
       }));
       return;
     }
-
-    // Fetch choices via safe_choices view (no is_correct — anti-cheat)
-    const { data: choices, error: cError } = await supabase
-      .from('safe_choices')
-      .select('id, question_id, label, choice_text, sort_order')
-      .in('question_id', questionIds);
 
     if (cError || !choices) {
       setState((prev) => ({
@@ -233,12 +242,6 @@ export function useQuiz(sessionId: string) {
         };
       })
       .filter((q): q is QuizQuestion => q !== null);
-
-    // Check how many are already answered (resume scenario)
-    const { count: answeredCount } = await supabase
-      .from('session_answers')
-      .select('id', { count: 'exact', head: true })
-      .eq('session_id', sessionId);
 
     const startIndex = Math.min(
       answeredCount ?? 0,

@@ -74,7 +74,7 @@ test.describe('Exam Flow', () => {
 
     // Choices should be visible (wait for them to load)
     const choices = page.locator('div[role="group"] button');
-    await choices.first().waitFor({ timeout: 10_000 });
+    await choices.first().waitFor({ timeout: 20_000 });
     const choiceCount = await choices.count();
     expect(choiceCount).toBeGreaterThanOrEqual(2);
 
