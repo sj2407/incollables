@@ -17,10 +17,8 @@ const studentNav: NavItem[] = [
 
 const adminNav: NavItem[] = [
   { href: '/admin', label: 'Dashboard', icon: '🏠' },
-  { href: '/admin/topics', label: 'Topics', icon: '📁' },
-  { href: '/admin/questions', label: 'Questions', icon: '❓' },
+  { href: '/admin/questions', label: 'Base de données', icon: '🗃️' },
   { href: '/admin/import', label: 'Import', icon: '📥' },
-  { href: '/admin/stats', label: 'Stats', icon: '📊' },
 ];
 
 function NavLink({ item }: { item: NavItem }) {
@@ -59,7 +57,7 @@ export function DesktopSidebar({ isAdmin = false }: { isAdmin?: boolean }) {
 }
 
 export function MobileBottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
-  const nav = isAdmin ? adminNav.slice(0, 4) : studentNav;
+  const nav = isAdmin ? adminNav : studentNav;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-primary/10 bg-white/90 backdrop-blur-xl md:hidden">
