@@ -107,7 +107,7 @@ export default function PracticePage() {
             <button
               type="button"
               onClick={retryTopics}
-              className="min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary-500 hover:bg-primary-50"
+              className="min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
             >
               Réessayer
             </button>

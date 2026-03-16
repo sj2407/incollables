@@ -85,7 +85,7 @@ export default memo(function ChoiceList({
             className={`flex min-h-[44px] items-center gap-3 rounded-lg border-2 px-3 py-3 text-left transition-colors sm:px-4 ${borderColor} ${bgColor} ${animClass} ${
               !disabled
                 ? isSelected
-                  ? 'border-primary-500 bg-primary-50'
+                  ? 'border-primary bg-primary-50'
                   : 'hover:border-primary-200 hover:bg-primary-50/50'
                 : ''
             } ${disabled ? 'cursor-default' : 'cursor-pointer'}`}
@@ -94,7 +94,7 @@ export default memo(function ChoiceList({
             <span
               className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border ${
                 isSelected && !isValidated
-                  ? 'border-primary-500 bg-primary-500 text-white'
+                  ? 'border-primary bg-primary text-white'
                   : isValidated && icon
                     ? 'border-transparent'
                     : 'border-neutral-300'

@@ -10,51 +10,51 @@ describe('getMasteryColor', () => {
   });
 
   it('returns dark red for 0%', () => {
-    expect(getMasteryColor(0)).toBe('#C0392B');
+    expect(getMasteryColor(0)).toBe('#B91C1C');
   });
 
   it('returns dark red for 15%', () => {
-    expect(getMasteryColor(15)).toBe('#C0392B');
+    expect(getMasteryColor(15)).toBe('#B91C1C');
   });
 
   it('returns light red for 20%', () => {
-    expect(getMasteryColor(20)).toBe('#E74C3C');
+    expect(getMasteryColor(20)).toBe('#DC2626');
   });
 
   it('returns light red for 35%', () => {
-    expect(getMasteryColor(35)).toBe('#E74C3C');
+    expect(getMasteryColor(35)).toBe('#DC2626');
   });
 
-  it('returns orange for 40%', () => {
-    expect(getMasteryColor(40)).toBe('#F39C12');
+  it('returns amber for 40%', () => {
+    expect(getMasteryColor(40)).toBe('#B45309');
   });
 
-  it('returns orange for 55%', () => {
-    expect(getMasteryColor(55)).toBe('#F39C12');
+  it('returns amber for 55%', () => {
+    expect(getMasteryColor(55)).toBe('#B45309');
   });
 
-  it('returns yellow-green for 60%', () => {
-    expect(getMasteryColor(60)).toBe('#F1C40F');
+  it('returns warm amber for 60%', () => {
+    expect(getMasteryColor(60)).toBe('#D97706');
   });
 
-  it('returns yellow-green for 70%', () => {
-    expect(getMasteryColor(70)).toBe('#F1C40F');
+  it('returns warm amber for 70%', () => {
+    expect(getMasteryColor(70)).toBe('#D97706');
   });
 
-  it('returns light green for 75%', () => {
-    expect(getMasteryColor(75)).toBe('#2ECC71');
+  it('returns medical-teal for 75%', () => {
+    expect(getMasteryColor(75)).toBe('#0ea5e9');
   });
 
-  it('returns light green for 85%', () => {
-    expect(getMasteryColor(85)).toBe('#2ECC71');
+  it('returns medical-teal for 85%', () => {
+    expect(getMasteryColor(85)).toBe('#0ea5e9');
   });
 
-  it('returns dark green for 90%', () => {
-    expect(getMasteryColor(90)).toBe('#27AE60');
+  it('returns green for 90%', () => {
+    expect(getMasteryColor(90)).toBe('#10B981');
   });
 
-  it('returns dark green for 100%', () => {
-    expect(getMasteryColor(100)).toBe('#27AE60');
+  it('returns green for 100%', () => {
+    expect(getMasteryColor(100)).toBe('#10B981');
   });
 });
 

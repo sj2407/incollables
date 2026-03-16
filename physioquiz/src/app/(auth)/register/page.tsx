@@ -91,7 +91,7 @@ export default function RegisterPage() {
               autoComplete="name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Votre nom"
             />
           </div>
@@ -107,7 +107,7 @@ export default function RegisterPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="votre@email.com"
             />
           </div>
@@ -124,7 +124,7 @@ export default function RegisterPage() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Minimum 6 caract&egrave;res"
             />
           </div>
@@ -142,7 +142,7 @@ export default function RegisterPage() {
               autoComplete="organization"
               value={university}
               onChange={(e) => setUniversity(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Facult&eacute; de m&eacute;decine de..."
             />
           </div>
@@ -158,7 +158,7 @@ export default function RegisterPage() {
               id="yearOfStudy"
               value={yearOfStudy}
               onChange={(e) => setYearOfStudy(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">S&eacute;lectionnez</option>
               <option value="1">1&egrave;re ann&eacute;e</option>
@@ -180,7 +180,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="min-h-[44px] w-full rounded-lg bg-primary-500 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+            className="min-h-[44px] w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
           >
             {loading ? 'Inscription...' : "S'inscrire"}
           </button>
@@ -188,7 +188,7 @@ export default function RegisterPage() {
 
         <p className="mt-6 text-center text-sm text-neutral-500">
           D&eacute;j&agrave; un compte ?{' '}
-          <Link href="/login" className="font-medium text-primary-500 hover:text-primary-600">
+          <Link href="/login" className="font-medium text-primary hover:text-primary-700">
             Connectez-vous
           </Link>
         </p>

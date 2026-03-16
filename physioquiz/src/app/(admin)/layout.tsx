@@ -1,7 +1,9 @@
 import Header from '@/components/ui/Header';
 import { DesktopSidebar, MobileBottomNav } from '@/components/ui/Sidebar';
+import { requireAdmin } from '@/lib/admin';
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default async function AdminLayout({ children }: { children: React.ReactNode }) {
+  await requireAdmin();
   return (
     <div className="flex min-h-screen flex-col">
       <Header />

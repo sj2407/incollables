@@ -85,7 +85,7 @@ export default function ExamResultsView({ results, topicId }: ExamResultsProps) 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Link
           href={`/exam/setup/${topicId}`}
-          className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+          className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
         >
           Refaire cet examen
         </Link>

@@ -130,7 +130,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
         <button
           type="button"
           onClick={fetchData}
-          className="mt-2 min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary-500 hover:bg-primary-50"
+          className="mt-2 min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
         >
           Réessayer
         </button>
@@ -160,7 +160,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
                 setIncludeSubtopics(e.target.checked);
                 setSelectedCount(null);
               }}
-              className="h-5 w-5 rounded-md border-neutral-300 text-primary-500 focus:ring-primary-500"
+              className="h-5 w-5 rounded-md border-neutral-300 text-primary focus:ring-primary"
             />
             <span className="text-sm font-medium text-neutral-700">
               Inclure les sous-chapitres
@@ -205,7 +205,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
           type="button"
           disabled={selectedCount === null || availableCount === 0 || starting}
           onClick={startSession}
-          className="mt-6 min-h-[44px] w-full rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:bg-neutral-200 disabled:text-neutral-400"
+          className="mt-6 min-h-[44px] w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           {starting ? 'Préparation...' : 'Démarrer la session'}
         </button>
@@ -226,7 +226,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
       {/* Exam mode link */}
       <Link
         href={`/exam/setup/${topic.id}`}
-        className="mt-4 flex min-h-[44px] items-center justify-center rounded-lg border border-primary-200 bg-white px-5 py-3 text-sm font-semibold text-primary-500 transition-colors hover:bg-primary-50"
+        className="mt-4 flex min-h-[44px] items-center justify-center rounded-lg border border-primary-200 bg-white px-5 py-3 text-sm font-semibold text-primary transition-colors hover:bg-primary-50"
       >
         Mode examen blanc &rarr;
       </Link>
@@ -235,7 +235,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
       <button
         type="button"
         onClick={() => router.push('/practice')}
-        className="mt-3 min-h-[44px] text-sm font-medium text-primary-500 hover:text-primary-600"
+        className="mt-3 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
       >
         &larr; Retour aux cours
       </button>
@@ -273,7 +273,7 @@ function CountOption({
       aria-pressed={selected}
       className={`min-h-[44px] rounded-lg border-2 px-5 py-2.5 text-sm font-semibold transition-colors ${
         selected
-          ? 'border-primary-500 bg-primary-50 text-primary-600'
+          ? 'border-primary bg-primary-50 text-primary'
           : 'border-neutral-200 bg-white text-neutral-700 hover:border-primary-200 hover:bg-primary-50'
       }`}
     >

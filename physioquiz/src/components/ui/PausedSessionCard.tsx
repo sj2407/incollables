@@ -54,7 +54,7 @@ export function PausedSessionCard({
               onClick={handleResume}
               disabled={resuming}
               aria-label={`Reprendre la session ${session.topic_title}`}
-              className="min-h-[44px] rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600 active:scale-[0.97] disabled:bg-neutral-200 disabled:text-neutral-400"
+              className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97] disabled:bg-neutral-200 disabled:text-neutral-400"
             >
               {resuming ? 'Reprise...' : <><span aria-hidden="true">&#9654; </span>Reprendre</>}
             </button>

@@ -34,7 +34,7 @@ export default memo(function ExamNavigator({
 
           let bgColor = 'bg-neutral-100 text-neutral-500'; // unanswered
           if (isAnswered) bgColor = 'bg-primary-100 text-primary-700'; // answered
-          if (isCurrent) bgColor = 'bg-primary-500 text-white'; // current
+          if (isCurrent) bgColor = 'bg-primary text-white'; // current
 
           return (
             <button

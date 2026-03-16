@@ -60,7 +60,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
           <button
             type="button"
             onClick={() => router.push('/practice')}
-            className="mt-4 min-h-[44px] rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+            className="mt-4 min-h-[44px] rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
           >
             Commencer une nouvelle session
           </button>
@@ -96,7 +96,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
           </h2>
           {quiz.correction?.session_stats && (
             <div className="mt-4">
-              <p className="text-3xl font-bold text-primary-500">
+              <p className="text-3xl font-bold text-primary">
                 {quiz.correction.session_stats.average_score != null
                   ? `${quiz.correction.session_stats.average_score}%`
                   : `${quiz.correction.session_stats.score_percent}%`}
@@ -124,7 +124,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
           <button
             type="button"
             onClick={() => router.push(`/quiz/results/${sessionId}`)}
-            className="mt-6 min-h-[44px] rounded-lg bg-primary-500 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+            className="mt-6 min-h-[44px] rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
           >
             Voir les résultats détaillés
           </button>
@@ -197,7 +197,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
           type="button"
           onClick={quiz.validateAnswer}
           disabled={quiz.isValidating || !hasSelections}
-          className="mt-6 min-h-[44px] w-full rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600 active:scale-[0.97] disabled:bg-neutral-200 disabled:text-neutral-400"
+          className="mt-6 min-h-[44px] w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97] disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           {quiz.isValidating ? 'Validation...' : 'Valider ma réponse'}
         </button>
@@ -223,7 +223,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
             <button
               type="button"
               onClick={quiz.nextQuestion}
-              className="mt-4 min-h-[44px] w-full rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600 active:scale-[0.97]"
+              className="mt-4 min-h-[44px] w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97]"
             >
               Question suivante
             </button>

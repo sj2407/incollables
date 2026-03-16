@@ -84,7 +84,7 @@ function TopicNode({ topic, depth }: TopicNodeProps) {
           </div>
 
           {/* Question count badge */}
-          <span className="shrink-0 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary-600">
+          <span className="shrink-0 rounded-full bg-primary-50 px-2.5 py-0.5 text-xs font-medium text-primary">
             {totalQuestions} {totalQuestions <= 1 ? 'question' : 'questions'}
           </span>
         </Link>

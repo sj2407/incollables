@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Space_Grotesk } from 'next/font/google';
 import ServiceWorkerRegistrar from '@/components/ui/ServiceWorkerRegistrar';
 import './globals.css';
 
-const inter = Inter({
+const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
-  variable: '--font-inter',
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-space-grotesk',
 });
 
 export const metadata: Metadata = {
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#2B7DE9',
+  themeColor: '#194ce6',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -32,13 +33,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
+    <html lang="fr" className={spaceGrotesk.variable}>
       <head>
         <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased bg-neutral-50 text-neutral-900`}>
+      <body className="font-sans antialiased bg-background-light text-neutral-900">
         <ServiceWorkerRegistrar />
         {children}
       </body>

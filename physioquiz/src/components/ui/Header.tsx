@@ -7,9 +7,9 @@ export default function Header() {
   const { profile, signOut } = useAuth();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white">
+    <header className="sticky top-0 z-50 border-b border-primary/10 bg-background-light/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <Link href="/practice" className="text-xl font-extrabold text-primary-500 md:text-2xl">
+        <Link href="/practice" className="text-xl font-bold tracking-tight text-primary md:text-2xl">
           Les Incollables
         </Link>
 
@@ -22,7 +22,7 @@ export default function Header() {
               {profile.role === 'admin' && (
                 <Link
                   href="/admin"
-                  className="min-h-[44px] inline-flex items-center rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-100"
+                  className="min-h-[44px] inline-flex items-center rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-100"
                 >
                   Admin
                 </Link>

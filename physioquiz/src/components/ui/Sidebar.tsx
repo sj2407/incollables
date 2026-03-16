@@ -34,7 +34,7 @@ function NavLink({ item }: { item: NavItem }) {
       title={item.label}
       className={`flex min-h-[44px] items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium transition-colors ${
         isActive
-          ? 'bg-primary-50 text-primary-600'
+          ? 'bg-primary-50 text-primary'
           : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'
       }`}
     >
@@ -62,7 +62,7 @@ export function MobileBottomNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const nav = isAdmin ? adminNav.slice(0, 4) : studentNav;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-neutral-200 bg-white md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-primary/10 bg-white/90 backdrop-blur-xl md:hidden">
       <div className="flex items-center justify-around py-2">
         {nav.map((item) => (
           <NavLink key={item.href} item={item} />

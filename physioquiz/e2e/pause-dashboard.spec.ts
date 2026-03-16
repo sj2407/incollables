@@ -204,10 +204,11 @@ test.describe('Pause, Resume & Practice', () => {
     while (maxIterations-- > 0) {
       if (page.url().includes('/quiz/results/')) break;
 
-      // Check for completion interstitial
+      // Check for "Voir les résultats détaillés" button (session complete interstitial)
+      // Use main content area to avoid matching sidebar "Mes résultats" link
       const resultsBtn = page
-        .locator('button, a')
-        .filter({ hasText: /Voir les résultats|résultats/ });
+        .locator('main button, main a')
+        .filter({ hasText: /Voir les résultats/ });
       if (
         await resultsBtn
           .first()
@@ -231,14 +232,14 @@ test.describe('Pause, Resume & Practice', () => {
         await nextBtn.isVisible({ timeout: 500 }).catch(() => false)
       ) {
         await nextBtn.click();
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(300);
         continue;
       }
 
       // Select a choice and validate
       const choice = page.locator('[aria-pressed="false"]').first();
       if (
-        await choice.isVisible({ timeout: 3000 }).catch(() => false)
+        await choice.isVisible({ timeout: 2000 }).catch(() => false)
       ) {
         await choice.click();
         const validateBtn = page.locator('button', {
@@ -250,10 +251,11 @@ test.describe('Pause, Resume & Practice', () => {
             .catch(() => false)
         ) {
           await validateBtn.click();
-          await page.waitForTimeout(1500);
+          // Wait for correction view to appear
+          await page.locator('button:has-text("Question suivante"), button:has-text("Voir les résultats"), main a:has-text("Voir les résultats")').first().waitFor({ timeout: 15_000 });
         }
       } else {
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(500);
       }
     }
 

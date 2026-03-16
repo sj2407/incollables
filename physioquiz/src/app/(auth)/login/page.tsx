@@ -53,7 +53,7 @@ export default function LoginPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="votre@email.com"
             />
           </div>
@@ -69,7 +69,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Votre mot de passe"
             />
           </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="min-h-[44px] w-full rounded-lg bg-primary-500 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+            className="min-h-[44px] w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
           >
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
@@ -91,7 +91,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-neutral-500">
           Pas encore de compte ?{' '}
-          <Link href="/register" className="font-medium text-primary-500 hover:text-primary-600">
+          <Link href="/register" className="font-medium text-primary hover:text-primary-700">
             Inscrivez-vous
           </Link>
         </p>

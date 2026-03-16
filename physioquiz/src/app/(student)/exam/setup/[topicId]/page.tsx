@@ -132,7 +132,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
         <button
           type="button"
           onClick={fetchData}
-          className="mt-2 min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary-500 hover:bg-primary-50"
+          className="mt-2 min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
         >
           Réessayer
         </button>
@@ -158,7 +158,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
               type="checkbox"
               checked={includeSubtopics}
               onChange={(e) => setIncludeSubtopics(e.target.checked)}
-              className="h-5 w-5 rounded-md border-neutral-300 text-primary-500 focus:ring-primary-500"
+              className="h-5 w-5 rounded-md border-neutral-300 text-primary focus:ring-primary"
             />
             <span className="text-sm font-medium text-neutral-700">
               Inclure les sous-chapitres
@@ -192,7 +192,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
           type="button"
           disabled={!canStart}
           onClick={startExam}
-          className="min-h-[44px] w-full rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600 disabled:bg-neutral-200 disabled:text-neutral-400"
+          className="min-h-[44px] w-full rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:bg-neutral-200 disabled:text-neutral-400"
         >
           {starting ? 'Préparation...' : 'Démarrer l\u2019examen'}
         </button>
@@ -208,7 +208,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
       <button
         type="button"
         onClick={() => router.push(`/quiz/setup/${topicId}`)}
-        className="mt-3 min-h-[44px] text-sm font-medium text-primary-500 hover:text-primary-600"
+        className="mt-3 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
       >
         &larr; Mode entraînement
       </button>

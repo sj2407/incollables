@@ -223,10 +223,10 @@ function TopicDetailPanel({
 
           {stats.avg_confidence > 0 && (
             <div className="mt-2 rounded-lg bg-primary-50 p-2.5">
-              <p className="text-[10px] font-medium text-primary-600">Confiance moyenne</p>
+              <p className="text-[10px] font-medium text-primary">Confiance moyenne</p>
               <p className="text-sm font-bold text-primary-700">
                 {stats.avg_confidence}%
-                <span className="ml-2 text-[10px] font-normal text-primary-500">
+                <span className="ml-2 text-[10px] font-normal text-primary">
                   ({stats.confidence_fill_rate}% des réponses)
                 </span>
               </p>
@@ -313,7 +313,7 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
               type="button"
               onClick={() => handleNodeClick(node)}
               className={`min-h-[44px] rounded-lg p-2 text-center transition-transform hover:scale-105 ${
-                selectedNode?.topic_id === node.topic_id ? 'ring-2 ring-primary-500 ring-offset-1' : ''
+                selectedNode?.topic_id === node.topic_id ? 'ring-2 ring-primary ring-offset-1' : ''
               }`}
               style={{ backgroundColor: getMasteryColor(node.mastery) }}
             >
@@ -378,7 +378,7 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
             type="button"
             onClick={() => handleNodeClick(node)}
             className={`flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-3 shadow-md transition-colors hover:bg-neutral-50 ${
-              selectedNode?.topic_id === node.topic_id ? 'ring-2 ring-primary-500' : ''
+              selectedNode?.topic_id === node.topic_id ? 'ring-2 ring-primary' : ''
             }`}
           >
             <div className="flex items-center gap-3 min-w-0">

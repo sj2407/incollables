@@ -72,8 +72,9 @@ test.describe('Exam Flow', () => {
     const countdown = page.locator('span[aria-label*="Temps restant"]');
     await expect(countdown).toBeVisible();
 
-    // Choices should be visible
+    // Choices should be visible (wait for them to load)
     const choices = page.locator('div[role="group"] button');
+    await choices.first().waitFor({ timeout: 10_000 });
     const choiceCount = await choices.count();
     expect(choiceCount).toBeGreaterThanOrEqual(2);
 
@@ -143,14 +144,10 @@ test.describe('Exam Flow', () => {
     await confirmBtn.click();
 
     // Should show "Correction en cours..." then results
-    // Wait for results to appear
-    await page.waitForSelector('text=sultat', { timeout: 30_000 });
-
-    // Score should be visible
-    const scoreEl = page.locator('text=/%');
-    // Results page should have stat badges
-    const correctBadge = page.getByText('Correctes', { exact: true });
-    await expect(correctBadge).toBeVisible();
+    // Wait for exam results to appear (can take 30s+ for large exams with 200+ questions)
+    // Use a selector unique to ExamResults component, not sidebar
+    const correctBadge = page.locator('main').getByText('Correctes', { exact: true });
+    await expect(correctBadge).toBeVisible({ timeout: 60_000 });
   });
 
   test('T-E6: Mobile responsive at 375px', async ({ page }) => {

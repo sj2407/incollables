@@ -33,7 +33,7 @@ export function WeakQuestionsSection({ questions }: { questions: WeakQuestion[] 
         <button
           type="button"
           onClick={() => setExpanded(!expanded)}
-          className="mt-3 min-h-[44px] w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-primary-500 transition-colors hover:bg-primary-50"
+          className="mt-3 min-h-[44px] w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary-50"
         >
           {expanded ? 'Voir moins' : `Voir les ${questions.length - 3} autres`}
         </button>

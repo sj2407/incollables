@@ -11,13 +11,14 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          50: '#EBF5FF',
-          100: '#D6EBFF',
-          200: '#ADD6FF',
-          500: '#2B7DE9',
-          600: '#1A65C4',
-          700: '#0F4F9E',
-          900: '#0A2D5C',
+          DEFAULT: '#194ce6',
+          50: '#EEF2FF',
+          100: '#DBE4FF',
+          200: '#B8C9FF',
+          500: '#194ce6',
+          600: '#143DBF',
+          700: '#102F99',
+          900: '#081A5C',
         },
         secondary: {
           50: '#EFFCF6',
@@ -35,13 +36,24 @@ const config: Config = {
           700: '#374151',
           900: '#111827',
         },
+        'medical-teal': '#0ea5e9',
+        'medical-accent': '#38bdf8',
+        'background-light': '#f6f6f8',
+        'background-dark': '#111521',
         success: '#10B981',
-        error: '#EF4444',
-        warning: '#F59E0B',
-        info: '#3B82F6',
+        error: '#B91C1C',
+        warning: '#B45309',
+        info: '#194ce6',
       },
       fontFamily: {
-        sans: ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['var(--font-space-grotesk)', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['var(--font-space-grotesk)', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      borderRadius: {
+        DEFAULT: '0.25rem',
+        lg: '0.5rem',
+        xl: '0.75rem',
+        full: '9999px',
       },
       keyframes: {
         'fade-in': {

@@ -25,7 +25,7 @@ export default function AuthError({
         <button
           type="button"
           onClick={reset}
-          className="mt-4 min-h-[44px] rounded-lg bg-primary-500 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+          className="mt-4 min-h-[44px] rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
         >
           Réessayer
         </button>

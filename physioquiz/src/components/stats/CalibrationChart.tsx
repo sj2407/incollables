@@ -1,24 +1,16 @@
 'use client';
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import {
   ResponsiveContainer,
-  Bar,
+  ScatterChart,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Cell,
   Scatter,
-  ComposedChart,
+  Cell,
 } from 'recharts';
-
-interface CalibrationLevel {
-  confidence_level: number;
-  total_answers: number;
-  correct_answers: number;
-  success_rate: number;
-}
 
 interface FalseCertainty {
   question_id: string;
@@ -29,12 +21,18 @@ interface FalseCertainty {
 }
 
 interface CalibrationData {
-  levels: CalibrationLevel[] | null;
+  levels: unknown;
   false_certainties: FalseCertainty[] | null;
+}
+
+interface CalibrationAnswer {
+  confidence: number;
+  score_percent: number;
 }
 
 interface CalibrationChartProps {
   data: CalibrationData;
+  answers: CalibrationAnswer[];
   confidenceFillRate: number;
   /** Compact mode for dashboard encart */
   compact?: boolean;
@@ -48,35 +46,75 @@ const CONFIDENCE_LABELS: Record<number, string> = {
 
 // Match BRAND.md confidence button selected colors
 const CONFIDENCE_COLORS: Record<number, string> = {
-  0: '#F59E0B',   // warning (Je devine)
-  0.5: '#3B82F6', // info (Hésitant)
+  0: '#B45309',   // warning-amber (Je devine)
+  0.5: '#194ce6', // primary (Hésitant)
   1: '#10B981',   // secondary-500 (Sûr)
 };
 
-// Perfect calibration reference points
-const PERFECT_CALIBRATION: Record<number, number> = {
-  0: 25,
-  0.5: 55,
-  1: 90,
+// Map confidence to X position (categorical spacing)
+const CONFIDENCE_X: Record<number, number> = {
+  0: 1,
+  0.5: 2,
+  1: 3,
 };
+
+// Seeded pseudo-random for consistent jitter
+function seededRandom(seed: number): number {
+  const x = Math.sin(seed * 9301 + 49297) * 49297;
+  return x - Math.floor(x);
+}
 
 export default memo(function CalibrationChart({
   data,
+  answers,
   confidenceFillRate,
   compact = false,
 }: CalibrationChartProps) {
+  // Build scatter data from individual answers with jitter on X
+  const scatterData = useMemo(() => {
+    return answers
+      .filter((a) => a.confidence in CONFIDENCE_X)
+      .map((a, i) => {
+        const baseX = CONFIDENCE_X[a.confidence];
+        const jitter = (seededRandom(i) - 0.5) * 0.4; // ±0.2 spread
+        return {
+          x: baseX + jitter,
+          y: a.score_percent,
+          confidence: a.confidence,
+          label: CONFIDENCE_LABELS[a.confidence],
+        };
+      });
+  }, [answers]);
+
+  // Compute averages per confidence level for compact mode
+  const averages = useMemo(() => {
+    const groups: Record<number, { total: number; count: number }> = {};
+    for (const a of answers) {
+      if (!(a.confidence in CONFIDENCE_LABELS)) continue;
+      if (!groups[a.confidence]) groups[a.confidence] = { total: 0, count: 0 };
+      groups[a.confidence].total += a.score_percent;
+      groups[a.confidence].count += 1;
+    }
+    return [0, 0.5, 1].map((conf) => ({
+      label: CONFIDENCE_LABELS[conf],
+      avg: groups[conf] ? Math.round(groups[conf].total / groups[conf].count) : 0,
+      count: groups[conf]?.count ?? 0,
+    }));
+  }, [answers]);
+
+  const falseCertainties = data.false_certainties ?? [];
+
   // Show incentive if < 30% fill rate
   if (confidenceFillRate < 30) {
     return (
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
-        <p className="text-sm font-semibold text-neutral-700">Calibration</p>
-        <p className="mt-2 text-sm text-neutral-500">
+      <div>
+        <p className="text-sm text-neutral-500">
           Indiquez votre confiance sur plus de réponses pour débloquer ce graphique.
         </p>
         <div className="mt-3">
           <div className="h-2 w-full rounded-full bg-neutral-100">
             <div
-              className="h-2 rounded-full bg-primary-500 transition-all"
+              className="h-2 rounded-full bg-primary transition-all"
               style={{ width: `${Math.min(confidenceFillRate / 30 * 100, 100)}%` }}
             />
           </div>
@@ -88,36 +126,15 @@ export default memo(function CalibrationChart({
     );
   }
 
-  const levels = data.levels ?? [];
-  const chartData = [0, 0.5, 1].map((conf) => {
-    const level = levels.find((l) => Number(l.confidence_level) === conf);
-    return {
-      label: CONFIDENCE_LABELS[conf],
-      success_rate: level ? Number(level.success_rate) : 0,
-      total: level ? Number(level.total_answers) : 0,
-      perfect: PERFECT_CALIBRATION[conf],
-      confidence: conf,
-    };
-  });
-
-  const falseCertainties = data.false_certainties ?? [];
-
-  // Screen reader summary
-  const srSummary = chartData
-    .map((d) => `${d.label}: ${Math.round(d.success_rate)}% réussite (idéal ${d.perfect}%), ${d.total} réponses`)
-    .join('. ');
-
   if (compact) {
-    // Dashboard encart: just 3 numbers
     return (
-      <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
-        <p className="text-sm font-semibold text-neutral-700">Calibration</p>
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {chartData.map((d) => (
+      <div>
+        <div className="grid grid-cols-3 gap-2">
+          {averages.map((d) => (
             <div key={d.label} className="text-center">
-              <p className="text-lg font-bold text-neutral-900">{Math.round(d.success_rate)}%</p>
+              <p className="text-lg font-bold text-neutral-900">{d.avg}%</p>
               <p className="text-xs text-neutral-500">{d.label}</p>
-              <p className="text-[10px] text-neutral-400">{d.total} rép.</p>
+              <p className="text-[10px] text-neutral-400">{d.count} rép.</p>
             </div>
           ))}
         </div>
@@ -125,22 +142,32 @@ export default memo(function CalibrationChart({
     );
   }
 
-  // Full chart
+  // Screen reader summary
+  const srSummary = averages
+    .map((d) => `${d.label}: ${d.avg}% réussite moyenne, ${d.count} réponses`)
+    .join('. ');
+
+  // Full scatter chart: individual answer dots
   return (
     <div>
       <div aria-label="Graphique de calibration" role="img">
-        {/* Screen reader accessible summary */}
         <p className="sr-only">{srSummary}</p>
         <ResponsiveContainer width="100%" height={240}>
-          <ComposedChart data={chartData} margin={{ top: 10, right: 5, bottom: 5, left: -10 }}>
+          <ScatterChart margin={{ top: 10, right: 15, bottom: 5, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
-              dataKey="label"
+              type="number"
+              dataKey="x"
+              domain={[0.4, 3.6]}
+              ticks={[1, 2, 3]}
+              tickFormatter={(v: number) => CONFIDENCE_LABELS[{ 1: 0, 2: 0.5, 3: 1 }[v] ?? 0] ?? ''}
               tick={{ fontSize: 12, fill: '#6b7280' }}
               tickLine={false}
               axisLine={{ stroke: '#e5e7eb' }}
             />
             <YAxis
+              type="number"
+              dataKey="y"
               domain={[0, 100]}
               tick={{ fontSize: 11, fill: '#9ca3af' }}
               tickLine={false}
@@ -148,31 +175,38 @@ export default memo(function CalibrationChart({
               tickFormatter={(v) => `${v}%`}
             />
             <Tooltip
-              formatter={(value, name) => {
-                if (name === 'success_rate') return [`${value}%`, 'Taux de réussite'];
-                return [`${value}%`, 'Calibration idéale'];
+              content={({ active, payload }) => {
+                if (!active || !payload?.length) return null;
+                const item = payload[0]?.payload;
+                if (!item) return null;
+                return (
+                  <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs shadow-md">
+                    <p className="font-semibold text-neutral-700">{item.label}</p>
+                    <p className="mt-1 text-neutral-600">Score : {Math.round(item.y)}%</p>
+                  </div>
+                );
               }}
-              contentStyle={{ fontSize: 12, borderRadius: 8 }}
             />
-            <Bar dataKey="success_rate" radius={[4, 4, 0, 0]} maxBarSize={50}>
-              {chartData.map((entry) => (
-                <Cell key={entry.label} fill={CONFIDENCE_COLORS[entry.confidence]} />
+            <Scatter data={scatterData}>
+              {scatterData.map((entry, i) => (
+                <Cell
+                  key={i}
+                  fill={CONFIDENCE_COLORS[entry.confidence]}
+                  fillOpacity={0.6}
+                  r={5}
+                />
               ))}
-            </Bar>
-            {/* Perfect calibration reference as scatter dots */}
-            <Scatter
-              dataKey="perfect"
-              fill="#111827"
-              shape="diamond"
-              legendType="diamond"
-              name="Calibration idéale"
-            />
-          </ComposedChart>
+            </Scatter>
+          </ScatterChart>
         </ResponsiveContainer>
-        {/* Legend for perfect calibration markers */}
-        <div className="mt-1 flex items-center justify-end gap-1">
-          <span className="inline-block h-2 w-2 rotate-45 bg-neutral-900" />
-          <span className="text-[10px] text-neutral-500">Calibration idéale</span>
+        {/* Legend */}
+        <div className="mt-1 flex flex-wrap items-center justify-center gap-3 text-[10px] text-neutral-500">
+          {[0, 0.5, 1].map((conf) => (
+            <span key={conf} className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full" style={{ backgroundColor: CONFIDENCE_COLORS[conf] }} />
+              {CONFIDENCE_LABELS[conf]}
+            </span>
+          ))}
         </div>
       </div>
 

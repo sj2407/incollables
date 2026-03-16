@@ -179,7 +179,7 @@ export default function ExamResultsPage({ params }: ExamResultsPageProps) {
         </p>
         <Link
           href="/practice"
-          className="mt-3 inline-block min-h-[44px] text-sm font-medium text-primary-500 hover:text-primary-600"
+          className="mt-3 inline-block min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
         >
           &larr; Retour
         </Link>

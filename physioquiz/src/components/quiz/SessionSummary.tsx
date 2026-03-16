@@ -142,14 +142,14 @@ export default function SessionSummary({
         {failedAnswers.length > 0 && (
           <Link
             href={`/quiz/setup/${topicId}?retry=${encodeURIComponent(failedQuestionIds.join(','))}`}
-            className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary-500 px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-600 active:scale-[0.97]"
+            className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97]"
           >
             Recommencer les ratées
           </Link>
         )}
         <Link
           href="/stats"
-          className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-primary-200 bg-white px-5 py-3 text-center text-sm font-semibold text-primary-500 transition-colors hover:bg-primary-50 active:scale-[0.97]"
+          className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-primary-200 bg-white px-5 py-3 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary-50 active:scale-[0.97]"
         >
           Voir ma progression
         </Link>

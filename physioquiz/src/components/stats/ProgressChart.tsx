@@ -7,7 +7,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ReferenceLine,
   Area,
   Bar,
   Brush,
@@ -44,8 +43,9 @@ export default memo(function ProgressChart({
     ? Math.max(...data.map((d) => d.question_count ?? 0), 1)
     : 0;
 
-  // Default brush: show last 30 days of data points (or all if fewer)
-  const brushStartIndex = Math.max(0, chartData.length - 30);
+  // Default brush: show last 30 data points (or all if fewer)
+  const brushEnd = chartData.length - 1;
+  const brushStart = Math.max(0, chartData.length - 30);
 
   return (
     <div aria-label="Évolution des scores" role="img">
@@ -98,7 +98,6 @@ export default memo(function ProgressChart({
               }}
               contentStyle={{ fontSize: 12, borderRadius: 8 }}
             />
-            <ReferenceLine yAxisId="left" y={75} stroke="#2ECC71" strokeDasharray="4 4" label={{ value: '75%', fontSize: 10, fill: '#2ECC71' }} />
             {hasQuestionCounts && (
               <Bar
                 yAxisId="right"
@@ -110,29 +109,32 @@ export default memo(function ProgressChart({
             )}
             <defs>
               <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#2B7DE9" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#2B7DE9" stopOpacity={0} />
+                <stop offset="5%" stopColor="#194ce6" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#194ce6" stopOpacity={0} />
               </linearGradient>
             </defs>
             <Area
               yAxisId="left"
               type="monotone"
               dataKey="score"
-              stroke="#2B7DE9"
+              stroke="#194ce6"
               strokeWidth={2}
               fill="url(#scoreGradient)"
-              dot={{ r: 3, fill: '#2B7DE9' }}
+              dot={{ r: 3, fill: '#194ce6' }}
               activeDot={{ r: 5 }}
             />
-            <Brush
-              dataKey="date"
-              height={25}
-              stroke="#2B7DE9"
-              fill="#f9fafb"
-              startIndex={brushStartIndex}
-              endIndex={chartData.length - 1}
-              tickFormatter={() => ''}
-            />
+            {chartData.length > 3 && (
+              <Brush
+                dataKey="date"
+                height={20}
+                stroke="#d1d5db"
+                fill="#f9fafb"
+                startIndex={brushStart}
+                endIndex={brushEnd}
+                travellerWidth={8}
+                tickFormatter={() => ''}
+              />
+            )}
           </ComposedChart>
         </ResponsiveContainer>
       )}

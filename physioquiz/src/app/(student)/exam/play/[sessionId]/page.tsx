@@ -91,7 +91,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
         </p>
         <Link
           href="/practice"
-          className="mt-3 inline-block min-h-[44px] text-sm font-medium text-primary-500 hover:text-primary-600"
+          className="mt-3 inline-block min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
         >
           &larr; Retour
         </Link>
@@ -109,7 +109,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
     return (
       <div className="mx-auto max-w-2xl text-center">
         <div className="mt-12">
-          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
           <p className="mt-4 text-sm text-neutral-500">
             Correction en cours...
           </p>
@@ -192,7 +192,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
               type="button"
               onClick={() => setShowConfirmDialog(true)}
               aria-label="Terminer et soumettre l'examen"
-              className="min-h-[44px] rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+              className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
             >
               Terminer l&apos;examen
             </button>
@@ -201,7 +201,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
               type="button"
               onClick={exam.nextQuestion}
               aria-label="Question suivante"
-              className="min-h-[44px] rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+              className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
             >
               Suivante &rarr;
             </button>
@@ -319,7 +319,7 @@ function ConfirmDialog({
             ref={confirmRef}
             type="button"
             onClick={onConfirm}
-            className="min-h-[44px] flex-1 rounded-lg bg-primary-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-600"
+            className="min-h-[44px] flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
           >
             Soumettre
           </button>

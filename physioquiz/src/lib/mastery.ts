@@ -10,12 +10,12 @@ interface MasteryLevel {
 
 const MASTERY_LEVELS: MasteryLevel[] = [
   { label: 'Non tenté', color: '#BDC3C7', min: -1, max: -1 },
-  { label: 'Lacune grave', color: '#C0392B', min: 0, max: 20 },
-  { label: 'En difficulté', color: '#E74C3C', min: 20, max: 40 },
-  { label: 'En progression', color: '#F39C12', min: 40, max: 60 },
-  { label: 'Correct', color: '#F1C40F', min: 60, max: 75 },
-  { label: 'Bon', color: '#2ECC71', min: 75, max: 90 },
-  { label: 'Maîtrisé', color: '#27AE60', min: 90, max: 101 },
+  { label: 'Lacune grave', color: '#B91C1C', min: 0, max: 20 },
+  { label: 'En difficulté', color: '#DC2626', min: 20, max: 40 },
+  { label: 'En progression', color: '#B45309', min: 40, max: 60 },
+  { label: 'Correct', color: '#D97706', min: 60, max: 75 },
+  { label: 'Bon', color: '#0ea5e9', min: 75, max: 90 },
+  { label: 'Maîtrisé', color: '#10B981', min: 90, max: 101 },
 ];
 
 /**

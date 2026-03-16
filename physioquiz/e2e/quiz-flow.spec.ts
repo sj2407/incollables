@@ -187,8 +187,9 @@ test.describe('Full Quiz Flow', () => {
       // Check if redirected to results
       if (page.url().includes('/quiz/results/')) break;
 
-      // Check for "Voir les résultats" button (session complete interstitial)
-      const resultsBtn = page.locator('button, a').filter({ hasText: /Voir les résultats|résultats/ });
+      // Check for "Voir les résultats détaillés" button (session complete interstitial)
+      // Use main content area to avoid matching sidebar "Mes résultats" link
+      const resultsBtn = page.locator('main button, main a').filter({ hasText: /Voir les résultats/ });
       if (await resultsBtn.first().isVisible({ timeout: 500 }).catch(() => false)) {
         await resultsBtn.first().click();
         try {
@@ -203,23 +204,23 @@ test.describe('Full Quiz Flow', () => {
       const nextBtn = page.locator('button', { hasText: /Question suivante/ });
       if (await nextBtn.isVisible({ timeout: 500 }).catch(() => false)) {
         await nextBtn.click();
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(300);
         continue;
       }
 
       // Select a choice and validate
       const choice = page.locator('[aria-pressed="false"]').first();
-      if (await choice.isVisible({ timeout: 3000 }).catch(() => false)) {
+      if (await choice.isVisible({ timeout: 2000 }).catch(() => false)) {
         await choice.click();
 
         const validateBtn = page.locator('button', { hasText: /Valider|valider/ });
         if (await validateBtn.isEnabled({ timeout: 1000 }).catch(() => false)) {
           await validateBtn.click();
-          // Wait for correction or navigation
-          await page.waitForTimeout(1500);
+          // Wait for correction view to appear (Question suivante or Voir les résultats)
+          await page.locator('button:has-text("Question suivante"), button:has-text("Voir les résultats"), main a:has-text("Voir les résultats")').first().waitFor({ timeout: 15_000 });
         }
       } else {
-        await page.waitForTimeout(1000);
+        await page.waitForTimeout(500);
       }
     }
 

@@ -35,7 +35,7 @@ export default memo(function ExamQuestionCard({
         aria-label={`Progression : ${Math.round(progress)}%`}
       >
         <div
-          className="h-full rounded-full bg-primary-500 transition-all duration-500 ease-out"
+          className="h-full rounded-full bg-primary transition-all duration-500 ease-out"
           style={{ width: `${progress}%` }}
         />
       </div>
