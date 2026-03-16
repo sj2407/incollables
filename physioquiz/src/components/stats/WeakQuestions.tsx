@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
 export interface WeakQuestion {
   question_id: string;
   question_text: string;
@@ -12,32 +10,21 @@ export interface WeakQuestion {
 }
 
 export function WeakQuestionsSection({ questions }: { questions: WeakQuestion[] }) {
-  const [expanded, setExpanded] = useState(false);
-  const visible = expanded ? questions : questions.slice(0, 3);
-  const hasMore = questions.length > 3;
-
   return (
-    <section className="mt-8" aria-labelledby="weak-heading">
+    <section className="mt-6" aria-labelledby="weak-heading">
       <h2 id="weak-heading" className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
         Questions à revoir ({questions.length})
       </h2>
       <p className="mt-1 text-xs text-neutral-500">
         Score 0 % en priorité, puis par score moyen croissant
       </p>
-      <div className="mt-3 flex flex-col gap-2">
-        {visible.map((q) => (
-          <WeakQuestionCard key={q.question_id} question={q} />
-        ))}
+      <div className="mt-3 max-h-[400px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
+        <div className="flex flex-col gap-2 p-2">
+          {questions.map((q) => (
+            <WeakQuestionCard key={q.question_id} question={q} />
+          ))}
+        </div>
       </div>
-      {hasMore && (
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          className="mt-3 min-h-[44px] w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm font-medium text-primary transition-colors hover:bg-primary-50"
-        >
-          {expanded ? 'Voir moins' : `Voir les ${questions.length - 3} autres`}
-        </button>
-      )}
     </section>
   );
 }
@@ -49,7 +36,7 @@ function WeakQuestionCard({ question }: { question: WeakQuestion }) {
       : 'text-error';
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-3 shadow-md sm:p-4">
+    <div className="rounded-xl border border-neutral-200 bg-white p-3 shadow-sm sm:p-4">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium text-neutral-700">

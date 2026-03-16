@@ -20,13 +20,6 @@ interface DashboardStats {
   confidence_fill_rate: number;
 }
 
-interface WeekTrends {
-  scoreDelta: number | null; // percentage point change
-  sessionsDelta: number | null;
-  timeDelta: number | null;
-  partialDelta: number | null;
-}
-
 interface ProgressPoint {
   date: string;
   score: number;
@@ -56,6 +49,7 @@ interface SessionHistory {
 
 export default function StatsPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [prevWeekStats, setPrevWeekStats] = useState<{ avg_score: number | null; total_sessions: number; total_study_minutes: number; partial_count: number } | null>(null);
   const [progress, setProgress] = useState<ProgressPoint[]>([]);
   const [calibration, setCalibration] = useState<CalibrationData | null>(null);
   const [calibrationAnswers, setCalibrationAnswers] = useState<CalibrationAnswer[]>([]);
@@ -133,9 +127,10 @@ export default function StatsPage() {
     const rpcParams = (base: Record<string, any>) =>
       rpcType ? { ...base, p_session_type: rpcType } : base;
 
-    const [statsResult, progressResult, calibrationResult, masteryResult, weakResult, sessionResult, calibAnswersResult] =
+    const [statsResult, prevWeekResult, progressResult, calibrationResult, masteryResult, weakResult, sessionResult, calibAnswersResult] =
       await Promise.all([
         supabase.rpc('get_dashboard_stats', rpcParams({ p_user_id: user.id })),
+        supabase.rpc('get_dashboard_stats_prev_week', rpcParams({ p_user_id: user.id })),
         progressQuery,
         supabase.rpc('get_calibration_data', rpcParams({ p_user_id: user.id })),
         supabase.rpc('get_topic_mastery_detailed', rpcParams({ p_user_id: user.id })),
@@ -155,6 +150,21 @@ export default function StatsPage() {
           partial_count: Number(s.partial_answer_count ?? 0),
           confidence_fill_rate: Number(s.confidence_fill_rate ?? 0),
         });
+      }
+    }
+
+    // Previous week stats (for WoW trends)
+    if (prevWeekResult.data && !prevWeekResult.error) {
+      const pw = Array.isArray(prevWeekResult.data) ? prevWeekResult.data[0] : prevWeekResult.data;
+      if (pw) {
+        setPrevWeekStats({
+          avg_score: pw.avg_score != null ? Number(pw.avg_score) : null,
+          total_sessions: Number(pw.total_sessions ?? 0),
+          total_study_minutes: Math.round(Number(pw.total_study_time_seconds ?? 0) / 60),
+          partial_count: Number(pw.partial_answer_count ?? 0),
+        });
+      } else {
+        setPrevWeekStats(null);
       }
     }
 
@@ -294,58 +304,35 @@ export default function StatsPage() {
   const studyHours = stats ? Math.round(stats.total_study_minutes / 60) : 0;
   const studyMinutes = stats ? stats.total_study_minutes % 60 : 0;
 
-  // Compute week-over-week trends from sessions
+  // Week-over-week trends from server-side prev_week RPC
   const trends = (() => {
-    const now = new Date();
-    const thisWeekStart = new Date(now.getTime() - 7 * 86400000);
-    const lastWeekStart = new Date(now.getTime() - 14 * 86400000);
+    if (!stats || !prevWeekStats || prevWeekStats.total_sessions === 0) {
+      // No last week data — show "pas de données" on all cards
+      return { scoreDelta: null, sessionsDelta: null, timeDelta: null, partialDelta: null };
+    }
 
-    const thisWeekSessions = sessions.filter(
-      (s) => new Date(s.completed_at) >= thisWeekStart
-    );
-    const lastWeekSessions = sessions.filter(
-      (s) => {
-        const d = new Date(s.completed_at);
-        return d >= lastWeekStart && d < thisWeekStart;
-      }
-    );
-
-    const thisWeekAvg =
-      thisWeekSessions.length > 0
-        ? Math.round(thisWeekSessions.reduce((a, s) => a + s.score_percent, 0) / thisWeekSessions.length)
-        : null;
-    const lastWeekAvg =
-      lastWeekSessions.length > 0
-        ? Math.round(lastWeekSessions.reduce((a, s) => a + s.score_percent, 0) / lastWeekSessions.length)
+    const pw = prevWeekStats;
+    const scoreDelta =
+      stats.avg_score_this_week !== null && pw.avg_score !== null
+        ? Math.round(stats.avg_score_this_week - pw.avg_score)
         : null;
 
-    const thisWeekTime = stats?.total_study_minutes ?? 0;
-    // Rough estimate: scale last week proportionally from session count
-    const lastWeekTime =
-      lastWeekSessions.length > 0 && thisWeekSessions.length > 0
-        ? Math.round(thisWeekTime * (lastWeekSessions.length / thisWeekSessions.length))
-        : 0;
+    const sessionsDelta = pw.total_sessions > 0
+      ? Math.round(((stats.session_count_this_week - pw.total_sessions) / pw.total_sessions) * 100)
+      : null;
 
-    const thisWeekPartials = stats?.partial_count ?? 0;
+    const timeDelta = pw.total_study_minutes > 0
+      ? Math.round(((stats.total_study_minutes - pw.total_study_minutes) / pw.total_study_minutes) * 100)
+      : null;
 
-    return {
-      scoreDelta:
-        thisWeekAvg !== null && lastWeekAvg !== null
-          ? thisWeekAvg - lastWeekAvg
-          : null,
-      sessionsDelta:
-        lastWeekSessions.length > 0
-          ? Math.round(
-              ((thisWeekSessions.length - lastWeekSessions.length) / lastWeekSessions.length) * 100
-            )
-          : null,
-      timeDelta:
-        lastWeekTime > 0
-          ? Math.round(((thisWeekTime - lastWeekTime) / lastWeekTime) * 100)
-          : null,
-      partialDelta: null as number | null, // no previous data for partials
-    };
+    const partialDelta = pw.partial_count > 0
+      ? Math.round(((stats.partial_count - pw.partial_count) / pw.partial_count) * 100)
+      : null;
+
+    return { scoreDelta, sessionsDelta, timeDelta, partialDelta };
   })();
+
+  const hasPrevWeekData = prevWeekStats !== null && prevWeekStats.total_sessions > 0;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -373,28 +360,32 @@ export default function StatsPage() {
           value={avgScore != null ? `${Math.round(avgScore)}%` : '—'}
           icon={<ChartIcon color="#194ce6" />}
           borderColor="#194ce6"
-          trend={trends.scoreDelta !== null ? { value: trends.scoreDelta, label: 'vs sem. dernière' } : undefined}
+          tooltip="Score moyen de vos sessions des 7 derniers jours."
+          trend={hasPrevWeekData && trends.scoreDelta !== null ? { value: trends.scoreDelta, label: 'vs sem. dernière' } : { value: 0, label: hasPrevWeekData ? 'stable' : 'pas de données sem. précédente' }}
         />
         <MetricCard
           label="Sessions"
           value={String(stats?.session_count_this_week ?? 0)}
           icon={<SessionsIcon color="#0ea5e9" />}
           borderColor="#0ea5e9"
-          trend={trends.sessionsDelta !== null ? { value: trends.sessionsDelta, label: trends.sessionsDelta === 0 ? 'stable' : 'vs sem. dernière' } : undefined}
+          tooltip="Nombre de sessions terminées dans les 7 derniers jours."
+          trend={hasPrevWeekData && trends.sessionsDelta !== null ? { value: trends.sessionsDelta, label: 'vs sem. dernière' } : { value: 0, label: hasPrevWeekData ? 'stable' : 'pas de données sem. précédente' }}
         />
         <MetricCard
           label="Temps d'étude"
           value={studyHours > 0 ? `${studyHours}h${studyMinutes > 0 ? `${studyMinutes}` : ''}` : `${studyMinutes}min`}
           icon={<TimerIcon color="#B45309" />}
           borderColor="#B45309"
-          trend={trends.timeDelta !== null ? { value: trends.timeDelta, label: 'vs sem. dernière' } : undefined}
+          tooltip="Temps total d'étude (hors pauses) des 7 derniers jours."
+          trend={hasPrevWeekData && trends.timeDelta !== null ? { value: trends.timeDelta, label: 'vs sem. dernière' } : { value: 0, label: hasPrevWeekData ? 'stable' : 'pas de données sem. précédente' }}
         />
         <MetricCard
-          label="Partielles"
+          label="Rép. partielles"
           value={String(stats?.partial_count ?? 0)}
           icon={<FlaskIcon color="#6366f1" />}
           borderColor="#6366f1"
-          trend={trends.partialDelta !== null ? { value: trends.partialDelta, label: 'vs sem. dernière' } : undefined}
+          tooltip="Nombre de réponses partiellement correctes (certains bons choix cochés, mais pas tous) des 7 derniers jours. Diffère des « Questions à revoir » qui montre toutes les questions avec un score moyen < 100 % sur l'ensemble de vos tentatives."
+          trend={hasPrevWeekData && trends.partialDelta !== null ? { value: trends.partialDelta, label: 'vs sem. dernière' } : { value: 0, label: hasPrevWeekData ? 'stable' : 'pas de données sem. précédente' }}
         />
       </div>
 

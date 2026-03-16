@@ -219,21 +219,31 @@ export default memo(function CalibrationChart({
           <p className="mt-1 text-xs text-neutral-400">
             Questions où vous étiez sûr mais la réponse était fausse
           </p>
-          <div className="mt-2 flex flex-col gap-1.5">
-            {falseCertainties.map((fc) => (
-              <div
-                key={fc.question_id}
-                className="rounded-lg border border-neutral-200 bg-neutral-50 p-2.5"
-              >
-                <p className="text-sm text-neutral-700 line-clamp-1">
-                  {fc.question_number ? `Q${fc.question_number}. ` : ''}
-                  {fc.question_text}
-                </p>
-                <p className="mt-0.5 text-xs text-neutral-400">
-                  {fc.topic_title} · {fc.score_percent}%
-                </p>
-              </div>
-            ))}
+          <div className="mt-2 max-h-[300px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
+            <div className="flex flex-col gap-1.5 p-2">
+              {falseCertainties.map((fc) => {
+                const scoreColor = fc.score_percent >= 40 ? 'text-warning' : 'text-error';
+                return (
+                  <div
+                    key={fc.question_id}
+                    className="flex items-start justify-between gap-3 rounded-lg border border-neutral-200 bg-white p-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-neutral-700 line-clamp-1">
+                        {fc.question_number ? `Q${fc.question_number}. ` : ''}
+                        {fc.question_text}
+                      </p>
+                      <p className="mt-0.5 text-xs text-neutral-400">
+                        {fc.topic_title}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 text-sm font-bold ${scoreColor}`}>
+                      {fc.score_percent}%
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

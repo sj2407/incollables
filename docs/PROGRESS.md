@@ -886,3 +886,50 @@ Consolidate 4 student-facing tabs (Tableau de bord, Cours, Carte, Progression) i
 - **DOMPurify** for ALL explanation HTML rendering
 - **Partial scoring**: 1 wrong answer checked = score 0% (non-negotiable)
 - **Answer line always takes precedence** over bold during import (from Sprint 0 decisions)
+
+---
+
+## URGENT — Items to work on next
+
+### 1. Webpack cache corruption during HMR (PARTIALLY FIXED)
+
+**Problem:** Next.js 14.2.35 webpack persistent cache corrupts during hot-module-replacement, causing Tailwind custom theme (colors, fonts) to revert to defaults. Requires manual `.next` cache clear + server restart after every code edit.
+
+**Partial fixes applied (2026-03-16):**
+- Added `buildDependencies.tailwind` to `next.config.mjs` — tells webpack to invalidate cache when `tailwind.config.ts` changes
+- Added `rm -rf .next/cache` to `npm run dev` script — forces clean cache on every dev start
+
+**Permanent fix needed:** Upgrade to Next.js 15+ with Turbopack (`next dev --turbo`), which eliminates the webpack cache class of bugs entirely. Requires checking the [upgrade guide](https://nextjs.org/docs/app/guides/upgrading) for breaking changes. Consider upgrading to Tailwind CSS v4 at the same time.
+
+**References:**
+- [vercel/next.js#66292](https://github.com/vercel/next.js/issues/66292)
+- [tailwindlabs/tailwindcss#5267](https://github.com/tailwindlabs/tailwindcss/issues/5267)
+
+### 2. Session type filter not applied to all stats sections
+
+**Problem:** The page-level session type filter ("Tous les types" / "Entrainement" / "Examen") should filter ALL sections consistently. Currently:
+- Metric cards: filtered (7-day window)
+- Progress chart: filtered
+- Heatmap: filtered
+- Calibration: filtered
+- **Weak questions**: filtered via RPC param
+- **Session history**: filtered
+
+Verify all sections respect the filter with real multi-type data. The filter was added recently and edge cases may exist.
+
+### 3. Verify data accuracy across all stats
+
+**Problem:** Numbers shown in UI must be verifiable against the database. Known discrepancy investigated and explained (2026-03-16):
+- "Rep. partielles" card (5) counts individual answer events flagged `is_partially_correct = true` in last 7 days
+- "Questions a revoir" (7 with >0% avg) counts distinct questions whose average score across ALL attempts is between 0-100%, which includes questions not flagged partial but with mixed results across sessions
+- Both numbers are correct but measure different things — tooltips added to clarify
+
+**Action:** Add integration tests that compare UI-displayed values against direct SQL queries to catch regressions.
+
+### 4. "Questions a revoir" — scrollable container done, RPC limit raised
+
+**Done (2026-03-16):** Replaced expand/collapse with scrollable container (max-height 400px). RPC `get_weak_questions` default limit raised from 10 to 1000. Migration file updated.
+
+### 5. "Fausses certitudes" — sort by score, scrollable container
+
+**Done (2026-03-16):** RPC `get_calibration_data` false_certainties now sorted by `score_percent ASC` (0% first, then partials). Removed LIMIT 10. Added scrollable container with score display matching "Questions a revoir" style.

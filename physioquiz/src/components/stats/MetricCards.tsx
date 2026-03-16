@@ -5,13 +5,14 @@ interface MetricCardProps {
   value: string;
   icon: React.ReactNode;
   borderColor: string;
+  tooltip: string;
   trend?: {
     value: number;
     label: string;
   };
 }
 
-export function MetricCard({ label, value, icon, borderColor, trend }: MetricCardProps) {
+export function MetricCard({ label, value, icon, borderColor, tooltip, trend }: MetricCardProps) {
   const trendColor =
     trend && trend.value > 0
       ? 'text-secondary-500'
@@ -29,8 +30,9 @@ export function MetricCard({ label, value, icon, borderColor, trend }: MetricCar
 
   return (
     <div
-      className="relative overflow-hidden rounded-xl border border-neutral-200 bg-white p-4 shadow-md"
+      className="group relative overflow-hidden rounded-xl border border-neutral-200 bg-white p-4 shadow-md"
       style={{ borderLeft: `4px solid ${borderColor}` }}
+      title={tooltip}
     >
       <div className="flex items-start justify-between">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-neutral-500">
