@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useState } from 'react';
+import { memo } from 'react';
 import {
   ResponsiveContainer,
   XAxis,
@@ -10,6 +10,7 @@ import {
   ReferenceLine,
   Area,
   Bar,
+  Brush,
   ComposedChart,
 } from 'recharts';
 
@@ -23,102 +24,38 @@ interface ProgressDataPoint {
 
 interface ProgressChartProps {
   data: ProgressDataPoint[];
-  /** Show date range toggle (30d / 90d) */
-  showToggle?: boolean;
-  /** Show topic/type filters (for full progress page) */
-  showFilters?: boolean;
   topics?: string[];
   height?: number;
 }
 
 export default memo(function ProgressChart({
   data,
-  showToggle = true,
-  showFilters = false,
-  topics = [],
   height = 240,
 }: ProgressChartProps) {
-  const [days, setDays] = useState<30 | 90>(30);
-  const [filterTopic, setFilterTopic] = useState<string>('all');
-  const [filterType, setFilterType] = useState<string>('all');
+  const hasQuestionCounts = data.some((d) => d.question_count != null && d.question_count > 0);
 
-  const cutoff = new Date();
-  cutoff.setDate(cutoff.getDate() - days);
-
-  const filtered = data.filter((d) => {
-    if (new Date(d.date) < cutoff) return false;
-    if (filterTopic !== 'all' && d.topic !== filterTopic) return false;
-    if (filterType !== 'all' && d.session_type !== filterType) return false;
-    return true;
-  });
-
-  const hasQuestionCounts = filtered.some((d) => d.question_count != null && d.question_count > 0);
-
-  const chartData = filtered.map((d) => ({
+  const chartData = data.map((d) => ({
     date: new Date(d.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
     score: d.score,
     ...(hasQuestionCounts ? { question_count: d.question_count ?? 0 } : {}),
   }));
 
   const maxQuestions = hasQuestionCounts
-    ? Math.max(...filtered.map((d) => d.question_count ?? 0), 1)
+    ? Math.max(...data.map((d) => d.question_count ?? 0), 1)
     : 0;
+
+  // Default brush: show last 30 days of data points (or all if fewer)
+  const brushStartIndex = Math.max(0, chartData.length - 30);
 
   return (
     <div aria-label="Évolution des scores" role="img">
       {/* Screen reader summary */}
       {chartData.length > 0 && (
         <p className="sr-only">
-          {chartData.length} sessions sur {days} jours.
+          {chartData.length} sessions.
           Score moyen : {Math.round(chartData.reduce((a, b) => a + b.score, 0) / chartData.length)}%.
         </p>
       )}
-      {/* Controls */}
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        {showToggle && (
-          <div className="flex gap-1">
-            {([30, 90] as const).map((d) => (
-              <button
-                key={d}
-                type="button"
-                onClick={() => setDays(d)}
-                className={`min-h-[44px] rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  days === d
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-neutral-100 text-neutral-600 hover:bg-neutral-200'
-                }`}
-              >
-                {d}j
-              </button>
-            ))}
-          </div>
-        )}
-        {showFilters && topics.length > 0 && (
-          <>
-            <select
-              value={filterTopic}
-              onChange={(e) => setFilterTopic(e.target.value)}
-              aria-label="Filtrer par cours"
-              className="min-h-[44px] rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-700"
-            >
-              <option value="all">Tous les cours</option>
-              {topics.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-            </select>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              aria-label="Filtrer par type"
-              className="min-h-[44px] rounded-lg border border-neutral-200 px-2 py-1 text-xs text-neutral-700"
-            >
-              <option value="all">Tous les types</option>
-              <option value="short">Entraînement</option>
-              <option value="exam">Examen</option>
-            </select>
-          </>
-        )}
-      </div>
 
       {chartData.length === 0 ? (
         <p className="py-8 text-center text-sm text-neutral-400">
@@ -126,7 +63,7 @@ export default memo(function ProgressChart({
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={height}>
-          <ComposedChart data={chartData} margin={{ top: 5, right: hasQuestionCounts ? 5 : 5, bottom: 5, left: -10 }}>
+          <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis
               dataKey="date"
@@ -186,6 +123,15 @@ export default memo(function ProgressChart({
               fill="url(#scoreGradient)"
               dot={{ r: 3, fill: '#2B7DE9' }}
               activeDot={{ r: 5 }}
+            />
+            <Brush
+              dataKey="date"
+              height={25}
+              stroke="#2B7DE9"
+              fill="#f9fafb"
+              startIndex={brushStartIndex}
+              endIndex={chartData.length - 1}
+              tickFormatter={() => ''}
             />
           </ComposedChart>
         </ResponsiveContainer>

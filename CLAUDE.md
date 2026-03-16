@@ -75,6 +75,9 @@ Every sprint follows this exact sequence:
 - Never hardcode one-off colors or font sizes — always reference the design system
 - If BRAND.md doesn't exist yet, create it at Sprint 1 and get user approval on the palette before building UI
 
+## Git Rules
+- **Never push to git or ask to push** — the user will push when they decide to
+
 ## Critical Rules (NON-NEGOTIABLE)
 - Original Word document is NEVER modified (always work on a copy)
 - NEVER send correct answers to the client before validation

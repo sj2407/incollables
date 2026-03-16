@@ -45,7 +45,6 @@ interface SessionHistory {
 export default function StatsPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [progress, setProgress] = useState<ProgressPoint[]>([]);
-  const [topics, setTopics] = useState<string[]>([]);
   const [calibration, setCalibration] = useState<CalibrationData | null>(null);
   const [heatmapData, setHeatmapData] = useState<HeatmapNode[]>([]);
   const [weakQuestions, setWeakQuestions] = useState<WeakQuestion[]>([]);
@@ -131,22 +130,13 @@ export default function StatsPage() {
 
     // Progress
     if (progressResult.data && !progressResult.error) {
-      const uniqueTopics = new Set<string>();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const points: ProgressPoint[] = (progressResult.data as any[]).map((d) => {
-        const topicData = (Array.isArray(d.topics) ? d.topics[0] : d.topics) as { title: string } | null;
-        const topicTitle = topicData?.title ?? '';
-        if (topicTitle) uniqueTopics.add(topicTitle);
-        return {
-          date: d.completed_at,
-          score: Number(d.score_percent ?? 0),
-          topic: topicTitle,
-          session_type: d.session_type,
-          question_count: Number(d.question_count ?? 0),
-        };
-      });
+      const points: ProgressPoint[] = (progressResult.data as any[]).map((d) => ({
+        date: d.completed_at,
+        score: Number(d.score_percent ?? 0),
+        question_count: Number(d.question_count ?? 0),
+      }));
       setProgress(points);
-      setTopics(Array.from(uniqueTopics).sort());
     }
 
     // Calibration
@@ -314,7 +304,7 @@ export default function StatsPage() {
           Progression
         </h2>
         <div className="mt-3">
-          <ProgressChart data={progress} showToggle topics={topics} height={260} />
+          <ProgressChart data={progress} height={260} />
         </div>
       </section>
 

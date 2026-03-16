@@ -44,12 +44,10 @@ test.describe('Stats & Progress (Sprint 4)', () => {
       .catch(() => false);
 
     if (hasProgress) {
-      // 30j/90j toggle buttons
-      const btn30 = page.getByRole('button', { name: '30j' });
-      const btn90 = page.getByRole('button', { name: '90j' });
-      await expect(btn30).toBeVisible();
-      await expect(btn90).toBeVisible();
-      console.log('Progress chart with toggle: OK');
+      // Chart should render an SVG via recharts
+      const svg = page.locator('[aria-label="Évolution des scores"] svg');
+      await expect(svg.first()).toBeVisible({ timeout: 5000 });
+      console.log('Progress chart: OK');
     } else {
       console.log('No progress data yet — chart not shown');
     }
