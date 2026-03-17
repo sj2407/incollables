@@ -1,5 +1,6 @@
 'use client';
 
+import { ArrowLeft, ArrowRight } from '@phosphor-icons/react';
 import { useExam } from '@/hooks/useExam';
 import Countdown from '@/components/ui/Countdown';
 import ExamQuestionCard from '@/components/exam/ExamQuestionCard';
@@ -21,53 +22,85 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
 
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
+  const timeWarningRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (timeWarningRef.current) clearTimeout(timeWarningRef.current);
+    };
+  }, []);
+
+  // Destructure stable references from exam hook
+  const {
+    toggleChoice: examToggleChoice,
+    toggleCrossOut: examToggleCrossOut,
+    toggleFlag: examToggleFlag,
+    submitExam,
+    currentQuestion,
+    currentCrossedOutIds,
+    questions: examQuestions,
+    answersMap,
+    flaggedIds,
+  } = exam;
 
   // Build index sets for the navigator
   const answeredIndices = useMemo(() => {
     const set = new Set<number>();
-    exam.questions.forEach((q, i) => {
-      if ((exam.answersMap.get(q.id)?.size ?? 0) > 0) set.add(i);
+    examQuestions.forEach((q, i) => {
+      if ((answersMap.get(q.id)?.size ?? 0) > 0) set.add(i);
     });
     return set;
-  }, [exam.questions, exam.answersMap]);
+  }, [examQuestions, answersMap]);
 
   const flaggedIndices = useMemo(() => {
     const set = new Set<number>();
-    exam.questions.forEach((q, i) => {
-      if (exam.flaggedIds.has(q.id)) set.add(i);
+    examQuestions.forEach((q, i) => {
+      if (flaggedIds.has(q.id)) set.add(i);
     });
     return set;
-  }, [exam.questions, exam.flaggedIds]);
+  }, [examQuestions, flaggedIds]);
+
+  const currentQuestionId = currentQuestion?.id;
 
   const handleToggleChoice = useCallback(
     (choiceId: string) => {
-      if (exam.currentQuestion) {
-        exam.toggleChoice(exam.currentQuestion.id, choiceId);
+      if (currentQuestionId) {
+        examToggleChoice(currentQuestionId, choiceId);
       }
     },
-    [exam],
+    [examToggleChoice, currentQuestionId],
+  );
+
+  const handleToggleCrossOut = useCallback(
+    (choiceId: string) => {
+      if (currentQuestionId) {
+        examToggleCrossOut(currentQuestionId, choiceId);
+      }
+    },
+    [examToggleCrossOut, currentQuestionId],
   );
 
   const handleToggleFlag = useCallback(() => {
-    if (exam.currentQuestion) {
-      exam.toggleFlag(exam.currentQuestion.id);
+    if (currentQuestionId) {
+      examToggleFlag(currentQuestionId);
     }
-  }, [exam]);
+  }, [examToggleFlag, currentQuestionId]);
 
   const handleTimeUp = useCallback(() => {
-    exam.submitExam();
-  }, [exam]);
+    submitExam();
+  }, [submitExam]);
 
   const handleTimeWarning = useCallback(() => {
     setShowTimeWarning(true);
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => setShowTimeWarning(false), 5000);
+    if (timeWarningRef.current) clearTimeout(timeWarningRef.current);
+    timeWarningRef.current = setTimeout(() => setShowTimeWarning(false), 5000);
   }, []);
 
   const handleConfirmSubmit = useCallback(() => {
     setShowConfirmDialog(false);
-    exam.submitExam();
-  }, [exam]);
+    submitExam();
+  }, [submitExam]);
 
   // Fetch topic_id for results page link
   const topicId = exam.questions[0]?.topic_id ?? '';
@@ -93,7 +126,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
           href="/practice"
           className="mt-3 inline-block min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
         >
-          &larr; Retour
+          <ArrowLeft size={14} className="mr-1 inline" />Retour
         </Link>
       </div>
     );
@@ -170,6 +203,8 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
           selectedIds={exam.currentSelectedIds}
           onToggle={handleToggleChoice}
           disabled={false}
+          crossedOutIds={currentCrossedOutIds}
+          onToggleCrossOut={handleToggleCrossOut}
         />
       </div>
 
@@ -185,7 +220,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
             aria-label="Question pr&eacute;c&eacute;dente"
             className="min-h-[44px] rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:text-neutral-400"
           >
-            &larr; Pr&eacute;c&eacute;dente
+            <ArrowLeft size={14} className="mr-1 inline" />Pr&eacute;c&eacute;dente
           </button>
           {exam.currentIndex >= exam.questions.length - 1 ? (
             <button
@@ -203,7 +238,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
               aria-label="Question suivante"
               className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
             >
-              Suivante &rarr;
+              Suivante <ArrowRight size={14} className="ml-1 inline" />
             </button>
           )}
         </div>

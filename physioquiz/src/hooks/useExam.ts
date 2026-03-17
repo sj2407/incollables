@@ -62,6 +62,8 @@ export interface ExamState {
   answersMap: Map<string, Set<string>>;
   /** Set of flagged question IDs */
   flaggedIds: Set<string>;
+  /** Map of questionId → Set of crossed-out choice IDs (client-only elimination aid) */
+  crossedOutMap: Map<string, Set<string>>;
   isLoading: boolean;
   isSaving: boolean;
   isSubmitting: boolean;
@@ -83,6 +85,7 @@ export function useExam(sessionId: string) {
     currentIndex: 0,
     answersMap: new Map(),
     flaggedIds: new Set(),
+    crossedOutMap: new Map(),
     isLoading: true,
     isSaving: false,
     isSubmitting: false,
@@ -320,6 +323,23 @@ export function useExam(sessionId: string) {
     [saveAnswer],
   );
 
+  const toggleCrossOut = useCallback(
+    (questionId: string, choiceId: string) => {
+      setState((prev) => {
+        const newMap = new Map(prev.crossedOutMap);
+        const current = new Set(newMap.get(questionId) ?? []);
+        if (current.has(choiceId)) {
+          current.delete(choiceId);
+        } else {
+          current.add(choiceId);
+        }
+        newMap.set(questionId, current);
+        return { ...prev, crossedOutMap: newMap };
+      });
+    },
+    [],
+  );
+
   const goToQuestion = useCallback((index: number) => {
     setState((prev) => {
       if (index < 0 || index >= prev.questions.length) return prev;
@@ -407,6 +427,10 @@ export function useExam(sessionId: string) {
     ? state.answersMap.get(currentQuestion.id) ?? new Set<string>()
     : new Set<string>();
 
+  const currentCrossedOutIds = currentQuestion
+    ? state.crossedOutMap.get(currentQuestion.id) ?? new Set<string>()
+    : new Set<string>();
+
   const answeredCount = state.questions.filter(
     (q) => (state.answersMap.get(q.id)?.size ?? 0) > 0,
   ).length;
@@ -429,11 +453,13 @@ export function useExam(sessionId: string) {
     ...state,
     currentQuestion,
     currentSelectedIds,
+    currentCrossedOutIds,
     answeredCount,
     unansweredCount,
     progress,
     remainingSeconds,
     toggleChoice,
+    toggleCrossOut,
     toggleFlag,
     goToQuestion,
     nextQuestion,

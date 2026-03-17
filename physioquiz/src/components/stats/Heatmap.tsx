@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { ResponsiveContainer, Treemap } from 'recharts';
 import { getMasteryColor, getMasteryLabel, MASTERY_SCALE } from '@/lib/mastery';
 import { createClient } from '@/lib/supabase/client';
@@ -257,6 +258,13 @@ function TopicDetailPanel({
           <p className="mt-2 text-[10px] text-neutral-400">
             Couverture : {Math.round(node.coverage)}% ({node.size} questions au total)
           </p>
+
+          <Link
+            href={`/quiz/setup/${node.topic_id}`}
+            className="mt-3 block w-full rounded-lg border border-primary/20 px-3 py-2 text-center text-sm font-medium text-primary transition-colors hover:bg-primary-50"
+          >
+            Réviser ce chapitre
+          </Link>
         </>
       ) : (
         <p className="mt-3 text-xs text-neutral-400">Aucune donnée disponible.</p>

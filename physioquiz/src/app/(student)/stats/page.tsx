@@ -1,5 +1,6 @@
 'use client';
 
+import { Info as InfoIcon, X } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
@@ -10,6 +11,7 @@ import type { HeatmapNode } from '@/components/stats/Heatmap';
 import ScoreCircle from '@/components/ui/ScoreCircle';
 
 const ProgressChart = dynamic(() => import('@/components/stats/ProgressChart'), { ssr: false });
+const ActivityCalendar = dynamic(() => import('@/components/stats/ActivityCalendar'), { ssr: false });
 const CalibrationChart = dynamic(() => import('@/components/stats/CalibrationChart'), { ssr: false });
 const Heatmap = dynamic(() => import('@/components/stats/Heatmap'), { ssr: false });
 
@@ -59,6 +61,7 @@ export default function StatsPage() {
   const [sessions, setSessions] = useState<SessionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [progressView, setProgressView] = useState<'chart' | 'calendar'>('chart');
 
   // Page-level type filter
   const [filterType, setFilterType] = useState<string>('all');
@@ -221,11 +224,13 @@ export default function StatsPage() {
     // Weak questions
     if (weakResult.data && !weakResult.error) {
       setWeakQuestions(
-        (weakResult.data as WeakQuestion[]).map((q) => ({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (weakResult.data as any[]).map((q) => ({
           question_id: q.question_id,
           question_text: q.question_text,
           question_number: q.question_number,
           topic_title: q.topic_title,
+          topic_id: q.topic_id,
           avg_score: Number(q.avg_score),
           attempt_count: Number(q.attempt_count),
         }))
@@ -390,13 +395,49 @@ export default function StatsPage() {
         />
       </div>
 
-      {/* 2. Progress chart */}
+      {/* 2. Progress chart / Activity calendar */}
       <section className="mt-6" aria-labelledby="scores-heading">
-        <h2 id="scores-heading" className="mb-3 text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
-          Progression
-        </h2>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 id="scores-heading" className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
+            Progression
+          </h2>
+          <div className="grid w-[160px] grid-cols-2 rounded-lg border border-neutral-200 p-0.5">
+            <button
+              type="button"
+              onClick={() => setProgressView('chart')}
+              className={`rounded-md py-1 text-center text-xs font-medium transition-colors ${
+                progressView === 'chart'
+                  ? 'bg-primary text-white'
+                  : 'text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              Courbe
+            </button>
+            <button
+              type="button"
+              onClick={() => setProgressView('calendar')}
+              className={`rounded-md py-1 text-center text-xs font-medium transition-colors ${
+                progressView === 'calendar'
+                  ? 'bg-primary text-white'
+                  : 'text-neutral-500 hover:text-neutral-700'
+              }`}
+            >
+              Activité
+            </button>
+          </div>
+        </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
-          <ProgressChart data={progress} height={260} />
+          {progressView === 'chart' ? (
+            <ProgressChart data={progress} height={260} />
+          ) : (
+            <ActivityCalendar
+              sessions={progress.map((p) => ({
+                completed_at: p.date,
+                question_count: p.question_count ?? 0,
+                score_percent: p.score,
+              }))}
+            />
+          )}
         </div>
       </section>
 
@@ -419,7 +460,7 @@ export default function StatsPage() {
         </h2>
         <p className="mb-3 text-xs text-neutral-500">
           Votre taux de réussite réel vs votre confiance déclarée
-          <span className="ml-1 text-neutral-400" title="Chaque point = une réponse individuelle (non moyennée par question)">ⓘ</span>
+          <span className="ml-1 inline-flex align-middle text-neutral-400" title="Chaque point = une réponse individuelle (non moyennée par question)"><InfoIcon /></span>
         </p>
         <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
           <CalibrationChart
@@ -473,9 +514,7 @@ export default function StatsPage() {
                       className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-neutral-400 hover:text-neutral-600"
                       aria-label="Effacer le filtre"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="h-3.5 w-3.5">
-                        <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
-                      </svg>
+                      <X size={14} />
                     </button>
                   )}
                   {historySearchOpen && historyTopicFilter && matchingTopics.length > 0 && (

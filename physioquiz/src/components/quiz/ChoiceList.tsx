@@ -10,6 +10,10 @@ interface ChoiceListProps {
   disabled: boolean;
   /** After validation: IDs of the correct choices (from server response) */
   correctChoiceIds?: string[];
+  /** IDs of choices the user has crossed out (elimination aid) */
+  crossedOutIds?: Set<string>;
+  /** Callback to toggle cross-out on a choice */
+  onToggleCrossOut?: (choiceId: string) => void;
 }
 
 function areSetsEqual(a: Set<string>, b: Set<string>): boolean {
@@ -38,6 +42,8 @@ export default memo(function ChoiceList({
   onToggle,
   disabled,
   correctChoiceIds,
+  crossedOutIds,
+  onToggleCrossOut,
 }: ChoiceListProps) {
   const isValidated = correctChoiceIds !== undefined;
   const correctSet = new Set(correctChoiceIds ?? []);
@@ -47,6 +53,7 @@ export default memo(function ChoiceList({
       {choices.map((choice) => {
         const isSelected = selectedIds.has(choice.id);
         const isCorrect = correctSet.has(choice.id);
+        const isCrossedOut = !isValidated && (crossedOutIds?.has(choice.id) ?? false);
 
         let borderColor = 'border-neutral-100';
         let bgColor = 'bg-white';
@@ -79,39 +86,57 @@ export default memo(function ChoiceList({
         }
 
         return (
-          <button
-            key={choice.id}
-            type="button"
-            onClick={() => onToggle(choice.id)}
-            disabled={disabled}
-            aria-pressed={isSelected}
-            className={`flex min-h-[44px] items-center gap-4 rounded-xl border-2 p-4 text-left transition-all ${borderColor} ${bgColor} ${animClass} ${
-              !disabled
-                ? isSelected && !isValidated
-                  ? 'border-primary bg-primary/5'
-                  : 'hover:border-primary/50 hover:bg-primary/5'
-                : ''
-            } ${disabled ? 'cursor-default' : 'cursor-pointer'}`}
-          >
-            {/* Letter badge */}
-            <div
-              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors ${badgeBg}`}
+          <div key={choice.id} className="relative flex items-stretch">
+            <button
+              type="button"
+              onClick={() => onToggle(choice.id)}
+              disabled={disabled}
+              aria-pressed={isSelected}
+              className={`flex min-h-[44px] flex-1 items-center gap-4 rounded-xl border-2 p-4 text-left transition-all ${borderColor} ${bgColor} ${animClass} ${
+                !disabled
+                  ? isSelected && !isValidated
+                    ? 'border-primary bg-primary/5'
+                    : 'hover:border-primary/50 hover:bg-primary/5'
+                  : ''
+              } ${disabled ? 'cursor-default' : 'cursor-pointer'} ${isCrossedOut ? 'opacity-40' : ''}`}
             >
-              {isValidated && icon ? icon : choice.label}
-            </div>
+              {/* Letter badge */}
+              <div
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold transition-colors ${badgeBg}`}
+              >
+                {isValidated && icon ? icon : choice.label}
+              </div>
 
-            {/* Text */}
-            <span className="flex-1 text-sm font-semibold text-neutral-700">
-              {choice.choice_text}
-            </span>
+              {/* Text */}
+              <span className={`flex-1 text-sm font-semibold text-neutral-700 ${isCrossedOut ? 'line-through' : ''}`}>
+                {choice.choice_text}
+              </span>
 
-            {/* Check icon when selected (pre-validation) */}
-            {isSelected && !isValidated && (
-              <CheckIcon className="h-5 w-5 shrink-0 text-primary" />
+              {/* Check icon when selected (pre-validation) */}
+              {isSelected && !isValidated && (
+                <CheckIcon className="h-5 w-5 shrink-0 text-primary" />
+              )}
+            </button>
+
+            {/* Cross-out toggle button */}
+            {!isValidated && onToggleCrossOut && (
+              <button
+                type="button"
+                onClick={() => onToggleCrossOut(choice.id)}
+                aria-label={isCrossedOut ? `Restaurer la proposition ${choice.label}` : `Éliminer la proposition ${choice.label}`}
+                className="ml-1 flex w-8 shrink-0 items-center justify-center rounded-lg text-neutral-300 transition-colors hover:text-neutral-500"
+              >
+                <XIcon className={`h-4 w-4 ${isCrossedOut ? 'text-neutral-500' : ''}`} />
+              </button>
             )}
-          </button>
+          </div>
         );
       })}
+      {!isValidated && onToggleCrossOut && (
+        <p className="mt-1 text-[11px] text-neutral-400">
+          Utilisez <span className="font-medium">✕</span> pour éliminer visuellement une proposition. Cliquez à nouveau pour annuler.
+        </p>
+      )}
     </div>
   );
 }, (prev, next) => {
@@ -120,7 +145,9 @@ export default memo(function ChoiceList({
     areSetsEqual(prev.selectedIds, next.selectedIds) &&
     prev.onToggle === next.onToggle &&
     prev.disabled === next.disabled &&
-    areArraysEqual(prev.correctChoiceIds, next.correctChoiceIds)
+    areArraysEqual(prev.correctChoiceIds, next.correctChoiceIds) &&
+    areSetsEqual(prev.crossedOutIds ?? new Set(), next.crossedOutIds ?? new Set()) &&
+    prev.onToggleCrossOut === next.onToggleCrossOut
   );
 });
 

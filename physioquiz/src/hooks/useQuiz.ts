@@ -57,6 +57,8 @@ export interface QuizState {
   isComplete: boolean;
   /** Base elapsed seconds for the timer hook (set on session load/resume) */
   timerBaseElapsed: number;
+  /** IDs of choices crossed out by the user (elimination aid, client-only) */
+  crossedOutIds: Set<string>;
 }
 
 // --- Hook ---
@@ -80,6 +82,7 @@ export function useQuiz(sessionId: string) {
     questionStartTime: Date.now(),
     isComplete: false,
     timerBaseElapsed: 0,
+    crossedOutIds: new Set(),
   });
 
   // Ref for async callbacks to read latest state
@@ -425,11 +428,25 @@ export function useQuiz(sessionId: string) {
     }));
   }, [sessionId]);
 
+  const toggleCrossOut = useCallback((choiceId: string) => {
+    setState((prev) => {
+      if (prev.isValidated) return prev;
+      const newSet = new Set(prev.crossedOutIds);
+      if (newSet.has(choiceId)) {
+        newSet.delete(choiceId);
+      } else {
+        newSet.add(choiceId);
+      }
+      return { ...prev, crossedOutIds: newSet };
+    });
+  }, []);
+
   const nextQuestion = useCallback(() => {
     setState((prev) => ({
       ...prev,
       currentIndex: prev.currentIndex + 1,
       selectedChoiceIds: new Set(),
+      crossedOutIds: new Set(),
       confidence: null,
       isValidated: false,
       correction: null,
@@ -490,6 +507,7 @@ export function useQuiz(sessionId: string) {
     canPause,
     timerRunning,
     toggleChoice,
+    toggleCrossOut,
     setConfidence,
     validateAnswer,
     nextQuestion,

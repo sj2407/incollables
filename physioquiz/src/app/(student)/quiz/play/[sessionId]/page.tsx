@@ -8,7 +8,7 @@ import { useQuiz } from '@/hooks/useQuiz';
 import { useTimer } from '@/hooks/useTimer';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 
 interface QuizPlayPageProps {
   params: { sessionId: string };
@@ -31,7 +31,15 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
     }
   }, [handlePause, router]);
 
-  // Loading state
+  // Redirect if session is already complete (e.g. navigated back to a finished session)
+  const shouldRedirectToResults = !quiz.isLoading && quiz.isSessionComplete && !quiz.currentQuestion;
+  useEffect(() => {
+    if (shouldRedirectToResults) {
+      router.replace(`/quiz/results/${sessionId}`);
+    }
+  }, [shouldRedirectToResults, router, sessionId]);
+
+  // Loading state (checked after hooks but redirect waits for loading to finish)
   if (quiz.isLoading) {
     return (
       <div className="mx-auto max-w-2xl">
@@ -80,9 +88,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
     );
   }
 
-  // Session already complete (e.g. navigated back to a finished session)
-  if (quiz.isSessionComplete && !quiz.currentQuestion) {
-    router.replace(`/quiz/results/${sessionId}`);
+  if (shouldRedirectToResults) {
     return null;
   }
 
@@ -179,6 +185,8 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
               ? quiz.correction?.correct_choice_ids
               : undefined
           }
+          crossedOutIds={quiz.crossedOutIds}
+          onToggleCrossOut={quiz.toggleCrossOut}
         />
       </div>
 
@@ -215,7 +223,6 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
         <>
           <CorrectionView
             correction={quiz.correction}
-            selectedCount={quiz.selectedChoiceIds.size}
           />
 
           {/* Next question button */}

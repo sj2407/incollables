@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import ScoreCircle from '@/components/ui/ScoreCircle';
 
 export interface WeakQuestion {
@@ -7,6 +8,7 @@ export interface WeakQuestion {
   question_text: string;
   question_number: number | null;
   topic_title: string;
+  topic_id: string;
   avg_score: number;
   attempt_count: number;
 }
@@ -40,8 +42,15 @@ function WeakQuestionCard({ question }: { question: WeakQuestion }) {
             {question.question_number ? `Q${question.question_number}. ` : ''}
             {question.question_text}
           </p>
-          <p className="mt-1 text-xs text-neutral-400">
-            {question.topic_title} · {question.attempt_count} session{question.attempt_count > 1 ? 's' : ''}
+          <p className="mt-1 flex items-center gap-1.5 text-xs text-neutral-400">
+            <Link
+              href={`/quiz/setup/${question.topic_id}`}
+              className="text-primary hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {question.topic_title}
+            </Link>
+            <span>· {question.attempt_count} session{question.attempt_count > 1 ? 's' : ''}</span>
           </p>
         </div>
         <div className="shrink-0">
