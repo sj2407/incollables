@@ -153,7 +153,7 @@ export default memo(function CalibrationChart({
     <div>
       <div aria-label="Graphique de calibration" role="img">
         <p className="sr-only">{srSummary}</p>
-        <ResponsiveContainer width="100%" height={240}>
+        <ResponsiveContainer width="100%" height={220}>
           <ScatterChart margin={{ top: 10, right: 15, bottom: 5, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
             <XAxis
@@ -220,7 +220,7 @@ export default memo(function CalibrationChart({
           <p className="mt-1 text-xs text-neutral-400">
             Questions où vous étiez sûr mais la réponse était fausse
           </p>
-          <div className="mt-2 max-h-[300px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
+          <div className="mt-2 max-h-[195px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
             <div className="flex flex-col gap-1.5 p-2">
               {falseCertainties.map((fc) => (
                   <div

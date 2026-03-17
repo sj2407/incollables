@@ -22,7 +22,7 @@ export function WeakQuestionsSection({ questions }: { questions: WeakQuestion[] 
       <p className="mt-1 text-xs text-neutral-500">
         Score 0 % en priorité, puis par score moyen croissant
       </p>
-      <div className="mt-3 max-h-[400px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
+      <div className="mt-3 max-h-[230px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
         <div className="flex flex-col gap-2 p-2">
           {questions.map((q) => (
             <WeakQuestionCard key={q.question_id} question={q} />

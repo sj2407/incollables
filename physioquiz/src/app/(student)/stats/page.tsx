@@ -15,6 +15,9 @@ const ActivityCalendar = dynamic(() => import('@/components/stats/ActivityCalend
 const CalibrationChart = dynamic(() => import('@/components/stats/CalibrationChart'), { ssr: false });
 const Heatmap = dynamic(() => import('@/components/stats/Heatmap'), { ssr: false });
 
+/** Shared height for progression section (chart + activity calendar) */
+const PROGRESSION_HEIGHT = 220;
+
 interface DashboardStats {
   avg_score_this_week: number | null;
   session_count_this_week: number;
@@ -341,7 +344,7 @@ export default function StatsPage() {
   const hasPrevWeekData = prevWeekStats !== null && prevWeekStats.total_sessions > 0;
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div className="mx-auto max-w-2xl px-2 sm:px-0">
       {/* Header with page-level filter */}
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]">
@@ -360,7 +363,7 @@ export default function StatsPage() {
       </div>
 
       {/* 1. Metric cards — 2×2 grid */}
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-4 grid grid-cols-2 gap-2.5">
         <MetricCard
           label="Score hebdo"
           value={avgScore != null ? `${Math.round(avgScore)}%` : '—'}
@@ -428,7 +431,7 @@ export default function StatsPage() {
         </div>
         <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
           {progressView === 'chart' ? (
-            <ProgressChart data={progress} height={260} />
+            <ProgressChart data={progress} height={PROGRESSION_HEIGHT} />
           ) : (
             <ActivityCalendar
               sessions={progress.map((p) => ({
@@ -436,6 +439,7 @@ export default function StatsPage() {
                 question_count: p.question_count ?? 0,
                 score_percent: p.score,
               }))}
+              height={PROGRESSION_HEIGHT}
             />
           )}
         </div>

@@ -373,7 +373,7 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
   return (
     <div>
       {/* Desktop/tablet: Recharts Treemap */}
-      <div className="hidden sm:block" aria-label="Carte de chaleur des connaissances" role="img">
+      <div aria-label="Carte de chaleur des connaissances" role="img">
         <p className="sr-only">
           Carte de maîtrise : {data.length} chapitres.
           {data.filter(n => n.mastery !== null && n.mastery >= 0).length} tentés.
@@ -400,8 +400,8 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
         </ul>
       </div>
 
-      {/* Mobile: card-based fallback */}
-      <div className="flex flex-col gap-2 sm:hidden">
+      {/* Mobile: card-based fallback (hidden — treemap shown on all sizes) */}
+      <div className="hidden flex-col gap-2">
         {data.map((node) => (
           <button
             key={node.topic_id}
