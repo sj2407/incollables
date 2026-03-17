@@ -1,25 +1,44 @@
 'use client';
 
+import { PencilSimple } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
+import { saveQuestionField, publishAllDrafts, getDraftCount } from '@/lib/adminAutoSave';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useSearchParams } from 'next/navigation';
-import QuestionTable, { type QuestionRow } from '@/components/admin/QuestionTable';
+import dynamic from 'next/dynamic';
+import type { AdminQuestionRow, TopicOption } from '@/types/admin';
+import type { PopupRequest } from '@/components/admin/QuestionGrid';
 import QuestionSidePanel from '@/components/admin/QuestionSidePanel';
 import BulkActions from '@/components/admin/BulkActions';
 import TopicFormModal, { type TopicFormData } from '@/components/admin/TopicFormModal';
 
-interface TopicOption {
-  id: string;
-  title: string;
-  level: number;
-  parent_id: string | null;
-  description: string | null;
-  is_active: boolean;
+// Lazy-load AG Grid so students never download it
+const QuestionGrid = dynamic(
+  () => import('@/components/admin/QuestionGrid'),
+  { ssr: false, loading: () => <GridSkeleton /> }
+);
+
+// Lazy-load popup editors (admin-only)
+const PropositionPopup = dynamic(() => import('@/components/admin/PropositionPopup'));
+const CorrectAnswersPopup = dynamic(() => import('@/components/admin/CorrectAnswersPopup'));
+const TipTapEditor = dynamic(() => import('@/components/admin/TipTapEditor'));
+const EditLogPanel = dynamic(() => import('@/components/admin/EditLogPanel'));
+const CorbeillePanel = dynamic(() => import('@/components/admin/CorbeillePanel'));
+
+function GridSkeleton() {
+  return (
+    <div className="space-y-2">
+      {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+        <div key={i} className="h-11 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
+      ))}
+    </div>
+  );
 }
 
 export default function AdminDatabasePage() {
   const searchParams = useSearchParams();
-  const [questions, setQuestions] = useState<QuestionRow[]>([]);
+  const [questions, setQuestions] = useState<AdminQuestionRow[]>([]);
   const [topics, setTopics] = useState<TopicOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,15 +48,39 @@ export default function AdminDatabasePage() {
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<string>('');
-  const [page, setPage] = useState(0);
-  const PAGE_SIZE = 25;
+  const [difficultyFilter, setDifficultyFilter] = useState<string>('');
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  // Side panel — open from query param if present
-  const [panelId, setPanelId] = useState<string | null>(searchParams.get('edit'));
+  // Side panel for new/edit question
+  const [panelId, setPanelId] = useState<string | null>(null);
+
+  // Handle ?edit=<id> deep link from quality alerts
+  const editParam = searchParams.get('edit');
+  const editParamHandled = useRef<string | null>(null);
+  useEffect(() => {
+    if (editParam && editParam !== editParamHandled.current) {
+      editParamHandled.current = editParam;
+      setPanelId(editParam);
+    }
+  }, [editParam]);
+
+  // Popup editors (propositions, correct answers, explanation)
+  const [popup, setPopup] = useState<PopupRequest | null>(null);
+
+  // Edit log panel
+  const [showEditLog, setShowEditLog] = useState(false);
+
+  // Draft mode
+  const [draftCount, setDraftCount] = useState(0);
+  const [publishing, setPublishing] = useState(false);
+  const [publishSuccess, setPublishSuccess] = useState<string | null>(null);
+
+  // Corbeille
+  const [showCorbeille, setShowCorbeille] = useState(false);
+  const [corbeilleCount, setCorbeilleCount] = useState(0);
 
   // Topic management modal
   const [topicModal, setTopicModal] = useState<{
@@ -51,21 +94,21 @@ export default function AdminDatabasePage() {
     if (searchTimer.current) clearTimeout(searchTimer.current);
     searchTimer.current = setTimeout(() => {
       setDebouncedSearch(search);
-      setPage(0);
     }, 400);
     return () => { if (searchTimer.current) clearTimeout(searchTimer.current); };
   }, [search]);
 
+  const initialLoadDone = useRef(false);
   const fetchQuestions = useCallback(async () => {
-    setLoading(true);
+    // Only show skeleton on initial load — refreshes preserve AG Grid sort/filter state
+    if (!initialLoadDone.current) setLoading(true);
     const supabase = createClient();
 
-    const { data, error: qError } = await supabase.rpc('get_admin_question_database', {
+    const { data, error: qError } = await supabase.rpc('get_admin_question_database_v2', {
       p_topic_id: topicFilter || null,
       p_search: debouncedSearch || null,
       p_active_filter: activeFilter || null,
-      p_limit: PAGE_SIZE,
-      p_offset: page * PAGE_SIZE,
+      p_difficulty_filter: difficultyFilter || null,
     });
 
     if (qError) {
@@ -74,25 +117,29 @@ export default function AdminDatabasePage() {
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    setQuestions((data as any[] ?? []).map((q) => ({
-      question_id: q.question_id,
-      question_number: q.question_number,
-      question_text: q.question_text,
-      topic_id: q.topic_id,
-      topic_title: q.topic_title,
-      parent_topic_title: q.parent_topic_title,
-      difficulty: q.difficulty,
-      is_active: q.is_active,
-      correct_labels: q.correct_labels ?? '',
-      has_explanation: q.has_explanation ?? false,
+    const rows: AdminQuestionRow[] = (data ?? []).map((q: Record<string, unknown>) => ({
+      question_id: q.question_id as string,
+      question_number: q.question_number as number | null,
+      question_text: q.question_text as string,
+      topic_id: q.topic_id as string,
+      topic_title: q.topic_title as string,
+      parent_topic_title: (q.parent_topic_title as string | null) ?? null,
+      difficulty: q.difficulty as AdminQuestionRow['difficulty'],
+      is_active: q.is_active as boolean,
+      correct_labels: (q.correct_labels as string) ?? '',
+      has_explanation: (q.has_explanation as boolean) ?? false,
+      explanation_html: (q.explanation_html as string | null) ?? null,
+      all_choices: (q.all_choices as AdminQuestionRow['all_choices']) ?? [],
       total_attempts: Number(q.total_attempts),
       avg_score: Number(q.avg_score),
-    })));
+      is_draft: (q.is_draft as boolean) ?? false,
+    }));
 
+    setQuestions(rows);
     setLoading(false);
+    initialLoadDone.current = true;
     setError(null);
-  }, [topicFilter, debouncedSearch, activeFilter, page]);
+  }, [topicFilter, debouncedSearch, activeFilter, difficultyFilter]);
 
   const fetchTopics = useCallback(async () => {
     const supabase = createClient();
@@ -108,42 +155,86 @@ export default function AdminDatabasePage() {
     }
   }, []);
 
+  const refreshDraftCount = useCallback(async () => {
+    const count = await getDraftCount();
+    setDraftCount(count);
+  }, []);
+
+  // Synchroniser confirmation
+  const [showSyncConfirm, setShowSyncConfirm] = useState(false);
+
+  const handlePublish = useCallback(async () => {
+    setShowSyncConfirm(false);
+    setPublishing(true);
+    const result = await publishAllDrafts();
+    setPublishing(false);
+    if (result.success) {
+      const total = (result.questionCount ?? 0) + (result.topicCount ?? 0);
+      setPublishSuccess(`${total} modification${total !== 1 ? 's' : ''} publiée${total !== 1 ? 's' : ''}`);
+      setTimeout(() => setPublishSuccess(null), 3000);
+      setDraftCount(0);
+      fetchQuestions();
+      fetchTopics();
+    } else {
+      setError(result.error ?? 'Erreur lors de la publication.');
+      refreshDraftCount();
+    }
+  }, [fetchQuestions, fetchTopics, refreshDraftCount]);
+
+  const refreshCorbeilleCount = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase.rpc('get_deleted_questions');
+    setCorbeilleCount(Array.isArray(data) ? data.length : 0);
+  }, []);
+
   useEffect(() => {
     fetchTopics();
-  }, [fetchTopics]);
+    refreshDraftCount();
+    refreshCorbeilleCount();
+    // Auto-purge old trash on page load
+    createClient().rpc('purge_deleted_questions').then(({ error: purgeErr }) => {
+      if (purgeErr) console.error('Purge failed:', purgeErr.message);
+    });
+  }, [fetchTopics, refreshDraftCount, refreshCorbeilleCount]);
 
   useEffect(() => {
     setSelectedIds(new Set());
     fetchQuestions();
   }, [fetchQuestions]);
 
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = useCallback(async () => {
     setSelectedIds(new Set());
-    fetchQuestions();
-  }, [fetchQuestions]);
+    await fetchQuestions();
+    refreshDraftCount();
+    refreshCorbeilleCount();
+  }, [fetchQuestions, refreshDraftCount, refreshCorbeilleCount]);
+
+  // Lightweight refresh — only update draft count, no full data reload
+  const handleDraftChanged = useCallback(() => {
+    refreshDraftCount();
+  }, [refreshDraftCount]);
 
   const handlePanelSaved = useCallback(() => {
     setPanelId(null);
     handleRefresh();
   }, [handleRefresh]);
 
-  // Selection handlers
-  const handleToggleSelect = useCallback((id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }, []);
+  // Popup handlers
+  const handlePopupSaved = useCallback(() => {
+    setPopup(null);
+    handleRefresh();
+  }, [handleRefresh]);
 
-  const handleSelectAll = useCallback(() => {
-    if (questions.every((q) => selectedIds.has(q.question_id))) {
-      setSelectedIds(new Set());
+  const handleExplanationSave = useCallback(async (html: string) => {
+    if (!popup) return;
+    const result = await saveQuestionField(popup.questionId, 'explanation_html', popup.data.explanation_html, html);
+    if (result.success) {
+      handlePopupSaved();
     } else {
-      setSelectedIds(new Set(questions.map((q) => q.question_id)));
+      setError(result.error ?? 'Erreur lors de l\'enregistrement.');
+      setPopup(null);
     }
-  }, [questions, selectedIds]);
+  }, [popup, handlePopupSaved]);
 
   // Topic CRUD
   const handleTopicSave = useCallback(async (data: TopicFormData) => {
@@ -192,7 +283,7 @@ export default function AdminDatabasePage() {
     if (!topicModal?.editId) return;
     setTopicSaving(true);
     const supabase = createClient();
-    const { error: dError } = await supabase.from('topics').delete().eq('id', topicModal.editId);
+    const { error: dError } = await supabase.from('topics').update({ is_active: false }).eq('id', topicModal.editId);
     if (dError) {
       setError(dError.message);
       setTopicSaving(false);
@@ -208,14 +299,47 @@ export default function AdminDatabasePage() {
     <div className={`flex h-full ${panelId ? 'gap-0' : ''}`}>
       {/* Main content */}
       <div className={`min-w-0 flex-1 ${panelId ? 'hidden md:block' : ''}`}>
-        <div className="mx-auto max-w-7xl">
+        <div className="mx-auto max-w-full px-1 md:px-4">
           {/* Header */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]">Base de données</h1>
-              <p className="mt-1 text-sm text-neutral-500">{questions.length} résultats</p>
+              <div className="mt-1 flex gap-3 text-xs text-neutral-500">
+                <span>{questions.length} question{questions.length !== 1 ? 's' : ''}</span>
+                <span>·</span>
+                <span>{topics.filter((t) => t.level === 1).length} chapitre{topics.filter((t) => t.level === 1).length !== 1 ? 's' : ''}</span>
+                <span>·</span>
+                <span>{topics.filter((t) => t.level === 2).length} sous-chapitre{topics.filter((t) => t.level === 2).length !== 1 ? 's' : ''}</span>
+              </div>
             </div>
             <div className="flex gap-2">
+              {draftCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowSyncConfirm(true)}
+                  disabled={publishing}
+                  className="min-h-[44px] rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-blue-600/25 transition-all hover:bg-blue-700 active:scale-[0.98] disabled:opacity-50"
+                >
+                  {publishing ? 'Publication...' : `Synchroniser (${draftCount})`}
+                </button>
+              )}
+              {publishSuccess && (
+                <span className="flex items-center text-sm font-medium text-green-600">{publishSuccess}</span>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowEditLog(true)}
+                className="min-h-[44px] rounded-xl border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100"
+              >
+                Historique
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowCorbeille(true)}
+                className="min-h-[44px] rounded-xl border border-neutral-200 px-3 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100"
+              >
+                Corbeille{corbeilleCount > 0 ? ` (${corbeilleCount})` : ''}
+              </button>
               <button
                 type="button"
                 onClick={() => setTopicModal({ editId: null })}
@@ -237,7 +361,7 @@ export default function AdminDatabasePage() {
           <div className="mt-4 flex flex-wrap gap-3">
             <select
               value={topicFilter}
-              onChange={(e) => { setTopicFilter(e.target.value); setPage(0); }}
+              onChange={(e) => setTopicFilter(e.target.value)}
               aria-label="Filtrer par chapitre"
               className="min-h-[44px] rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
@@ -251,13 +375,26 @@ export default function AdminDatabasePage() {
 
             <select
               value={activeFilter}
-              onChange={(e) => { setActiveFilter(e.target.value); setPage(0); }}
+              onChange={(e) => setActiveFilter(e.target.value)}
               aria-label="Filtrer par statut"
               className="min-h-[44px] rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="">Toutes</option>
               <option value="active">Actives</option>
               <option value="inactive">Inactives</option>
+              <option value="draft">Brouillons</option>
+            </select>
+
+            <select
+              value={difficultyFilter}
+              onChange={(e) => setDifficultyFilter(e.target.value)}
+              aria-label="Filtrer par difficulté"
+              className="min-h-[44px] rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+            >
+              <option value="">Toutes difficultés</option>
+              <option value="easy">Facile</option>
+              <option value="medium">Moyen</option>
+              <option value="hard">Difficile</option>
             </select>
 
             <input
@@ -269,7 +406,7 @@ export default function AdminDatabasePage() {
               className="min-h-[44px] flex-1 rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:max-w-xs"
             />
 
-            {/* Topic gear icon next to filter — edit selected topic */}
+            {/* Topic gear icon */}
             {topicFilter && (
               <button
                 type="button"
@@ -291,7 +428,7 @@ export default function AdminDatabasePage() {
                 aria-label="Modifier ce chapitre"
                 title="Modifier ce chapitre"
               >
-                ⚙
+                <PencilSimple size={16} />
               </button>
             )}
           </div>
@@ -303,58 +440,33 @@ export default function AdminDatabasePage() {
             <div className="mt-4">
               <BulkActions
                 selectedIds={selectedIds}
+                topics={topics}
                 onDone={handleRefresh}
                 onClear={() => setSelectedIds(new Set())}
               />
             </div>
           )}
 
-          {/* Table */}
+          {/* Grid */}
           <div className="mt-4">
             {loading ? (
-              <div className="space-y-2">
-                {[1, 2, 3, 4, 5].map((i) => (
-                  <div key={i} className="h-12 animate-pulse rounded-lg border border-neutral-200 bg-neutral-100" />
-                ))}
-              </div>
+              <GridSkeleton />
             ) : (
-              <QuestionTable
+              <QuestionGrid
                 questions={questions}
+                topics={topics}
                 selectedIds={selectedIds}
-                onToggleSelect={handleToggleSelect}
-                onSelectAll={handleSelectAll}
-                onRowClick={(id) => setPanelId(id)}
-                onRefresh={handleRefresh}
+                onSelectionChanged={setSelectedIds}
+                onDataChanged={handleRefresh}
+                onDraftChanged={handleDraftChanged}
+                onPopupOpen={setPopup}
               />
             )}
           </div>
-
-          {/* Pagination */}
-          {!loading && questions.length > 0 && (
-            <div className="mt-4 flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0}
-                className="min-h-[44px] rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:opacity-50"
-              >
-                ← Précédent
-              </button>
-              <span className="text-xs text-neutral-500">Page {page + 1}</span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => p + 1)}
-                disabled={questions.length < PAGE_SIZE}
-                className="min-h-[44px] rounded-lg border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:opacity-50"
-              >
-                Suivant →
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
-      {/* Side panel */}
+      {/* Side panel (new or edit existing question) */}
       {panelId && (
         <QuestionSidePanel
           questionId={panelId}
@@ -379,6 +491,68 @@ export default function AdminDatabasePage() {
           onClose={() => setTopicModal(null)}
           saving={topicSaving}
         />
+      )}
+
+      {/* Popup editors */}
+      {popup?.type === 'propositions' && (
+        <PropositionPopup
+          questionId={popup.questionId}
+          choices={popup.data.all_choices}
+          onSaved={handlePopupSaved}
+          onClose={() => setPopup(null)}
+        />
+      )}
+      {popup?.type === 'correct_answers' && popup.data.all_choices.length > 0 && (
+        <CorrectAnswersPopup
+          questionId={popup.questionId}
+          choices={popup.data.all_choices}
+          onSaved={handlePopupSaved}
+          onClose={() => setPopup(null)}
+        />
+      )}
+      {/* Edit log panel */}
+      {showEditLog && (
+        <EditLogPanel onClose={() => setShowEditLog(false)} />
+      )}
+      {/* Corbeille panel */}
+      {showCorbeille && (
+        <CorbeillePanel
+          onClose={() => setShowCorbeille(false)}
+          onRestored={() => { setShowCorbeille(false); handleRefresh(); }}
+        />
+      )}
+
+      {popup?.type === 'explanation' && (
+        <TipTapEditor
+          value={popup.data.explanation_html ?? ''}
+          onSave={handleExplanationSave}
+          onClose={() => setPopup(null)}
+        />
+      )}
+
+      {/* Synchroniser confirmation modal */}
+      {showSyncConfirm && (
+        <ConfirmModal
+          title="Synchroniser les brouillons"
+          message={`${draftCount} modification${draftCount !== 1 ? 's' : ''} en attente de publication.`}
+          confirmLabel={publishing ? 'Publication...' : 'Publier'}
+          onConfirm={handlePublish}
+          onCancel={() => setShowSyncConfirm(false)}
+        >
+          <div className="mt-3 max-h-48 overflow-y-auto">
+            <p className="mb-2 text-xs font-medium text-neutral-500">Questions modifiées :</p>
+            <ul className="space-y-1">
+              {questions.filter((q) => q.is_draft).map((q) => (
+                <li key={q.question_id} className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-800">
+                  Q{q.question_number ?? '?'} — {q.question_text.slice(0, 60)}{q.question_text.length > 60 ? '...' : ''}
+                </li>
+              ))}
+            </ul>
+            {topics.some((t) => ('is_draft' in t)) && (
+              <p className="mt-2 text-xs text-neutral-400">+ chapitres modifiés</p>
+            )}
+          </div>
+        </ConfirmModal>
       )}
     </div>
   );

@@ -1,5 +1,6 @@
 'use client';
 
+import { Check, X as XIcon } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import { useCallback } from 'react';
 
@@ -125,9 +126,9 @@ export default function QuestionTable({
               </td>
               <td className="hidden px-3 py-2.5 text-center lg:table-cell">
                 {q.has_explanation ? (
-                  <span className="text-secondary-500" title="A une explication">✓</span>
+                  <span title="A une explication"><Check size={16} weight="bold" className="inline text-secondary-500" /></span>
                 ) : (
-                  <span className="text-neutral-300">✗</span>
+                  <XIcon size={16} weight="bold" className="inline text-neutral-300" />
                 )}
               </td>
               <td className="hidden px-3 py-2.5 md:table-cell">

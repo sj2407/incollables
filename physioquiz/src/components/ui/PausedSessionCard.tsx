@@ -1,5 +1,6 @@
 'use client';
 
+import { Play } from '@phosphor-icons/react';
 import { useState } from 'react';
 
 export interface PausedSession {
@@ -56,7 +57,7 @@ export function PausedSessionCard({
               aria-label={`Reprendre la session ${session.topic_title}`}
               className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97] disabled:bg-neutral-200 disabled:text-neutral-400"
             >
-              {resuming ? 'Reprise...' : <><span aria-hidden="true">&#9654; </span>Reprendre</>}
+              {resuming ? 'Reprise...' : <><Play size={14} weight="fill" aria-hidden="true" className="mr-1 inline" />Reprendre</>}
             </button>
           )}
         </div>

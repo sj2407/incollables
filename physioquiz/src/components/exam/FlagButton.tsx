@@ -1,5 +1,6 @@
 'use client';
 
+import { Flag } from '@phosphor-icons/react';
 import { memo } from 'react';
 
 interface FlagButtonProps {
@@ -20,7 +21,7 @@ export default memo(function FlagButton({ isFlagged, onToggle }: FlagButtonProps
           : 'border-neutral-200 bg-white text-neutral-500 hover:border-warning hover:bg-amber-50 hover:text-warning'
       }`}
     >
-      <span aria-hidden="true">{isFlagged ? '\u{1F6A9}' : '\u{2691}'}</span>
+      <Flag size={16} weight={isFlagged ? 'fill' : 'regular'} aria-hidden="true" />
       {isFlagged ? 'Marquée' : 'Marquer'}
     </button>
   );

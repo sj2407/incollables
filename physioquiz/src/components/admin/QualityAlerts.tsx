@@ -22,7 +22,8 @@ export function QualityAlerts({ alerts }: { alerts: QualityAlert[] }) {
   }
 
   const noChoices = alerts.filter((a) => a.alert_type === 'no_choices');
-  const highError = alerts.filter((a) => a.alert_type === 'high_error_rate');
+  const highError = [...alerts.filter((a) => a.alert_type === 'high_error_rate')]
+    .sort((a, b) => b.attempt_count * b.error_rate - a.attempt_count * a.error_rate);
 
   return (
     <div className="space-y-4">
@@ -31,10 +32,12 @@ export function QualityAlerts({ alerts }: { alerts: QualityAlert[] }) {
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-error">
             Sans propositions ({noChoices.length})
           </p>
-          <div className="flex flex-col gap-1.5">
-            {noChoices.map((a) => (
-              <AlertRow key={a.question_id} alert={a} />
-            ))}
+          <div className="max-h-[210px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
+            <div className="flex flex-col gap-1.5 p-2">
+              {noChoices.map((a) => (
+                <AlertRow key={a.question_id} alert={a} />
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -43,10 +46,12 @@ export function QualityAlerts({ alerts }: { alerts: QualityAlert[] }) {
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-warning">
             Taux d&apos;erreur &gt; 80% ({highError.length})
           </p>
-          <div className="flex flex-col gap-1.5">
-            {highError.map((a) => (
-              <AlertRow key={a.question_id} alert={a} />
-            ))}
+          <div className="max-h-[210px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
+            <div className="flex flex-col gap-1.5 p-2">
+              {highError.map((a) => (
+                <AlertRow key={a.question_id} alert={a} />
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -72,8 +77,8 @@ function AlertRow({ alert }: { alert: QualityAlert }) {
           {alert.topic_title}
         </p>
       </div>
-      <span className={`shrink-0 text-xs font-bold ${isNoChoices ? 'text-error' : 'text-warning'}`}>
-        {isNoChoices ? '0 prop.' : `${alert.error_rate}% err.`}
+      <span className={`shrink-0 text-right text-xs font-bold ${isNoChoices ? 'text-error' : 'text-warning'}`}>
+        {isNoChoices ? '0 prop.' : `${alert.error_rate}% err. · ${alert.attempt_count}×`}
       </span>
     </Link>
   );

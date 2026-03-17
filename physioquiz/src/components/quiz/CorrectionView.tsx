@@ -6,7 +6,6 @@ import { memo } from 'react';
 
 interface CorrectionViewProps {
   correction: CorrectionData;
-  selectedCount: number;
 }
 
 export default memo(function CorrectionView({

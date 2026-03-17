@@ -173,6 +173,22 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    // Validate question_count bounds
+    if (question_count != null && (!Number.isInteger(question_count) || question_count < 1 || question_count > 500)) {
+      return new Response(
+        JSON.stringify({ error: 'question_count must be an integer between 1 and 500' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Validate time_limit_seconds bounds
+    if (time_limit_seconds != null && (!Number.isInteger(time_limit_seconds) || time_limit_seconds < 30 || time_limit_seconds > 36000)) {
+      return new Response(
+        JSON.stringify({ error: 'time_limit_seconds must be an integer between 30 and 36000' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // 3. Get topic IDs (include subtopics if requested)
     let topicIds: string[] = [topic_id];
 
@@ -206,20 +222,22 @@ Deno.serve(async (req: Request) => {
       .eq('user_id', user.id);
 
     if (statsError) {
+      console.error('Failed to fetch question stats:', statsError.message);
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch question stats', details: statsError.message }),
+        JSON.stringify({ error: 'Failed to fetch question stats' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (!questionStats || questionStats.length === 0) {
       // No questions in the view means no active questions for these topics
-      // Try fetching active questions directly
+      // Try fetching active, non-draft questions directly
       const { data: activeQuestions, error: qError } = await supabaseAdmin
         .from('questions')
         .select('id, topic_id')
         .in('topic_id', topicIds)
-        .eq('is_active', true);
+        .eq('is_active', true)
+        .eq('is_draft', false);
 
       if (qError || !activeQuestions || activeQuestions.length === 0) {
         return new Response(
@@ -243,8 +261,24 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const pool = questionStats as QuestionStat[];
+    // Filter out draft questions from the pool
+    const poolQuestionIds = questionStats.map((q: { question_id: string }) => q.question_id);
+    const { data: draftQuestions } = await supabaseAdmin
+      .from('questions')
+      .select('id')
+      .in('id', poolQuestionIds)
+      .eq('is_draft', true);
+    const draftIds = new Set((draftQuestions ?? []).map((q: { id: string }) => q.id));
+
+    const pool = (questionStats as QuestionStat[]).filter((q) => !draftIds.has(q.question_id));
     const totalAvailable = pool.length;
+
+    if (totalAvailable === 0) {
+      return new Response(
+        JSON.stringify({ error: 'No active questions found for this topic' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // 5. Select questions based on session type
     let selectedIds: string[];
@@ -288,8 +322,9 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (sessionError || !session) {
+      console.error('Failed to create session:', sessionError?.message);
       return new Response(
-        JSON.stringify({ error: 'Failed to create session', details: sessionError?.message }),
+        JSON.stringify({ error: 'Failed to create session' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -306,8 +341,9 @@ Deno.serve(async (req: Request) => {
       .insert(sessionQuestionRows);
 
     if (sqError) {
+      console.error('Failed to save session questions:', sqError.message);
       return new Response(
-        JSON.stringify({ error: 'Failed to save session questions', details: sqError.message }),
+        JSON.stringify({ error: 'Failed to save session questions' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }

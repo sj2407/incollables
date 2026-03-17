@@ -1,9 +1,12 @@
 'use client';
 
+import { X } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
+import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import QuestionEditorForm, { type QuestionFormData } from './QuestionEditorForm';
 import type { Proposition } from './PropositionEditor';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 interface QuestionSidePanelProps {
   questionId: string | 'new';
@@ -110,6 +113,11 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
     setError(null);
     const supabase = createClient();
 
+    // Sanitize explanation HTML before saving
+    const sanitizedExplanation = data.explanation_html
+      ? DOMPurify.sanitize(data.explanation_html)
+      : null;
+
     if (isNew) {
       const { data: newQ, error: iError } = await supabase
         .from('questions')
@@ -118,7 +126,7 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
           topic_id: data.topic_id,
           difficulty: data.difficulty as 'easy' | 'medium' | 'hard',
           is_active: data.is_active,
-          explanation_html: data.explanation_html || null,
+          explanation_html: sanitizedExplanation,
         })
         .select('id')
         .single();
@@ -129,20 +137,35 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
         return;
       }
 
-      const choiceRows = data.propositions.map((p, i) => ({
-        question_id: newQ.id,
-        label: p.label,
-        choice_text: p.choice_text,
-        is_correct: p.is_correct,
-        sort_order: i,
-      }));
+      // Use atomic RPC for choices
+      const choicesJson = JSON.stringify(
+        data.propositions.map((p, i) => ({
+          label: p.label,
+          choice_text: p.choice_text,
+          is_correct: p.is_correct,
+          sort_order: i,
+        }))
+      );
 
-      const { error: cError } = await supabase.from('choices').insert(choiceRows);
+      const { error: cError } = await supabase.rpc('upsert_question_choices', {
+        p_question_id: newQ.id,
+        p_choices: choicesJson,
+      });
       if (cError) {
         setError(cError.message);
         setSaving(false);
         return;
       }
+
+      // Audit log
+      supabase.rpc('log_admin_edit', {
+        p_question_id: newQ.id,
+        p_field: 'question_created',
+        p_old: '',
+        p_new: data.question_text.slice(0, 200),
+      }).then(({ error: logError }) => {
+        if (logError) console.error('Failed to log admin edit:', logError.message);
+      });
     } else {
       const { error: uError } = await supabase
         .from('questions')
@@ -151,7 +174,7 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
           topic_id: data.topic_id,
           difficulty: data.difficulty as 'easy' | 'medium' | 'hard',
           is_active: data.is_active,
-          explanation_html: data.explanation_html || null,
+          explanation_html: sanitizedExplanation,
         })
         .eq('id', questionId);
 
@@ -161,38 +184,52 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
         return;
       }
 
-      const { error: delError } = await supabase.from('choices').delete().eq('question_id', questionId);
-      if (delError) {
-        setError(`Erreur suppression propositions : ${delError.message}`);
-        setSaving(false);
-        return;
-      }
+      // Use atomic RPC for choices (transactional delete+insert)
+      const choicesJson = JSON.stringify(
+        data.propositions.map((p, i) => ({
+          label: p.label,
+          choice_text: p.choice_text,
+          is_correct: p.is_correct,
+          sort_order: i,
+        }))
+      );
 
-      const choiceRows = data.propositions.map((p, i) => ({
-        question_id: questionId,
-        label: p.label,
-        choice_text: p.choice_text,
-        is_correct: p.is_correct,
-        sort_order: i,
-      }));
-
-      const { error: cError } = await supabase.from('choices').insert(choiceRows);
+      const { error: cError } = await supabase.rpc('upsert_question_choices', {
+        p_question_id: questionId,
+        p_choices: choicesJson,
+      });
       if (cError) {
-        setError(`Erreur insertion propositions : ${cError.message}`);
+        setError(`Erreur propositions : ${cError.message}`);
         setSaving(false);
         return;
       }
+
+      // Audit log
+      supabase.rpc('log_admin_edit', {
+        p_question_id: questionId,
+        p_field: 'question_updated',
+        p_old: '',
+        p_new: data.question_text.slice(0, 200),
+      }).then(({ error: logError }) => {
+        if (logError) console.error('Failed to log admin edit:', logError.message);
+      });
     }
 
     setSaving(false);
     onSaved();
   }, [questionId, isNew, onSaved]);
 
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const handleDelete = useCallback(async () => {
-    if (!confirm('Supprimer cette question ?')) return;
+    setShowDeleteConfirm(false);
     setSaving(true);
     const supabase = createClient();
-    const { error: dError } = await supabase.from('questions').delete().eq('id', questionId);
+    // Soft-delete: set is_active = false (consistent with bulk delete)
+    const { error: dError } = await supabase
+      .from('questions')
+      .update({ is_active: false })
+      .eq('id', questionId);
     if (dError) {
       setError(dError.message);
       setSaving(false);
@@ -220,7 +257,7 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
             className="min-h-[44px] min-w-[44px] rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
             aria-label="Fermer le panneau"
           >
-            ✕
+            <X size={20} />
           </button>
         </div>
 
@@ -241,13 +278,24 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
               isNew={isNew}
               saving={saving}
               onSave={handleSave}
-              onDelete={isNew ? undefined : handleDelete}
+              onDelete={isNew ? undefined : async () => setShowDeleteConfirm(true)}
             />
           ) : (
             <p className="text-sm text-neutral-400">Question introuvable.</p>
           )}
         </div>
       </div>
+
+      {showDeleteConfirm && (
+        <ConfirmModal
+          title="Désactiver cette question"
+          message="Cette question sera désactivée. Vous pourrez la retrouver via le filtre « Inactives »."
+          confirmLabel="Désactiver"
+          danger
+          onConfirm={handleDelete}
+          onCancel={() => setShowDeleteConfirm(false)}
+        />
+      )}
     </div>
   );
 }

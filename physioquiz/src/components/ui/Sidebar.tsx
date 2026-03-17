@@ -1,24 +1,25 @@
 'use client';
 
+import { BookOpenText, Target, ChartBar, House, Database, UploadSimple } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 interface NavItem {
   href: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
 }
 
 const studentNav: NavItem[] = [
-  { href: '/learn', label: 'Apprendre', icon: '📖' },
-  { href: '/practice', label: "S'entraîner", icon: '🎯' },
-  { href: '/stats', label: 'Mes résultats', icon: '📊' },
+  { href: '/learn', label: 'Apprendre', icon: <BookOpenText size={20} /> },
+  { href: '/practice', label: "S'entraîner", icon: <Target size={20} /> },
+  { href: '/stats', label: 'Mes résultats', icon: <ChartBar size={20} /> },
 ];
 
 const adminNav: NavItem[] = [
-  { href: '/admin', label: 'Dashboard', icon: '🏠' },
-  { href: '/admin/questions', label: 'Base de données', icon: '🗃️' },
-  { href: '/admin/import', label: 'Import', icon: '📥' },
+  { href: '/admin', label: 'Dashboard', icon: <House size={20} /> },
+  { href: '/admin/questions', label: 'Base de données', icon: <Database size={20} /> },
+  { href: '/admin/import', label: 'Import', icon: <UploadSimple size={20} /> },
 ];
 
 function NavLink({ item }: { item: NavItem }) {
@@ -36,7 +37,7 @@ function NavLink({ item }: { item: NavItem }) {
           : 'text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700'
       }`}
     >
-      <span className="text-base">{item.icon}</span>
+      <span className="flex items-center">{item.icon}</span>
       <span className="hidden md:inline">{item.label}</span>
     </Link>
   );

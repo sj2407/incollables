@@ -1,5 +1,6 @@
 'use client';
 
+import { Check, X as XIcon, Square, CaretDown } from '@phosphor-icons/react';
 import type { ExamQuestionResult, ExamResults as ExamResultsType } from '@/hooks/useExam';
 import DOMPurify from 'isomorphic-dompurify';
 import Link from 'next/link';
@@ -120,13 +121,13 @@ function ReviewCard({ question }: { question: ExamQuestionResult }) {
   let statusColor: string;
 
   if (question.is_unanswered) {
-    statusIcon = <span className="text-neutral-400">&#x25A1;</span>;
+    statusIcon = <Square size={16} className="text-neutral-400" />;
     statusColor = 'text-neutral-500';
   } else if (question.is_partially_correct) {
     statusIcon = <span className="text-warning">~</span>;
     statusColor = 'text-warning';
   } else {
-    statusIcon = <span className="text-error">&times;</span>;
+    statusIcon = <XIcon size={16} weight="bold" className="text-error" />;
     statusColor = 'text-error';
   }
 
@@ -152,22 +153,17 @@ function ReviewCard({ question }: { question: ExamQuestionResult }) {
         <span className={`shrink-0 text-xs font-semibold ${statusColor}`}>
           {question.is_unanswered ? 'N/R' : `${Math.round(question.score_percent)}%`}
         </span>
-        <svg
-          className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-        </svg>
+        <CaretDown
+          size={16}
+          className={`shrink-0 text-neutral-400 transition-transform ${expanded ? 'rotate-180' : ''}`}
+        />
       </button>
 
       {expanded && (
         <div className="animate-fade-in border-t border-neutral-200 p-4">
           {/* Choices with coloring */}
           <div className="mb-4 flex flex-col gap-2">
-            {question.choices
+            {[...question.choices]
               .sort((a, b) => a.sort_order - b.sort_order)
               .map((choice) => {
                 const isCorrect = correctSet.has(choice.id);
@@ -199,13 +195,13 @@ function ReviewCard({ question }: { question: ExamQuestionResult }) {
                       {choice.choice_text}
                     </span>
                     {isSelected && isCorrect && (
-                      <CheckIcon className="h-4 w-4 shrink-0 text-secondary-500" />
+                      <Check size={16} weight="bold" className="shrink-0 text-secondary-500" />
                     )}
                     {isSelected && !isCorrect && (
-                      <XIcon className="h-4 w-4 shrink-0 text-error" />
+                      <XIcon size={16} weight="bold" className="shrink-0 text-error" />
                     )}
                     {!isSelected && isCorrect && (
-                      <CheckIcon className="h-4 w-4 shrink-0 text-secondary-500/60" />
+                      <Check size={16} weight="bold" className="shrink-0 text-secondary-500/60" />
                     )}
                   </div>
                 );
@@ -232,30 +228,3 @@ function ReviewCard({ question }: { question: ExamQuestionResult }) {
   );
 }
 
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? 'h-5 w-5'}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2.5}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
-
-function XIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className ?? 'h-5 w-5'}
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-      strokeWidth={2.5}
-    >
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-    </svg>
-  );
-}

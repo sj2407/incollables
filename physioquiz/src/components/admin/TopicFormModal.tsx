@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import { findSimilarTopics } from '@/lib/topicDuplicateCheck';
 
 export interface TopicFormData {
   title: string;
@@ -51,6 +52,12 @@ export default function TopicFormModal({
   // Filter out self and descendants from parent options
   const parentOptions = allTopics.filter((t) => t.id !== editId);
 
+  // Check for near-duplicate topic names
+  const similarTopics = useMemo(() => {
+    if (!title.trim() || title.trim().length < 3) return [];
+    return findSimilarTopics(title.trim(), allTopics, editId ?? undefined);
+  }, [title, allTopics, editId]);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true">
       <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
@@ -69,6 +76,20 @@ export default function TopicFormModal({
               required
               className="mt-1 min-h-[44px] w-full rounded-lg border border-neutral-300 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
+            {similarTopics.length > 0 && (
+              <div className="mt-1.5 rounded-lg border border-warning/30 bg-amber-50 px-3 py-2 text-xs text-warning">
+                <p className="font-medium">
+                  {similarTopics.length === 1
+                    ? 'Un chapitre similaire existe :'
+                    : 'Des chapitres similaires existent :'}
+                </p>
+                <ul className="mt-1 list-inside list-disc">
+                  {similarTopics.map((t) => (
+                    <li key={t.id}>{t.title}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           <div>

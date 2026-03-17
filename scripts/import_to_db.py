@@ -894,11 +894,16 @@ def run_import(questions: list, topic_roots: list, doc: Document, doc_path: str)
             topic_id = default_topic_id
             stats['no_topic'] += 1
 
-        # Upload images for this question (from explanation + stem)
+        # Upload images for this question
         image_url_map = {}  # rel_id → public URL
-        image_records = []  # (storage_path, original_name, sort_order)
+        image_records = []  # (storage_path, original_name, sort_order) — stem only
 
-        # Gather all image rel_ids from stem and explanation
+        # Gather image rel_ids separately for stem and explanation
+        stem_img_rel_ids = set()
+        if question.stem_para_indices:
+            for rel_id, _ in get_image_rel_ids_for_paragraphs(doc, question.stem_para_indices):
+                stem_img_rel_ids.add(rel_id)
+
         all_para_indices = question.stem_para_indices + question.explanation_para_indices
         img_rel_ids = get_image_rel_ids_for_paragraphs(doc, all_para_indices)
 
@@ -912,7 +917,10 @@ def run_import(questions: list, topic_roots: list, doc: Document, doc_path: str)
                     )
                     public_url = get_public_url(supabase, storage_path)
                     image_url_map[rel_id] = public_url
-                    image_records.append((storage_path, f"img_{sort_order}.{ext}", sort_order))
+                    # Only add stem images to question_images table;
+                    # explanation images are embedded in explanation_html
+                    if rel_id in stem_img_rel_ids:
+                        image_records.append((storage_path, f"img_{sort_order}.{ext}", sort_order))
                     stats['images_uploaded'] += 1
                 except Exception as e:
                     print(f"    WARNING: Failed to upload image for Q{question.sequential_number}: {e}")

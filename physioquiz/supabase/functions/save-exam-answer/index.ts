@@ -201,8 +201,9 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (insertError || !newAnswer) {
+        console.error('Failed to save answer:', insertError?.message);
         return new Response(
-          JSON.stringify({ error: 'Failed to save answer', details: insertError?.message }),
+          JSON.stringify({ error: 'Failed to save answer' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

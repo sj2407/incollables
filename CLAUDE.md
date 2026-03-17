@@ -6,15 +6,32 @@ Stack: Next.js 14 + Tailwind CSS + Supabase + TypeScript.
 Preprocessing scripts: Python + python-docx.
 
 ## Session Continuity
-**Always start a new session by reading `docs/PROGRESS.md`** — it contains:
-- What has been completed (Sprint 0: preprocessing pipeline)
-- What to pick up next (Sprint 1: fondations techniques)
-- Prerequisites and important reminders for upcoming sprints
-- Key decisions made (answer priority, image handling, inactive questions)
+**Always start a new session by reading the "CURRENT STATE" section at the top of `docs/PROGRESS.md`** — it describes:
+- The current architecture and active components (DO NOT REVERT)
+- What's broken and needs fixing
+- What's working and should NOT be changed
+
+### IMPORTANT: Admin "Base de données" architecture
+The admin database view uses **AG Grid spreadsheet** (`QuestionGrid.tsx`) with inline editing and popup editors. It does NOT use a side panel for editing existing questions. `QuestionSidePanel.tsx` is ONLY used for creating NEW questions via the "+ Question" button. Do NOT revert to side panel editing — this was an intentional architecture decision.
+
+**FORBIDDEN ACTIONS:**
+- Do NOT replace QuestionGrid.tsx with a table or side panel
+- Do NOT add row-click handlers that open editing panels
+- Do NOT create new "editor" components that replace the spreadsheet
+- Do NOT remove or rename QuestionGrid.tsx, PropositionPopup.tsx, CorrectAnswersPopup.tsx, TipTapEditor.tsx, adminAutoSave.ts
+
+Key admin files:
+- `src/components/admin/QuestionGrid.tsx` — AG Grid spreadsheet (main editing surface)
+- `src/app/(admin)/admin/questions/page.tsx` — page with filters, bulk actions, Synchroniser
+- `src/components/admin/PropositionPopup.tsx` — propositions editor
+- `src/components/admin/CorrectAnswersPopup.tsx` — correct answers editor
+- `src/components/admin/TipTapEditor.tsx` — WYSIWYG explanation editor
+- `src/lib/adminAutoSave.ts` — auto-save + draft mode
+- `e2e/admin-spreadsheet.spec.ts` — 21 acceptance tests
 
 ## Reference Documents
-- Architecture (master plan): PhysioQuiz_Architecture_v3_FINALE.md
-- Progress & next steps: docs/PROGRESS.md ← **read this first every session**
+- **Current state & next steps: docs/PROGRESS.md** ← **READ THE "CURRENT STATE" SECTION FIRST every session**
+- Architecture (master plan): PhysioQuiz_Architecture_v3_FINALE.md (NOTE: admin section is outdated — the real admin architecture is in PROGRESS.md)
 - Error log: docs/ERROR_LOG.md
 - Design system: docs/BRAND.md (colors, fonts, sizes — single source of truth)
 

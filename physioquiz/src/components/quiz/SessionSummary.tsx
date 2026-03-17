@@ -1,5 +1,6 @@
 'use client';
 
+import { Check, X as XIcon, CaretRight } from '@phosphor-icons/react';
 import DOMPurify from 'isomorphic-dompurify';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -213,7 +214,7 @@ function AnswerReviewCard({
           }`}
           aria-hidden="true"
         >
-          {answer.is_partially_correct ? '~' : '✗'}
+          {answer.is_partially_correct ? '~' : <XIcon size={14} weight="bold" />}
         </span>
         <span className="sr-only">
           {answer.is_partially_correct ? 'Partielle' : 'Incorrecte'}
@@ -231,22 +232,11 @@ function AnswerReviewCard({
         </span>
 
         {/* Chevron */}
-        <svg
-          className={`h-4 w-4 shrink-0 text-neutral-400 transition-transform ${
-            isExpanded ? 'rotate-90' : ''
-          }`}
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
+        <CaretRight
+          size={16}
+          className={`shrink-0 text-neutral-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
           aria-hidden="true"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
+        />
       </button>
 
       {isExpanded && (
@@ -280,13 +270,13 @@ function AnswerReviewCard({
                   </span>
                   <span className="flex-1">{choice.choice_text}</span>
                   {wasSelected && isCorrectChoice && (
-                    <span className="text-xs text-secondary-500" aria-label="Correcte">✓</span>
+                    <Check size={14} weight="bold" className="text-secondary-500" aria-label="Correcte" />
                   )}
                   {wasSelected && !isCorrectChoice && (
-                    <span className="text-xs text-error" aria-label="Incorrecte">✗</span>
+                    <XIcon size={14} weight="bold" className="text-error" aria-label="Incorrecte" />
                   )}
                   {!wasSelected && isCorrectChoice && (
-                    <span className="text-xs text-secondary-500/60" aria-label="Bonne réponse manquée">✓</span>
+                    <Check size={14} weight="bold" className="text-secondary-500/60" aria-label="Bonne réponse manquée" />
                   )}
                 </div>
               );

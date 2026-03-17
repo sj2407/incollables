@@ -1,5 +1,6 @@
 'use client';
 
+import { User, BookOpen, CheckCircle } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import { useCallback, useEffect, useState } from 'react';
 import { MetricCard, SessionsIcon, FlaskIcon, TimerIcon } from '@/components/stats/MetricCards';
@@ -38,34 +39,21 @@ interface ChapterScore {
   topic_title: string;
   avg_score: number;
   session_count: number;
+  coverage_percent: number;
+  total_questions: number;
+  attempted_questions: number;
 }
 
 function UsersIcon({ color }: { color: string }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="5" r="3" fill={color} opacity="0.7" />
-      <path d="M2 15c0-3.314 2.686-6 6-6s6 2.686 6 6" fill={color} opacity="0.3" />
-    </svg>
-  );
+  return <User size={16} color={color} weight="duotone" />;
 }
 
 function BookIcon({ color }: { color: string }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <path d="M2 2h5v12H2z" fill={color} opacity="0.3" />
-      <path d="M9 2h5v12H9z" fill={color} opacity="0.5" />
-      <path d="M7 2v12" stroke={color} strokeWidth="1.2" />
-    </svg>
-  );
+  return <BookOpen size={16} color={color} weight="duotone" />;
 }
 
 function ScoreIcon({ color }: { color: string }) {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-      <circle cx="8" cy="8" r="6" stroke={color} strokeWidth="1.5" fill="none" />
-      <path d="M5 8l2 2 4-4" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  return <CheckCircle size={16} color={color} weight="duotone" />;
 }
 
 export default function AdminDashboardPage() {
@@ -90,13 +78,12 @@ export default function AdminDashboardPage() {
       supabase.rpc('get_admin_score_by_chapter'),
     ]);
 
-    if (statsResult.error) {
-      setError(statsResult.error.message);
-      setLoading(false);
-      return;
-    }
+    // Collect errors but don't block — show partial results
+    const errors: string[] = [];
 
-    if (statsResult.data) {
+    if (statsResult.error) {
+      errors.push(statsResult.error.message);
+    } else if (statsResult.data) {
       const row = Array.isArray(statsResult.data) ? statsResult.data[0] : statsResult.data;
       setStats({
         total_questions: Number(row.total_questions),
@@ -108,7 +95,9 @@ export default function AdminDashboardPage() {
       });
     }
 
-    if (globalResult.data && !globalResult.error) {
+    if (globalResult.error) {
+      errors.push(globalResult.error.message);
+    } else if (globalResult.data) {
       const row = Array.isArray(globalResult.data) ? globalResult.data[0] : globalResult.data;
       setGlobalStats({
         registered_users: Number(row.registered_users),
@@ -121,7 +110,9 @@ export default function AdminDashboardPage() {
       });
     }
 
-    if (alertsResult.data && !alertsResult.error) {
+    if (alertsResult.error) {
+      errors.push(alertsResult.error.message);
+    } else if (alertsResult.data) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setAlerts((alertsResult.data as any[]).map((a) => ({
         question_id: a.question_id,
@@ -134,7 +125,9 @@ export default function AdminDashboardPage() {
       })));
     }
 
-    if (dailyResult.data && !dailyResult.error) {
+    if (dailyResult.error) {
+      errors.push(dailyResult.error.message);
+    } else if (dailyResult.data) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setDailyData((dailyResult.data as any[]).map((d) => ({
         day: d.day,
@@ -143,16 +136,22 @@ export default function AdminDashboardPage() {
       })));
     }
 
-    if (chapterResult.data && !chapterResult.error) {
+    if (chapterResult.error) {
+      errors.push(chapterResult.error.message);
+    } else if (chapterResult.data) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setChapterScores((chapterResult.data as any[]).map((c) => ({
         topic_id: c.topic_id,
         topic_title: c.topic_title,
         avg_score: Number(c.avg_score),
         session_count: Number(c.session_count),
+        coverage_percent: Number(c.coverage_percent ?? 0),
+        total_questions: Number(c.total_questions ?? 0),
+        attempted_questions: Number(c.attempted_questions ?? 0),
       })));
     }
 
+    if (errors.length > 0) setError(errors.join(' | '));
     setLoading(false);
   }, []);
 
@@ -173,17 +172,7 @@ export default function AdminDashboardPage() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="mx-auto max-w-5xl">
-        <h1 className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]">Dashboard</h1>
-        <p role="alert" className="mt-4 text-sm text-error">{error}</p>
-        <button type="button" onClick={fetchData} className="mt-2 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700">
-          Réessayer
-        </button>
-      </div>
-    );
-  }
+  // Error is shown as a banner below, not as a full-page block
 
   const sessionsTrend = stats && stats.sessions_prev_week > 0
     ? Math.round(((stats.sessions_this_week - stats.sessions_prev_week) / stats.sessions_prev_week) * 100)
@@ -196,7 +185,16 @@ export default function AdminDashboardPage() {
       <h1 className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]">Dashboard</h1>
       <p className="mt-1 text-sm text-neutral-500">Vue d&apos;ensemble de la plateforme</p>
 
-      {/* Row 1: Questions, Chapitres, Étudiants */}
+      {error && (
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-error/20 bg-red-50 px-4 py-2">
+          <p className="flex-1 text-sm text-error">{error}</p>
+          <button type="button" onClick={fetchData} className="min-h-[36px] text-sm font-medium text-primary hover:text-primary-700">
+            Réessayer
+          </button>
+        </div>
+      )}
+
+      {/* Metric cards */}
       <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
         <MetricCard
           label="Questions"
@@ -219,10 +217,6 @@ export default function AdminDashboardPage() {
           borderColor="#D97706"
           tooltip={`DAU: ${globalStats?.active_today ?? 0} · WAU: ${globalStats?.active_this_week ?? 0} · MAU: ${globalStats?.active_this_month ?? 0}`}
         />
-      </div>
-
-      {/* Row 2: Sessions/sem, Score moyen, Durée moyenne */}
-      <div className="mt-4 grid grid-cols-2 gap-4 lg:grid-cols-3">
         <MetricCard
           label="Sessions / sem."
           value={String(stats?.sessions_this_week ?? 0)}

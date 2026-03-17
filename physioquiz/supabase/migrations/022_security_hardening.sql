@@ -342,7 +342,7 @@ BEGIN
         , 1)
       END AS mastery_percent
     FROM topics t
-    LEFT JOIN questions q ON q.topic_id = t.id AND q.is_active = true
+    LEFT JOIN questions q ON q.topic_id = t.id AND q.is_active = true AND COALESCE(q.is_draft, false) = false
     LEFT JOIN question_mastery qm ON qm.question_id = q.id
     GROUP BY t.id, t.title, t.level, t.parent_id
   )

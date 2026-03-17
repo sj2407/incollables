@@ -1,5 +1,6 @@
 'use client';
 
+import { Question, Check } from '@phosphor-icons/react';
 import { CONFIDENCE_VALUES } from '@/types';
 import { memo } from 'react';
 
@@ -9,23 +10,23 @@ interface ConfidenceSelectorProps {
   disabled: boolean;
 }
 
-const options = [
+const options: readonly { label: string; value: number; icon: React.ReactNode }[] = [
   {
     label: 'Je devine',
     value: CONFIDENCE_VALUES.GUESS,
-    icon: '?',
+    icon: <Question size={20} />,
   },
   {
     label: 'Hésitant',
     value: CONFIDENCE_VALUES.HESITANT,
-    icon: '~',
+    icon: <span className="text-lg">~</span>,
   },
   {
     label: 'Sûr',
     value: CONFIDENCE_VALUES.SURE,
-    icon: '✓',
+    icon: <Check size={20} weight="bold" />,
   },
-] as const;
+];
 
 export default memo(function ConfidenceSelector({
   value,
@@ -53,7 +54,7 @@ export default memo(function ConfidenceSelector({
                   : 'border-neutral-200 text-neutral-500 hover:border-primary/40 hover:bg-primary/5'
               } ${disabled ? 'cursor-default opacity-60' : ''}`}
             >
-              <span className={`text-lg ${isSelected ? 'text-primary' : 'text-neutral-400'}`}>
+              <span className={`flex items-center justify-center ${isSelected ? 'text-primary' : 'text-neutral-400'}`}>
                 {opt.icon}
               </span>
               <span className="text-[10px] font-bold uppercase">

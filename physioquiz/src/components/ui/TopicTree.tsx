@@ -1,5 +1,6 @@
 'use client';
 
+import { CaretRight } from '@phosphor-icons/react';
 import type { TopicWithCount } from '@/hooks/useTopics';
 import { getTotalQuestionCount } from '@/hooks/useTopics';
 import Link from 'next/link';
@@ -51,15 +52,10 @@ function TopicNode({ topic, depth }: TopicNodeProps) {
             aria-expanded={isOpen}
             className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
           >
-            <svg
-              className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-90' : ''}`}
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              strokeWidth={2}
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
+            <CaretRight
+              size={16}
+              className={`transition-transform ${isOpen ? 'rotate-90' : ''}`}
+            />
           </button>
         ) : (
           <span className="w-11 shrink-0" />

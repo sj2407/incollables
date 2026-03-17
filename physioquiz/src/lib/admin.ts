@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
 export async function isAdmin(): Promise<boolean> {
   const supabase = await createClient();
@@ -20,6 +21,6 @@ export async function isAdmin(): Promise<boolean> {
 export async function requireAdmin(): Promise<void> {
   const admin = await isAdmin();
   if (!admin) {
-    throw new Error('Unauthorized: admin role required');
+    redirect('/practice');
   }
 }

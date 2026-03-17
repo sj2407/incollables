@@ -1,5 +1,7 @@
 'use client';
 
+import { X } from '@phosphor-icons/react';
+
 export interface Proposition {
   id?: string;
   label: string;
@@ -84,7 +86,7 @@ export default function PropositionEditor({ propositions, onChange }: Propositio
                 className="min-h-[44px] rounded-lg px-2 text-xs text-neutral-400 hover:bg-red-50 hover:text-error"
                 aria-label={`Supprimer proposition ${LABELS[index]}`}
               >
-                ✕
+                <X size={16} />
               </button>
             )}
           </div>

@@ -34,11 +34,9 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
   // Destructure stable references from exam hook
   const {
     toggleChoice: examToggleChoice,
-    toggleCrossOut: examToggleCrossOut,
     toggleFlag: examToggleFlag,
     submitExam,
     currentQuestion,
-    currentCrossedOutIds,
     questions: examQuestions,
     answersMap,
     flaggedIds,
@@ -70,15 +68,6 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
       }
     },
     [examToggleChoice, currentQuestionId],
-  );
-
-  const handleToggleCrossOut = useCallback(
-    (choiceId: string) => {
-      if (currentQuestionId) {
-        examToggleCrossOut(currentQuestionId, choiceId);
-      }
-    },
-    [examToggleCrossOut, currentQuestionId],
   );
 
   const handleToggleFlag = useCallback(() => {
@@ -203,8 +192,6 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
           selectedIds={exam.currentSelectedIds}
           onToggle={handleToggleChoice}
           disabled={false}
-          crossedOutIds={currentCrossedOutIds}
-          onToggleCrossOut={handleToggleCrossOut}
         />
       </div>
 

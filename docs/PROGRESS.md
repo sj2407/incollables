@@ -1,73 +1,57 @@
 # Les Incollables — Progress Log
 
-## Admin Consolidation: 5 tabs → 3 tabs
+---
+
+## ⚠️ CURRENT STATE — READ THIS FIRST (2026-03-17)
+
+**THE ADMIN "BASE DE DONNÉES" TAB IS AN AG GRID EXCEL-STYLE SPREADSHEET.**
+
+**There is NO side panel for editing. There are NO popups triggered by row clicks. The admin edits questions by double-clicking cells directly in the spreadsheet grid, or by clicking specific cells that open small editor popups (for propositions, answers, explanations).**
+
+**DO NOT revert to side panels. DO NOT revert to QuestionTable. DO NOT add row-click handlers that open panels.**
+
+### How the admin edits questions (current flow)
+1. Admin sees a spreadsheet grid (AG Grid) with all questions as rows
+2. To edit text (Énoncé): double-click the cell → textarea opens inline
+3. To edit difficulty: double-click → dropdown with Facile/Moyen/Difficile
+4. To edit chapter/sub-chapter: double-click → autocomplete text input (BUG: creating NEW topics doesn't work yet)
+5. To edit propositions: click the cell → small popup with A-E text fields
+6. To edit correct answers: click the cell → small popup with checkboxes
+7. To edit explanation: click the cell → TipTap WYSIWYG editor popup
+8. To toggle active: single-click the toggle
+9. All edits auto-save immediately and mark the question as a draft
+10. Admin clicks "Synchroniser" button to publish all drafts to students
+
+### Key files (DO NOT DELETE OR REPLACE)
+- `src/components/admin/QuestionGrid.tsx` — THE spreadsheet (AG Grid)
+- `src/app/(admin)/admin/questions/page.tsx` — page with grid, filters, Synchroniser
+- `src/components/admin/PropositionPopup.tsx` — propositions editor popup
+- `src/components/admin/CorrectAnswersPopup.tsx` — correct answers popup
+- `src/components/admin/TipTapEditor.tsx` — WYSIWYG explanation editor
+- `src/components/admin/EditLogPanel.tsx` — edit history
+- `src/lib/adminAutoSave.ts` — auto-save + draft mode
+- `src/components/admin/QuestionSidePanel.tsx` — ONLY for the "+ Question" button (NEW questions)
+
+### What's broken right now
+- **BUG 1**: Chapter/sub-chapter free-text — typing a new name and clicking "+ Créer" doesn't save. See section 7 below.
+- **BUG 2**: Drag-to-fill requires AG Grid Enterprise (we have Community)
+
+### What works
+Everything else: inline editing, popup editors, auto-save, draft mode, Synchroniser button, bulk actions, filters, edit log, 21 E2E tests.
+
+**Full details in numbered sections below.**
+
+---
+
+## Admin 3-tab structure
 
 **Status:** COMPLETE
 **Date:** 2026-03-16
 
-### Plan
-
-Consolidate admin from 5 tabs (Dashboard, Topics, Questions, Import, Stats) to 3 tabs:
-- **Dashboard** — merged Dashboard + Stats (6 metric cards, quality alerts, charts)
-- **Base de données** — merged Questions + Topics (database table, side panel editor, bulk actions, inline topic management)
-- **Import** — unchanged
-
-### What was done
-
-- [x] Merged Dashboard + Stats into single page with 6 metric cards + quality alerts + charts
-- [x] Built full database table view (QuestionTable) with columns: Chapitre, Q#, Énoncé, Réponses, Explication, Difficulté, Tentatives, Score, Active toggle
-- [x] Built slide-out side panel editor (QuestionSidePanel) wrapping existing QuestionEditorForm
-- [x] Built bulk actions bar (BulkActions): activate/deactivate/delete selected questions
-- [x] Added search (debounced), chapter filter, active/inactive filter
-- [x] Integrated topic management (create/edit/delete) via modal from database view
-- [x] Created new RPC `get_admin_question_database` with correct_labels, has_explanation, parent_topic_title
-- [x] Updated Sidebar nav: 3 items, mobile bottom nav shows all 3
-- [x] Updated QualityAlerts to link via `?edit=<id>` query param
-- [x] Deleted old files: stats page, topics page, question [id] page, TopicTreeEditor
-- [x] Rewrote E2E tests for new 3-tab structure (7 tests)
-- [x] Two review agents (tech + QA) — all blockers/important items fixed
-
-### Tests
-
-| Test suite | Result |
-|-----------|--------|
-| `npm run validate` | 0 errors |
-| `e2e/admin-flow.spec.ts` (7 tests) | 7/7 passed |
-| Full `npx playwright test` (33 tests) | 32/33 passed (1 pre-existing failure in student stats, unrelated) |
-
-### Review findings fixed
-
-- Search debounce (400ms) to prevent excessive RPC calls
-- Topic edit modal now loads real `description` and `is_active` from DB
-- Toggle active error handling added
-- Selection cleared on page/filter change
-- Side panel: `role="dialog"`, `aria-modal`, Escape key, focus management
-- Toggle switch: `role="switch"` + `aria-checked`
-
-### Files created/modified
-
-| File | Action |
-|------|--------|
-| `src/components/ui/Sidebar.tsx` | Modified (3 nav items) |
-| `src/app/(admin)/admin/page.tsx` | Rewritten (merged dashboard) |
-| `src/app/(admin)/admin/questions/page.tsx` | Rewritten (database view) |
-| `src/components/admin/QuestionTable.tsx` | New |
-| `src/components/admin/QuestionSidePanel.tsx` | New |
-| `src/components/admin/BulkActions.tsx` | New |
-| `src/components/admin/QualityAlerts.tsx` | Modified (link update) |
-| `supabase/migrations/024_add_admin_question_database_rpc.sql` | New |
-| `e2e/admin-flow.spec.ts` | Rewritten |
-| `src/app/(admin)/admin/stats/page.tsx` | Deleted |
-| `src/app/(admin)/admin/topics/page.tsx` | Deleted |
-| `src/app/(admin)/admin/questions/[id]/page.tsx` | Deleted |
-| `src/components/admin/TopicTreeEditor.tsx` | Deleted |
-
-### Known minor items (deferred)
-
-- Pagination count shows current page count, not total (RPC doesn't return total)
-- No "unsaved changes" warning when switching side panel context
-- `AdminStatsCharts.tsx` kept (used by merged dashboard) — could be renamed
-- Architecture doc should be updated to reflect new 3-tab structure
+Admin has 3 tabs:
+- **Dashboard** — metrics, quality alerts, charts
+- **Base de données** — AG Grid spreadsheet (see above)
+- **Import** — CSV/data import
 
 ---
 
@@ -997,3 +981,276 @@ Sorted by score ASC, scrollable container.
 ### Tests
 - 12/12 quiz + exam E2E tests passing
 - Exam test selectors updated for new "Question X / Y" format
+
+---
+
+## Admin Spreadsheet — Fix & Complete (Draft Mode + Free-text Topics)
+
+**Status:** IN PROGRESS — HAS BUGS, NEEDS NEXT SESSION TO FIX
+**Date:** 2026-03-17
+
+### Goal
+
+Two critical admin requirements were missing from the spreadsheet:
+1. **Chapter/sub-chapter cells must allow FREE-TEXT typing** (creating new topics on the fly) — was using `<select>` dropdown
+2. **Draft mode** — all edits should save as drafts, only go live when admin clicks "Synchroniser"
+
+---
+
+### 1. SYNCHRONISATION FUNCTIONALITY (Draft Mode)
+
+**Status: Backend DONE, Frontend DONE (untested end-to-end by user)**
+
+**How it works:**
+- Every admin edit (cell change, topic reassignment) sets `is_draft = true` on the question
+- New topics created via autocomplete get `is_draft = true`
+- A **"Synchroniser (N)"** button appears in the header when draft count > 0
+- Clicking it runs `publishAllDrafts()` which sets `is_draft = false` on all draft questions + topics (parallel via `Promise.all`)
+- Success toast: "N modification(s) publiée(s)"
+- Students NEVER see draft content (enforced by RLS policies + RPC filters + Edge Function filters)
+
+**Backend pieces (all applied to live Supabase):**
+- `questions.is_draft` and `topics.is_draft` columns (NOT NULL DEFAULT false)
+- RLS: students can't SELECT rows where `is_draft = true`
+- `get_admin_question_database_v2` RPC: returns `is_draft`, supports `p_active_filter = 'draft'`
+- `get_question_counts_by_topic` RPC: excludes drafts from student topic counts
+- `get_topic_mastery_detailed` RPC: excludes drafts from student mastery stats
+- `select-questions` Edge Function: filters drafts from quiz/exam pools
+- `useTopics.ts` fallback: excludes drafts
+
+**Frontend pieces:**
+- `adminAutoSave.ts`: `saveQuestionField()` and `saveQuestionTopic()` set `is_draft = true`; `createTopicDraft()`, `publishAllDrafts()`, `getDraftCount()` functions
+- `questions/page.tsx`: Synchroniser button with count badge, success/error handling, refresh on publish
+- "Brouillons" option in status filter dropdown
+- `globals.css`: draft rows get blue left border (#194ce6) + italic text on text columns
+
+**E2E tests:**
+- C19: Draft row visual indicator (conditional — only if drafts exist)
+- C20: Synchroniser button appears and publishes (conditional)
+- C21: Brouillons filter option exists
+
+**What needs testing by next session:**
+- Full flow: edit a [TEST] question → verify is_draft becomes true → verify Synchroniser button appears with count → click Synchroniser → verify is_draft becomes false → verify Synchroniser button disappears
+- Verify students can't see draft questions (check student learn page after making a draft)
+
+---
+
+### 2. INLINE EDITING (cell-by-cell)
+
+**Status: WORKS for most columns, BROKEN for Chapter/Sub-chapter creation**
+
+**What works:**
+| Column | Edit method | Status |
+|---|---|---|
+| Énoncé | Double-click → large textarea popup (`agLargeTextCellEditor`) | ✅ Works |
+| Difficulté | Double-click → `<select>` with French labels (Facile/Moyen/Difficile) | ✅ Works |
+| Active | Single-click toggle (`ActiveToggleRenderer`) | ✅ Works |
+| Propositions | Single-click → `PropositionPopup` modal with A-E fields | ✅ Works |
+| Rép. (correct answers) | Single-click → `CorrectAnswersPopup` modal with checkboxes | ✅ Works |
+| Expl. (explanation) | Single-click → `TipTapEditor` WYSIWYG (not raw HTML) | ✅ Works |
+| Chapitre | Double-click → autocomplete text input, CAN select existing topic | ✅ Selecting existing works |
+| Chapitre | Double-click → type new name → click "+ Créer" | **❌ BUG — nothing happens** |
+| Sous-chapitre | Same as Chapitre | **❌ BUG — same issue** |
+| Q# | Read-only | ✅ Correct |
+| Tentatives | Read-only | ✅ Correct |
+| Score | Read-only | ✅ Correct |
+
+**Auto-save:** Every edit triggers `saveQuestionField()` or `saveQuestionTopic()` in `adminAutoSave.ts`. A save indicator appears ("Enregistrement..." → "✓ Enregistré" or "✗ Erreur").
+
+**E2E tests:**
+- C04: Énoncé textarea popup
+- C05: Propositions popup with fields
+- C06: Correct answers popup with checkboxes
+- C07: TipTap visual editor (not raw HTML)
+- C08: Difficulté French labels
+- C09: Active toggle
+- C10: Auto-save indicator
+- C15: Stats columns read-only
+
+---
+
+### 3. DRAG-TO-FILL (Excel-like)
+
+**Status: NOT WORKING — likely requires AG Grid Enterprise**
+
+AG Grid props are set in `QuestionGrid.tsx`:
+```
+enableRangeSelection={true}
+enableFillHandle={true}
+fillHandleDirection="y"
+```
+
+But `enableRangeSelection` and `enableFillHandle` are **AG Grid Enterprise features**. We only have `ag-grid-community` v35 installed with `AllCommunityModule`. These props are silently ignored by the Community edition.
+
+**Next session should:**
+- Confirm this by checking AG Grid docs for v35
+- Either: (a) purchase AG Grid Enterprise, (b) implement a custom drag-to-fill using AG Grid Community APIs, or (c) remove this requirement if the admin is OK without it
+
+---
+
+### 4. BULK EDIT
+
+**Status: WORKS**
+
+- **Checkbox selection:** First column has checkboxes, header checkbox selects all (filtered only)
+- **Bulk actions bar** (`BulkActions.tsx`): appears when ≥1 row selected, shows:
+  - "Déplacer vers..." button → dropdown to pick target topic → moves all selected questions
+  - "Supprimer" button → French `ConfirmModal` (not browser `confirm()`)
+  - Mass delete (50+): requires typing the count to confirm
+  - "Annuler" button → clears selection
+- **Undo toast** (`UndoToast.tsx`): appears after bulk delete, allows undo within time window
+
+**E2E tests:**
+- C11: Bulk select shows "Déplacer vers..." button
+- C12: Delete shows French confirmation modal (not browser `confirm()`)
+
+---
+
+### 5. FULL REQUIREMENTS CHECKLIST (24 criteria)
+
+| # | Requirement | Status | E2E Test |
+|---|---|---|---|
+| R1 | Chapter cell: free-text typing, auto-creates topic if new | **❌ BUG** — Créer doesn't work | C02 (partial — only checks input exists) |
+| R2 | Sub-chapter cell: same as chapter | **❌ BUG** — same issue | C03 (partial — only checks input exists) |
+| R3 | Draft mode: all edits save as draft, not live | ✅ Backend done | — (no dedicated E2E) |
+| R4 | "Synchroniser" button: publishes all drafts to live | ✅ Button + logic done | C20 (conditional) |
+| R5 | Students never see draft content | ✅ RLS + RPC + Edge Functions | C21 (filter exists) |
+| R6 | Énoncé: inline editable (textarea popup on double-click) | ✅ Works | C04 |
+| R7 | Propositions: click opens popup with A-E fields | ✅ Works | C05 |
+| R8 | Correct answers: click opens checkbox popup | ✅ Works | C06 |
+| R9 | Explication: click opens TipTap (not raw HTML) | ✅ Works | C07 |
+| R10 | Difficulté: dropdown Facile/Moyen/Difficile | ✅ Works | C08 |
+| R11 | Active toggle: single-click | ✅ Works | C09 |
+| R12 | Auto-save on cell blur with indicator | ✅ Works | C10 |
+| R13 | Drag-to-fill (Excel-like, fill handle) | **❌ NOT WORKING** — Enterprise feature | — |
+| R14 | Bulk select + "Déplacer vers..." | ✅ Works | C11 |
+| R15 | Bulk delete: French confirm modal + undo toast | ✅ Works | C12 |
+| R16 | Mass delete (50+): type count to confirm | ✅ Works | — (tested manually) |
+| R17 | "Historique" button: edit log panel | ✅ Works | C13 |
+| R18 | Duplicate chapter detection (Levenshtein) | ✅ Code exists, untestable (R1 broken) | — |
+| R19 | Filters: chapter, status, difficulty, search + Brouillons | ✅ Works | C14 |
+| R20 | Stats columns (Tentatives, Score) read-only | ✅ Works | C15 |
+| R21 | "+ Question" opens side panel for new question | ✅ Works | C16 |
+| R22 | Row click does NOT open side panel | ✅ Works | C17 |
+| R23 | All columns visible in grid | ✅ Works (horizontal scroll) | C01 |
+| R24 | Production data never touched (465 questions) | ✅ 465 prod + 15 test | C18 |
+
+---
+
+### 6. E2E TESTS (`e2e/admin-spreadsheet.spec.ts`)
+
+21 tests, each saves a screenshot to `e2e/screenshots/acceptance/`:
+
+| Test | What it checks | Screenshot |
+|---|---|---|
+| C01 | All 11 column headers present (scrolls to find off-screen ones) | C01-all-columns.png |
+| C02 | Chapter: double-click opens text `<input>` (not `<select>`) | C02-chapter-edit.png |
+| C03 | Sub-chapter: same as C02 | C03-subchapter-edit.png |
+| C04 | Énoncé: double-click opens textarea editor | C04-enonce-edit.png |
+| C05 | Propositions: click opens popup with "Modifier les propositions" title + inputs | C05-propositions-popup.png |
+| C06 | Correct answers: click opens popup with checkboxes | C06-correct-answers-popup.png |
+| C07 | Explication: click opens TipTap with Bold/Italic buttons (not raw HTML) | C07-tiptap-editor.png |
+| C08 | Difficulté: double-click shows Facile/Moyen/Difficile (not English) | C08-difficulty-french.png |
+| C09 | Active: single-click toggle works (no crash) | C09-active-toggle.png |
+| C10 | Auto-save: edit triggers "Enregistrement..." or "Enregistré" indicator | C10-save-indicator.png |
+| C11 | Bulk: select row → "Déplacer vers..." button visible | C11-bulk-move-button.png |
+| C12 | Delete: click Supprimer → French modal (not browser confirm) | C12-french-confirm-modal.png |
+| C13 | Historique: click → edit log panel with "Historique des modifications" | C13-edit-log-panel.png |
+| C14 | Filters: all 4 present, search "[TEST]" filters correctly | C14-filters.png |
+| C15 | Stats: double-click Tentatives → no editor opens | C15-readonly-stats.png |
+| C16 | "+ Question": click → side panel with "Nouvelle question" | C16-new-question-panel.png |
+| C17 | Row click: click text cell → no side panel opens | C17-no-side-panel-on-click.png |
+| C18 | Count: shows ≥480 questions (465 prod + 15 test) | C18-question-count.png |
+| C19 | Drafts: filter to "Brouillons" → draft rows have `draft-row` class | C19-draft-indicator.png |
+| C20 | Synchroniser: if drafts exist, button visible + publishes on click | C20-synchroniser-button.png |
+| C21 | Brouillons filter: "Brouillons" option exists in status dropdown | C21-brouillons-filter.png |
+
+**Gaps in E2E coverage (next session should add):**
+- C02/C03 only check that a text input appears — they do NOT test actual topic creation (+ Créer → save)
+- C19/C20 are conditional (only test if drafts exist at test time) — should create a draft first, then verify
+- No test for: full draft flow (edit → draft appears → Synchroniser → published)
+- No test for: bulk "Déplacer vers..." actually moving questions
+- No test for: mass delete (50+) type-to-confirm
+- No test for: drag-to-fill (R13)
+- No test for: student can't see drafts
+
+---
+
+### 7. OUTSTANDING BUGS
+
+#### BUG 1: Topic creation via free-text doesn't work (R1, R2) — CRITICAL
+**Symptom:** User double-clicks chapter cell, types a new name (e.g. adds "2" to "[TEST] Données de test"), sees "+ Créer «[TEST] Données de test2»" button, clicks it — **nothing happens**. Cell reverts to original value.
+
+**Root cause:** The `TopicCellEditor` component tries to use AG Grid's cell editing pipeline to pass back a `"NEW:title"` string via `getValue()`. Multiple approaches were tried to make `stopEditing()` work with the autocomplete dropdown — all failed. AG Grid v35's popup editor lifecycle destroys the editor before `getValue()` can return when the dropdown extends outside the popup bounds.
+
+**What's been tried (all failed):**
+1. `api.stopEditing()` via `setTimeout` — editor already destroyed
+2. `props.stopEditing()` called synchronously in `onMouseDown` — same issue
+3. `ag-custom-component-popup` CSS class on dropdown — supposed to prevent AG Grid from closing popup
+4. `finalValueRef` (React ref) to bypass state batching — `getValue()` reads ref, but still not called
+5. `e.preventDefault()` + `e.stopPropagation()` on button mousedown
+
+**Recommended fix (next session):** **Abandon AG Grid cell editing for topic columns entirely.** Instead, use the same pattern as Propositions/Correct answers/Explanation: make the cell a **click-to-open-popup**. Build a `TopicPickerPopup` component:
+- Text input with autocomplete dropdown of existing topics
+- "+ Créer" button that calls `createTopicDraft()` directly (no AG Grid involved)
+- "Enregistrer" button that calls `saveQuestionTopic()` and closes the popup
+- This completely bypasses AG Grid's editor lifecycle — the popup is a React portal, not an AG Grid cell editor
+
+In `QuestionGrid.tsx`: change the Chapter and Sub-chapter columns from `editable: true` + `cellEditor: TopicCellEditor` to `editable: false` with a `cellRenderer` that shows the topic name as a clickable button (like `AllChoicesRenderer`). On click, fire `onPopupOpen({ type: 'topic_chapter', ... })` which opens `TopicPickerPopup`.
+
+**Key files:**
+- `src/components/admin/QuestionGrid.tsx` — TopicCellEditor (lines ~144-280), column definitions
+- `src/lib/adminAutoSave.ts` — `createTopicDraft()`, `saveQuestionTopic()`
+- `src/lib/topicDuplicateCheck.ts` — Levenshtein duplicate detection
+
+#### BUG 2: Drag-to-fill not working (R13)
+**Root cause:** `enableRangeSelection` and `enableFillHandle` require AG Grid Enterprise. We only have Community edition.
+**Fix:** Either purchase Enterprise, implement custom drag logic, or drop this requirement.
+
+#### BUG 3: Synchroniser not tested end-to-end
+**Status:** The button and backend logic exist and E2E test C20 passes (conditionally), but the full flow (edit → draft → Synchroniser → published) was never verified by the user because R1 is broken (can't easily create drafts to test with).
+**Fix:** After fixing BUG 1, test the full Synchroniser flow.
+
+---
+
+### 8. FILES MODIFIED IN THIS SESSION
+
+| File | What changed |
+|---|---|
+| `supabase/migrations/030_add_draft_mode.sql` | NEW — is_draft columns (NOT NULL DEFAULT false) |
+| `supabase/migrations/031_draft_rls_and_rpc_fixes.sql` | NEW — RLS + RPC fixes for draft filtering |
+| `supabase/migrations/027_admin_question_database_v2.sql` | Returns is_draft, supports 'draft' filter |
+| `supabase/migrations/022_security_hardening.sql` | get_topic_mastery_detailed excludes drafts |
+| `supabase/migrations/026_secure_question_counts_rpc.sql` | get_question_counts_by_topic excludes drafts |
+| `supabase/functions/select-questions/index.ts` | Filters drafts from student quiz/exam pools |
+| `src/types/admin.ts` | Added `is_draft: boolean` to AdminQuestionRow |
+| `src/lib/adminAutoSave.ts` | Draft on edit, createTopicDraft, publishAllDrafts, getDraftCount |
+| `src/components/admin/QuestionGrid.tsx` | TopicCellEditor rewritten (BUGGY), draft row CSS class |
+| `src/app/(admin)/admin/questions/page.tsx` | Synchroniser button, Brouillons filter, draft count badge |
+| `src/app/globals.css` | Draft row CSS (blue border + italic on text columns) |
+| `src/hooks/useTopics.ts` | Fallback query excludes drafts |
+| `e2e/admin-spreadsheet.spec.ts` | 21 acceptance tests (C01-C21) with screenshots |
+
+### 9. DATABASE STATE (live Supabase: thonkmcacdycojenwakj)
+- `is_draft` column on `questions` and `topics` (NOT NULL DEFAULT false)
+- RLS: students can't SELECT rows where is_draft = true (admins can)
+- All student-facing RPCs exclude drafts
+- Production data: **465 questions, 0 drafts** (verified)
+- All migrations applied via Supabase MCP
+
+### 10. WHAT NEXT SESSION SHOULD DO (priority order)
+
+1. **Fix BUG 1 (topic creation)** — Build `TopicPickerPopup` component (click-to-open, not AG Grid cell editor). See BUG 1 section for detailed approach.
+
+2. **Fix BUG 2 (drag-to-fill)** — Confirm it requires Enterprise. Discuss with user whether to purchase, implement custom, or drop.
+
+3. **Test Synchroniser end-to-end** — Once BUG 1 is fixed, edit a [TEST] question → verify draft → Synchroniser → verify published.
+
+4. **Strengthen E2E tests** — Add tests for: actual topic creation, full draft flow, bulk move, student can't see drafts.
+
+5. **Clean up `window.confirm`** — Replace with custom French `ConfirmModal` for duplicate topic warning.
+
+6. **Minor issues:**
+   - No keyboard navigation in autocomplete dropdown
+   - `sort_order` hardcoded to 999 for new draft topics
+   - E2E C19/C20 are conditional (should create test data first)

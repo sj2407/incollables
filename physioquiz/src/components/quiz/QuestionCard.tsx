@@ -1,5 +1,6 @@
 'use client';
 
+import { Pause } from '@phosphor-icons/react';
 import type { QuizQuestion } from '@/hooks/useQuiz';
 import { memo } from 'react';
 
@@ -55,7 +56,7 @@ export default memo(function QuestionCard({
                 aria-label="Mettre en pause"
                 className="min-h-[44px] rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:text-neutral-400"
               >
-                {isPausing ? 'Pause...' : '⏸ Pause'}
+                {isPausing ? 'Pause...' : <><Pause size={16} weight="bold" className="mr-1 inline" />Pause</>}
               </button>
             )}
             <span className="text-sm font-bold text-primary">{Math.round(progress)}%</span>

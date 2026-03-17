@@ -15,3 +15,33 @@
     border: 1px solid rgba(25, 76, 230, 0.1);
   }
 }
+
+/* AG Grid theme overrides — admin spreadsheet (BRAND.md compliant) */
+.question-grid-theme {
+  --ag-font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  --ag-font-size: 13px;
+  --ag-header-background-color: #F9FAFB;
+  --ag-header-foreground-color: #374151;
+  --ag-row-hover-color: rgba(238, 242, 255, 0.5);
+  --ag-selected-row-background-color: rgba(238, 242, 255, 0.6);
+  --ag-border-color: #E5E7EB;
+  --ag-row-border-color: #F3F4F6;
+  --ag-background-color: #FFFFFF;
+  --ag-foreground-color: #374151;
+  --ag-border-radius: 12px;
+  --ag-wrapper-border-radius: 12px;
+  --ag-checkbox-checked-color: #194ce6;
+  --ag-range-selection-border-color: #194ce6;
+}
+
+/* Draft row indicator — brand primary left border + italic on text-only cells */
+.question-grid-theme .ag-row.draft-row {
+  border-left: 3px solid #194ce6;
+}
+.question-grid-theme .ag-row.draft-row .ag-cell[col-id="topic_id"],
+.question-grid-theme .ag-row.draft-row .ag-cell[col-id="subchapter"],
+.question-grid-theme .ag-row.draft-row .ag-cell[col-id="question_number"],
+.question-grid-theme .ag-row.draft-row .ag-cell[col-id="question_text"] {
+  font-style: italic;
+  color: #6B7280;
+}

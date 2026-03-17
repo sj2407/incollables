@@ -7,6 +7,7 @@ import {
   getTotalQuestionCount,
   type TopicWithCount,
 } from '@/hooks/useTopics';
+import { ArrowLeft } from '@phosphor-icons/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -80,9 +81,10 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
     const supabase = createClient();
 
     const {
-      data: { session: authSession },
-    } = await supabase.auth.getSession();
-    if (!authSession?.access_token) {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
       setError('Vous devez être connecté.');
       setStarting(false);
       return;
@@ -213,7 +215,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
         onClick={() => router.push(`/quiz/setup/${topicId}`)}
         className="mt-4 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
       >
-        &larr; Mode entraînement
+        <ArrowLeft size={14} className="mr-1 inline" />Mode entraînement
       </button>
     </div>
   );

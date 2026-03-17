@@ -7,6 +7,7 @@ import {
   getTotalQuestionCount,
   type TopicWithCount,
 } from '@/hooks/useTopics';
+import { Timer, CaretRight, ArrowLeft } from '@phosphor-icons/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -76,9 +77,10 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
     const supabase = createClient();
 
     const {
-      data: { session: authSession },
-    } = await supabase.auth.getSession();
-    if (!authSession?.access_token) {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
       setError('Vous devez être connecté.');
       setStarting(false);
       return;
@@ -214,14 +216,14 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
         >
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-              <span className="text-lg text-amber-600">⏱</span>
+              <Timer size={20} className="text-amber-600" />
             </div>
             <div>
               <p className="text-sm font-semibold text-neutral-900">Mode examen blanc</p>
               <p className="text-xs text-neutral-500">Chronomètre et sans corrections immédiates</p>
             </div>
           </div>
-          <span className="text-neutral-400">&rarr;</span>
+          <CaretRight size={16} className="text-neutral-400" />
         </Link>
 
         {/* Start button */}
@@ -253,7 +255,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
         onClick={() => router.push('/practice')}
         className="mt-4 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
       >
-        &larr; Retour aux cours
+        <ArrowLeft size={14} className="mr-1 inline" />Retour aux cours
       </button>
     </div>
   );

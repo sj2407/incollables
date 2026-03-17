@@ -239,8 +239,9 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (answerError || !sessionAnswer) {
+      console.error('Failed to save answer:', answerError?.message);
       return new Response(
-        JSON.stringify({ error: 'Failed to save answer', details: answerError?.message }),
+        JSON.stringify({ error: 'Failed to save answer' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -257,8 +258,9 @@ Deno.serve(async (req: Request) => {
         .insert(answerChoiceRows);
 
       if (acError) {
+        console.error('Failed to save answer choices:', acError.message);
         return new Response(
-          JSON.stringify({ error: 'Failed to save answer choices', details: acError.message }),
+          JSON.stringify({ error: 'Failed to save answer choices' }),
           { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }

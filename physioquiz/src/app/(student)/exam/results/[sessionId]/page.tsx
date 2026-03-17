@@ -1,5 +1,6 @@
 'use client';
 
+import { ArrowLeft } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import ExamResultsView from '@/components/exam/ExamResults';
 import type { ExamResults } from '@/hooks/useExam';
@@ -181,7 +182,7 @@ export default function ExamResultsPage({ params }: ExamResultsPageProps) {
           href="/practice"
           className="mt-3 inline-block min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
         >
-          &larr; Retour
+          <ArrowLeft size={14} className="mr-1 inline" />Retour
         </Link>
       </div>
     );
