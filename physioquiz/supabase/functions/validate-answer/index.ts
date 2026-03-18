@@ -166,9 +166,9 @@ Deno.serve(async (req: Request) => {
         .eq('session_id', session_id)
         .eq('question_id', question_id)
         .single(),
-      // 7. Fetch choices WITH is_correct (server-side only)
+      // 7. Fetch choices WITH is_correct from published (server-side only)
       supabaseAdmin
-        .from('choices')
+        .from('published_choices')
         .select('id, label, choice_text, is_correct, sort_order')
         .eq('question_id', question_id)
         .order('sort_order'),
@@ -277,9 +277,9 @@ Deno.serve(async (req: Request) => {
         p_is_partially_correct: result.is_partially_correct,
         p_is_wrong: isWrong,
       }),
-      // Fetch explanation for the question
+      // Fetch explanation from published questions
       supabaseAdmin
-        .from('questions')
+        .from('published_questions')
         .select('explanation_html')
         .eq('id', question_id)
         .single(),

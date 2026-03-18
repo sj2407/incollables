@@ -88,7 +88,7 @@ export default function QuizResultsPage({ params }: QuizResultsPageProps) {
     const [questionsResult, choicesResult, answerChoicesResult] =
       await Promise.all([
         supabase
-          .from('questions')
+          .from('published_questions')
           .select('id, question_text, question_number, explanation_html')
           .in('id', questionIds),
         supabase.rpc('get_session_choices', { p_session_id: sessionId }),

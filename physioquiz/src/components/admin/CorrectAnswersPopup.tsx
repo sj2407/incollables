@@ -53,10 +53,7 @@ export default function CorrectAnswersPopup({
       return;
     }
 
-    // Mark question as draft so Synchroniser picks it up (fire-and-forget to avoid blocking)
-    supabase.from('questions').update({ is_draft: true }).eq('id', questionId).then(({ error: draftErr }) => {
-      if (draftErr) console.error('Failed to mark draft:', draftErr.message);
-    });
+    // Choices trigger auto-updates current_hash on the parent question
 
     // Log
     const oldLabels = choices.filter((c) => c.is_correct).map((c) => c.label).join(', ');

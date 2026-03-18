@@ -24,10 +24,10 @@ export async function saveQuestionField(
     dbValue = newValue === 'true';
   }
 
-  // Update the question and mark as draft
+  // Update the question (trigger auto-computes current_hash)
   const { error: updateError } = await supabase
     .from('questions')
-    .update({ [dbField]: dbValue, is_draft: true })
+    .update({ [dbField]: dbValue })
     .eq('id', questionId);
 
   if (updateError) {
@@ -61,7 +61,7 @@ export async function saveQuestionTopic(
 
   const { error } = await supabase
     .from('questions')
-    .update({ topic_id: newTopicId, is_draft: true })
+    .update({ topic_id: newTopicId })
     .eq('id', questionId);
 
   if (error) {
@@ -118,8 +118,8 @@ export async function createTopicDraft(
 }
 
 /**
- * Publish all drafts (questions + topics).
- * Both updates run; if one fails, we still report partial success.
+ * Publish all changes: copies current_hash to published_hash for all questions
+ * with unpublished changes. Also sets is_draft=false for backward compat.
  */
 export async function publishAllDrafts(): Promise<{
   success: boolean;
@@ -128,51 +128,24 @@ export async function publishAllDrafts(): Promise<{
   error?: string;
 }> {
   const supabase = createClient();
-
-  // Count drafts first
-  const [{ count: qCount }, { count: tCount }] = await Promise.all([
-    supabase.from('questions').select('id', { count: 'exact', head: true }).eq('is_draft', true),
-    supabase.from('topics').select('id', { count: 'exact', head: true }).eq('is_draft', true),
-  ]);
-
-  // Publish both in parallel to minimize inconsistency window
-  const [qResult, tResult] = await Promise.all([
-    supabase.from('questions').update({ is_draft: false }).eq('is_draft', true),
-    supabase.from('topics').update({ is_draft: false }).eq('is_draft', true),
-  ]);
-
-  const errors: string[] = [];
-  if (qResult.error) errors.push(`Questions : ${qResult.error.message}`);
-  if (tResult.error) errors.push(`Chapitres : ${tResult.error.message}`);
-
-  if (errors.length > 0) {
-    return { success: false, error: errors.join(' / ') };
+  const { data: count, error } = await supabase.rpc('publish_all_changes');
+  if (error) {
+    return { success: false, error: error.message };
   }
-
-  return {
-    success: true,
-    questionCount: qCount ?? 0,
-    topicCount: tCount ?? 0,
-  };
+  return { success: true, questionCount: Number(count) ?? 0, topicCount: 0 };
 }
 
 /**
- * Get the count of draft items (for the badge).
+ * Get the count of questions with unpublished changes (hash mismatch).
  */
 export async function getDraftCount(): Promise<number> {
   const supabase = createClient();
-
-  const { count: qCount } = await supabase
-    .from('questions')
-    .select('id', { count: 'exact', head: true })
-    .eq('is_draft', true);
-
-  const { count: tCount } = await supabase
-    .from('topics')
-    .select('id', { count: 'exact', head: true })
-    .eq('is_draft', true);
-
-  return (qCount ?? 0) + (tCount ?? 0);
+  const { data, error } = await supabase.rpc('get_unpublished_count');
+  if (error) {
+    console.error('getDraftCount error:', error.message);
+    return 0;
+  }
+  return Number(data) ?? 0;
 }
 
 /** Map grid field names to database column names (allowlist) */

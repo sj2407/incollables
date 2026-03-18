@@ -182,6 +182,7 @@ export default function AdminDatabasePage() {
 
   // Synchroniser confirmation
   const [showSyncConfirm, setShowSyncConfirm] = useState(false);
+  const [syncDiffList, setSyncDiffList] = useState<{ question_id: string; question_number: number | null; question_text_preview: string }[]>([]);
 
   const handlePublish = useCallback(async () => {
     setShowSyncConfirm(false);
@@ -385,16 +386,23 @@ export default function AdminDatabasePage() {
             <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600">{questions.length} questions</span>
             <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600">{topics.filter((t) => t.level === 1).length} chapitres</span>
             <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600">{topics.filter((t) => t.level === 2).length} sous-chapitres</span>
-            {draftCount > 0 && (
-              <button
-                type="button"
-                onClick={async () => { await fetchQuestions(); setShowSyncConfirm(true); }}
-                disabled={publishing}
-                className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-200 disabled:opacity-50"
-              >
-                {publishing ? 'Publication...' : `${draftCount} brouillon${draftCount !== 1 ? 's' : ''} — Synchroniser`}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={async () => {
+                const supabase = createClient();
+                const { data } = await supabase.rpc('get_sync_diff');
+                setSyncDiffList((data as typeof syncDiffList) ?? []);
+                setShowSyncConfirm(true);
+              }}
+              disabled={publishing || draftCount === 0}
+              className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                draftCount > 0
+                  ? 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+                  : 'bg-neutral-100 text-neutral-400'
+              } disabled:opacity-70`}
+            >
+              {publishing ? 'Publication...' : draftCount > 0 ? `${draftCount} modification${draftCount !== 1 ? 's' : ''} — Synchroniser` : 'À jour ✓'}
+            </button>
             {publishSuccess && (
               <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">{publishSuccess}</span>
             )}
@@ -616,8 +624,8 @@ export default function AdminDatabasePage() {
       {/* Topic manager panel */}
       {showTopicManager && (
         <TopicManagerPanel
-          onClose={() => setShowTopicManager(false)}
-          onChanged={() => { setShowTopicManager(false); handleRefresh(); }}
+          onClose={() => { setShowTopicManager(false); handleRefresh(); }}
+          onChanged={() => handleRefresh()}
         />
       )}
       {/* Corbeille panel */}
@@ -648,15 +656,12 @@ export default function AdminDatabasePage() {
           <div className="mt-3 max-h-48 overflow-y-auto">
             <p className="mb-2 text-xs font-medium text-neutral-500">Questions modifiées :</p>
             <ul className="space-y-1">
-              {questions.filter((q) => q.is_draft).map((q) => (
+              {syncDiffList.map((q) => (
                 <li key={q.question_id} className="rounded bg-blue-50 px-2 py-1 text-xs text-blue-800">
-                  Q{q.question_number ?? '?'} — {q.question_text.slice(0, 60)}{q.question_text.length > 60 ? '...' : ''}
+                  Q{q.question_number ?? '?'} — {q.question_text_preview}
                 </li>
               ))}
             </ul>
-            {topics.some((t) => ('is_draft' in t)) && (
-              <p className="mt-2 text-xs text-neutral-400">+ chapitres modifiés</p>
-            )}
           </div>
         </ConfirmModal>
       )}

@@ -49,8 +49,9 @@ export function getTotalQuestionCount(topic: TopicWithCount): number {
 export async function fetchTopicsWithCounts(
   supabase: ReturnType<typeof createClient>,
 ): Promise<{ data: TopicWithCount[]; error: string | null }> {
+  // Students read from published_topics (isolation from admin edits)
   const { data: topicsData, error: topicsError } = await supabase
-    .from('topics')
+    .from('published_topics')
     .select('*')
     .eq('is_active', true)
     .order('sort_order');
@@ -66,12 +67,11 @@ export async function fetchTopicsWithCounts(
     .rpc('get_question_counts_by_topic');
 
   if (countsError || !countsData) {
-    // Fallback: fetch topic_ids only (lighter than full rows), exclude drafts
+    // Fallback: fetch from published_questions
     const { data: fallbackData, error: fallbackError } = await supabase
-      .from('questions')
+      .from('published_questions')
       .select('topic_id')
-      .eq('is_active', true)
-      .eq('is_draft', false);
+      .eq('is_active', true);
 
     if (fallbackError || !fallbackData) {
       return { data: [], error: 'Impossible de charger le nombre de questions.' };

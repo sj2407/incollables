@@ -75,7 +75,7 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
       const is_active = true;
       const { error: err } = await supabase
         .from('questions')
-        .update({ is_active, is_draft: true })
+        .update({ is_active })
         .in('id', ids);
       setLoading(false);
       setConfirmAction(null);
@@ -97,7 +97,7 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
       // Soft-delete: set is_active = false
       const { error: err } = await supabase
         .from('questions')
-        .update({ is_active: false, is_draft: true })
+        .update({ is_active: false })
         .in('id', ids);
       setLoading(false);
       setConfirmAction(null);
@@ -182,7 +182,7 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
 
     const { error: err } = await supabase
       .from('questions')
-      .update({ topic_id: topicId, is_draft: true })
+      .update({ topic_id: topicId })
       .in('id', ids);
     setLoading(false);
     if (err) {
@@ -246,7 +246,7 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
     for (const [topicId, questionIds] of Array.from(byTopic.entries())) {
       const { error: err } = await supabase
         .from('questions')
-        .update({ topic_id: topicId, is_draft: true })
+        .update({ topic_id: topicId })
         .in('id', questionIds);
       if (err) {
         setError(err.message);

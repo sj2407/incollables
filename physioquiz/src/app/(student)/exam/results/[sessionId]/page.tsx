@@ -70,7 +70,7 @@ export default function ExamResultsPage({ params }: ExamResultsPageProps) {
 
     // Fetch question data
     const { data: questions } = await supabase
-      .from('questions')
+      .from('published_questions')
       .select('id, question_number, question_text, explanation_html')
       .in('id', questionIds);
 

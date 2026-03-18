@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
+import Image from '@tiptap/extension-image';
 import DOMPurify from 'dompurify';
 import { createClient } from '@/lib/supabase/client';
 import Modal from '@/components/ui/Modal';
@@ -47,11 +48,11 @@ export default function TipTapEditor({ value, onSave, onClose }: TipTapEditorPro
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const editor = useEditor({
-    extensions: [StarterKit, Underline],
+    extensions: [StarterKit, Underline, Image.configure({ inline: false, allowBase64: false })],
     content: value || '',
     editorProps: {
       attributes: {
-        class: 'prose prose-sm max-w-none min-h-[200px] p-4 outline-none focus:outline-none',
+        class: 'prose prose-sm max-w-none min-h-[200px] p-4 outline-none focus:outline-none [&_img]:max-w-full [&_img]:rounded-lg [&_h1]:text-base [&_h1]:font-normal [&_h2]:text-base [&_h2]:font-normal [&_h3]:text-base [&_h3]:font-normal',
       },
     },
   });

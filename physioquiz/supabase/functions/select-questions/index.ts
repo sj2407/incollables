@@ -200,7 +200,7 @@ Deno.serve(async (req: Request) => {
       if (subtopicError) {
         // Fallback: query topics with parent_id (1 level deep)
         const { data: children } = await supabaseAdmin
-          .from('topics')
+          .from('published_topics')
           .select('id')
           .eq('parent_id', topic_id);
         if (children) {
@@ -231,13 +231,12 @@ Deno.serve(async (req: Request) => {
 
     if (!questionStats || questionStats.length === 0) {
       // No questions in the view means no active questions for these topics
-      // Try fetching active, non-draft questions directly
+      // Try fetching active published questions directly
       const { data: activeQuestions, error: qError } = await supabaseAdmin
-        .from('questions')
+        .from('published_questions')
         .select('id, topic_id')
         .in('topic_id', topicIds)
-        .eq('is_active', true)
-        .eq('is_draft', false);
+        .eq('is_active', true);
 
       if (qError || !activeQuestions || activeQuestions.length === 0) {
         return new Response(
@@ -261,16 +260,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // Filter out draft questions from the pool
-    const poolQuestionIds = questionStats.map((q: { question_id: string }) => q.question_id);
-    const { data: draftQuestions } = await supabaseAdmin
-      .from('questions')
-      .select('id')
-      .in('id', poolQuestionIds)
-      .eq('is_draft', true);
-    const draftIds = new Set((draftQuestions ?? []).map((q: { id: string }) => q.id));
-
-    const pool = (questionStats as QuestionStat[]).filter((q) => !draftIds.has(q.question_id));
+    // Published tables only contain non-draft content — no filtering needed
+    const pool = questionStats as QuestionStat[];
     const totalAvailable = pool.length;
 
     if (totalAvailable === 0) {
@@ -348,15 +339,15 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // 8. Fetch full question data + choices (WITHOUT is_correct)
+    // 8. Fetch full question data from published tables (WITHOUT is_correct)
     const { data: questions, error: questionsError } = await supabaseAdmin
-      .from('questions')
+      .from('published_questions')
       .select(`
         id,
         question_number,
         question_text,
         topic_id,
-        question_images (
+        published_question_images (
           id,
           storage_path,
           original_name,
@@ -372,9 +363,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Fetch choices — explicitly exclude is_correct (anti-cheat §12)
+    // Fetch choices from published — explicitly exclude is_correct (anti-cheat §12)
     const { data: choices, error: choicesError } = await supabaseAdmin
-      .from('choices')
+      .from('published_choices')
       .select('id, question_id, label, choice_text, sort_order')
       .in('question_id', selectedIds);
 

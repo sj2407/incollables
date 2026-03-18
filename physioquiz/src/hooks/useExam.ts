@@ -154,8 +154,8 @@ export function useExam(sessionId: string) {
     // Fetch questions + images + choices in parallel
     const [questionsResult, choicesResult, existingAnswersResult] = await Promise.all([
       supabase
-        .from('questions')
-        .select('id, question_number, question_text, topic_id, question_images (id, storage_path, original_name, sort_order)')
+        .from('published_questions')
+        .select('id, question_number, question_text, topic_id, published_question_images (id, storage_path, original_name, sort_order)')
         .in('id', questionIds),
       supabase
         .from('safe_choices')
@@ -194,17 +194,19 @@ export function useExam(sessionId: string) {
       .map((qId) => {
         const q = questionMap.get(qId);
         if (!q) return null;
-        const images = [...(q.question_images ?? [])].sort((a, b) => a.sort_order - b.sort_order);
+        const rawImages = (q as Record<string, unknown>).published_question_images ?? (q as Record<string, unknown>).question_images ?? [];
+        const images = [...(rawImages as { sort_order: number; storage_path: string }[])].sort((a, b) => a.sort_order - b.sort_order);
         for (const img of images) {
           if (!img.storage_path.startsWith('http')) {
             img.storage_path = storageBaseUrl + img.storage_path;
           }
         }
+        const { published_question_images: _pqi, ...rest } = q as Record<string, unknown> & typeof q;
         return {
-          ...q,
+          ...rest,
           question_images: images,
           choices: choicesByQuestion[qId] ?? [],
-        };
+        } as ExamQuestion;
       })
       .filter((q): q is ExamQuestion => q !== null);
 

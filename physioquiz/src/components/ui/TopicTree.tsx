@@ -19,7 +19,7 @@ export default function TopicTree({ topics }: TopicTreeProps) {
 
   return (
     <div className="flex flex-col gap-2">
-      {topics.map((topic) => (
+      {topics.filter((t) => getTotalQuestionCount(t) > 0).map((topic) => (
         <TopicNode key={topic.id} topic={topic} depth={0} />
       ))}
     </div>
@@ -89,7 +89,7 @@ function TopicNode({ topic, depth }: TopicNodeProps) {
       {/* Children */}
       {hasChildren && isOpen && (
         <div className="mt-2 flex flex-col gap-2">
-          {topic.children.map((child) => (
+          {topic.children.filter((c) => getTotalQuestionCount(c) > 0).map((child) => (
             <TopicNode key={child.id} topic={child} depth={depth + 1} />
           ))}
         </div>

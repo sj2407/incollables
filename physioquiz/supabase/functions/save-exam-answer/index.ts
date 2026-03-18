@@ -134,7 +134,7 @@ Deno.serve(async (req: Request) => {
     // 6. Validate choice IDs belong to this question
     if (selected_choice_ids.length > 0) {
       const { data: validChoices } = await supabaseAdmin
-        .from('choices')
+        .from('published_choices')
         .select('id')
         .eq('question_id', question_id);
 

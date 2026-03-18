@@ -177,10 +177,10 @@ export function useQuiz(sessionId: string) {
     // (all three only need questionIds / sessionId — no interdependencies)
     const [questionsResult, choicesResult, answeredResult] = await Promise.all([
       supabase
-        .from('questions')
+        .from('published_questions')
         .select(
           `id, question_number, question_text, topic_id,
-          question_images (id, storage_path, original_name, sort_order)`,
+          published_question_images (id, storage_path, original_name, sort_order)`,
         )
         .in('id', questionIds),
       supabase
@@ -235,14 +235,16 @@ export function useQuiz(sessionId: string) {
       .map((qId) => {
         const q = questionMap.get(qId);
         if (!q) return null;
-        const images = [...(q.question_images ?? [])].sort(
+        const rawImages = (q as Record<string, unknown>).published_question_images ?? (q as Record<string, unknown>).question_images ?? [];
+        const images = [...(rawImages as { sort_order: number }[])].sort(
           (a, b) => a.sort_order - b.sort_order,
         );
+        const { published_question_images: _pqi, ...rest } = q as Record<string, unknown> & typeof q;
         return {
-          ...q,
+          ...rest,
           question_images: images,
           choices: choicesByQuestion[qId] ?? [],
-        };
+        } as QuizQuestion;
       })
       .filter((q): q is QuizQuestion => q !== null);
 

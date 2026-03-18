@@ -58,9 +58,9 @@ export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPa
       setError(dErr.message);
       return;
     }
-    fetchData();
-    onChanged();
-  }, [fetchData, onChanged]);
+    // Remove from local state (no flash, no re-fetch)
+    setTopics((prev) => prev.filter((t) => t.id !== topicId));
+  }, []);
 
   const chapters = topics.filter((t) => t.level === 1);
   const getSubchapters = (parentId: string) => topics.filter((t) => t.level === 2 && t.parent_id === parentId);
