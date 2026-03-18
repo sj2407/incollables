@@ -3,7 +3,7 @@
 import { PencilSimple } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import { saveQuestionField, publishAllDrafts, getDraftCount } from '@/lib/adminAutoSave';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
@@ -53,6 +53,22 @@ export default function AdminDatabasePage() {
   const [activeFilter, setActiveFilter] = useState<string>('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('');
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Derived: only topics that have at least one question (for filter dropdowns + Modifier)
+  const { activeChapters, activeSubchapters, activeTopics } = useMemo(() => {
+    const topicIdsWithQuestions = new Set(questions.map((q) => q.topic_id));
+    // Also include parent chapters of sub-chapters that have questions
+    for (const tid of Array.from(topicIdsWithQuestions)) {
+      const t = topics.find((tp) => tp.id === tid);
+      if (t?.parent_id) topicIdsWithQuestions.add(t.parent_id);
+    }
+    const active = topics.filter((t) => topicIdsWithQuestions.has(t.id));
+    return {
+      activeChapters: active.filter((t) => t.level === 1),
+      activeSubchapters: active.filter((t) => t.level === 2),
+      activeTopics: active,
+    };
+  }, [questions, topics]);
 
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -336,7 +352,7 @@ export default function AdminDatabasePage() {
               className="h-9 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="">Tous les chapitres</option>
-              {topics.filter((t) => t.level === 1).map((t) => (
+              {activeChapters.map((t) => (
                 <option key={t.id} value={t.id}>{t.title}</option>
               ))}
             </select>
@@ -348,8 +364,8 @@ export default function AdminDatabasePage() {
               className="h-9 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="">Tous les sous-chapitres</option>
-              {topics
-                .filter((t) => t.level === 2 && (!chapterFilter || t.parent_id === chapterFilter))
+              {activeSubchapters
+                .filter((t) => !chapterFilter || t.parent_id === chapterFilter)
                 .map((t) => (
                   <option key={t.id} value={t.id}>{t.title}</option>
                 ))}
@@ -457,7 +473,7 @@ export default function AdminDatabasePage() {
             <div className="mt-3">
               <BulkActions
                 selectedIds={selectedIds}
-                topics={topics}
+                topics={activeTopics}
                 onDone={handleRefresh}
                 onClear={() => setSelectedIds(new Set())}
               />

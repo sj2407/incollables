@@ -308,13 +308,14 @@ test.describe('Admin Spreadsheet — Full Acceptance Tests', () => {
     await bulkBar.getByText('Supprimer').click();
 
     // French modal should appear
-    const modal = page.getByText('Supprimer définitivement');
-    await expect(modal.first()).toBeVisible({ timeout: 3_000 });
+    const modal = page.locator('[role="dialog"]');
+    await expect(modal).toBeVisible({ timeout: 3_000 });
+    await expect(modal.locator('text=/Supprimer|Corbeille/').first()).toBeVisible();
 
     await page.screenshot({ path: 'e2e/screenshots/acceptance/C12-french-confirm-modal.png' });
 
     // Cancel the modal
-    await page.getByLabel('Supprimer définitivement').getByRole('button', { name: 'Annuler' }).click();
+    await modal.getByRole('button', { name: 'Annuler' }).click();
   });
 
   // ═══════════════════════════════════════════════════════

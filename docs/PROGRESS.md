@@ -33,11 +33,14 @@
 - `src/components/admin/QuestionSidePanel.tsx` — ONLY for the "+ Question" button (NEW questions)
 
 ### What's broken right now
-- **BUG 1**: Chapter/sub-chapter free-text — typing a new name and clicking "+ Créer" doesn't save. See section 7 below.
 - **BUG 2**: Drag-to-fill requires AG Grid Enterprise (we have Community)
 
+### Known security items (deferred)
+- **`safe_choices` view**: Created with `SECURITY DEFINER` (migration 011). Needs to be changed to `SECURITY INVOKER`. Deferred because student quiz/exam flow depends on it — needs careful testing before changing. Supabase Security Advisor flags this as ERROR.
+- **Leaked password protection**: Disabled in Supabase Auth. Enable in Dashboard → Authentication → Settings.
+
 ### What works
-Everything else: inline editing, popup editors, auto-save, draft mode, Synchroniser button, bulk actions, filters, edit log, 21 E2E tests.
+Chapter/sub-chapter inline editing (textarea popup, same as Énoncé), Synchroniser tracking all changes, Corbeille (trash with 24h auto-purge), bulk actions (Modifier, Désactiver, Supprimer), draft mode, popup editors, filters with dynamic topic lists, 22 E2E tests + 8 draft tracking tests.
 
 **Full details in numbered sections below.**
 
