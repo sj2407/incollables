@@ -11,7 +11,7 @@ import type { AdminQuestionRow, TopicOption } from '@/types/admin';
 import type { PopupRequest } from '@/components/admin/QuestionGrid';
 import QuestionSidePanel from '@/components/admin/QuestionSidePanel';
 import BulkActions from '@/components/admin/BulkActions';
-import TopicFormModal, { type TopicFormData } from '@/components/admin/TopicFormModal';
+import TopicFormModal, { type TopicFormData, type TopicCreateData } from '@/components/admin/TopicFormModal';
 
 // Lazy-load AG Grid so students never download it
 const QuestionGrid = dynamic(
@@ -25,6 +25,7 @@ const CorrectAnswersPopup = dynamic(() => import('@/components/admin/CorrectAnsw
 const TipTapEditor = dynamic(() => import('@/components/admin/TipTapEditor'));
 const EditLogPanel = dynamic(() => import('@/components/admin/EditLogPanel'));
 const CorbeillePanel = dynamic(() => import('@/components/admin/CorbeillePanel'));
+const TopicManagerPanel = dynamic(() => import('@/components/admin/TopicManagerPanel'));
 
 function GridSkeleton() {
   return (
@@ -55,7 +56,7 @@ export default function AdminDatabasePage() {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Derived: only topics that have at least one question (for filter dropdowns + Modifier)
-  const { activeChapters, activeSubchapters, activeTopics } = useMemo(() => {
+  const { activeChapters, activeSubchapters } = useMemo(() => {
     const topicIdsWithQuestions = new Set(questions.map((q) => q.topic_id));
     // Also include parent chapters of sub-chapters that have questions
     for (const tid of Array.from(topicIdsWithQuestions)) {
@@ -66,7 +67,6 @@ export default function AdminDatabasePage() {
     return {
       activeChapters: active.filter((t) => t.level === 1),
       activeSubchapters: active.filter((t) => t.level === 2),
-      activeTopics: active,
     };
   }, [questions, topics]);
 
@@ -99,6 +99,7 @@ export default function AdminDatabasePage() {
 
   // Corbeille
   const [showCorbeille, setShowCorbeille] = useState(false);
+  const [showTopicManager, setShowTopicManager] = useState(false);
   const [corbeilleCount, setCorbeilleCount] = useState(0);
 
   // Topic management modal
@@ -224,9 +225,10 @@ export default function AdminDatabasePage() {
   const handleRefresh = useCallback(async () => {
     setSelectedIds(new Set());
     await fetchQuestions();
+    fetchTopics();
     refreshDraftCount();
     refreshCorbeilleCount();
-  }, [fetchQuestions, refreshDraftCount, refreshCorbeilleCount]);
+  }, [fetchQuestions, fetchTopics, refreshDraftCount, refreshCorbeilleCount]);
 
   // Lightweight refresh — only update draft count, no full data reload
   const handleDraftChanged = useCallback(() => {
@@ -298,6 +300,59 @@ export default function AdminDatabasePage() {
     fetchQuestions();
   }, [topicModal, topics, fetchTopics, fetchQuestions]);
 
+  const handleChapterCreate = useCallback(async (data: TopicCreateData) => {
+    setTopicSaving(true);
+    const supabase = createClient();
+
+    // Check if chapter already exists (case-insensitive)
+    const existingChapter = topics.find(
+      (t) => t.level === 1 && t.title.toLowerCase() === data.chapterTitle.toLowerCase()
+    );
+
+    let chapterId: string;
+    if (existingChapter) {
+      chapterId = existingChapter.id;
+    } else {
+      const { data: inserted, error: iError } = await supabase.from('topics').insert({
+        title: data.chapterTitle,
+        parent_id: null,
+        is_active: true,
+        level: 1,
+        sort_order: 999,
+      }).select('id').single();
+      if (iError || !inserted) {
+        setError(iError?.message ?? 'Erreur lors de la création.');
+        setTopicSaving(false);
+        return;
+      }
+      chapterId = inserted.id;
+    }
+
+    // Insert sub-chapters (skip duplicates under same parent)
+    for (const subTitle of data.subchapters) {
+      const existingSub = topics.find(
+        (t) => t.level === 2 && t.parent_id === chapterId && t.title.toLowerCase() === subTitle.toLowerCase()
+      );
+      if (existingSub) continue; // skip duplicate
+      const { error: sError } = await supabase.from('topics').insert({
+        title: subTitle,
+        parent_id: chapterId,
+        is_active: true,
+        level: 2,
+        sort_order: 999,
+      });
+      if (sError) {
+        setError(sError.message);
+        // Continue with remaining sub-chapters
+      }
+    }
+
+    setTopicSaving(false);
+    setTopicModal(null);
+    fetchTopics();
+    fetchQuestions();
+  }, [topics, fetchTopics, fetchQuestions]);
+
   const handleTopicDelete = useCallback(async () => {
     if (!topicModal?.editId) return;
     setTopicSaving(true);
@@ -320,7 +375,10 @@ export default function AdminDatabasePage() {
       <div className={`min-w-0 flex-1 ${panelId ? 'hidden md:block' : ''}`}>
         <div className="mx-auto max-w-full px-1 md:px-4">
           {/* Row 1 — Title */}
-          <h1 className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]">Base de données</h1>
+          <h1
+            className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]"
+            title="Pour ajouter un chapitre ou sous-chapitre : cliquez sur « + Chapitre / Sous-chapitre ».&#10;Pour changer la classification de questions : sélectionnez-les avec les cercles, cliquez « Modifier... », choisissez le chapitre puis le sous-chapitre, et cliquez « Valider »."
+          >Base de données</h1>
 
           {/* Row 2 — Stats pills */}
           <div className="mt-2 flex flex-wrap gap-2">
@@ -330,7 +388,7 @@ export default function AdminDatabasePage() {
             {draftCount > 0 && (
               <button
                 type="button"
-                onClick={() => setShowSyncConfirm(true)}
+                onClick={async () => { await fetchQuestions(); setShowSyncConfirm(true); }}
                 disabled={publishing}
                 className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-200 disabled:opacity-50"
               >
@@ -349,7 +407,7 @@ export default function AdminDatabasePage() {
               value={chapterFilter}
               onChange={(e) => { setChapterFilter(e.target.value); setSubchapterFilter(''); }}
               aria-label="Filtrer par chapitre"
-              className="h-9 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-9 min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="">Tous les chapitres</option>
               {activeChapters.map((t) => (
@@ -361,7 +419,7 @@ export default function AdminDatabasePage() {
               value={subchapterFilter}
               onChange={(e) => setSubchapterFilter(e.target.value)}
               aria-label="Filtrer par sous-chapitre"
-              className="h-9 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-9 min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
               <option value="">Tous les sous-chapitres</option>
               {activeSubchapters
@@ -373,7 +431,7 @@ export default function AdminDatabasePage() {
           </div>
 
           {/* Filter row 2 — Statut + Difficulté + Recherche */}
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <div className="mt-2 flex items-center gap-2">
             <select
               value={activeFilter}
               onChange={(e) => setActiveFilter(e.target.value)}
@@ -404,7 +462,7 @@ export default function AdminDatabasePage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher..."
               aria-label="Rechercher une question"
-              className="h-9 w-40 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-9 min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
 
             {/* Topic gear icon */}
@@ -432,38 +490,45 @@ export default function AdminDatabasePage() {
                 <PencilSimple size={14} />
               </button>
             )}
+          </div>
 
-            {/* Utility actions — right-aligned */}
-            <div className="ml-auto flex gap-1.5">
-              <button
-                type="button"
-                onClick={() => setShowCorbeille(true)}
-                className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
-              >
-                Corbeille{corbeilleCount > 0 ? <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-100 px-1 text-[10px] font-semibold text-red-600">{corbeilleCount}</span> : null}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowEditLog(true)}
-                className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
-              >
-                Historique
-              </button>
-              <button
-                type="button"
-                onClick={() => setTopicModal({ editId: null })}
-                className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
-              >
-                + Chapitre
-              </button>
-              <button
-                type="button"
-                onClick={() => setPanelId('new')}
-                className="h-9 rounded-lg px-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary-50 hover:text-primary"
-              >
-                + Question
-              </button>
-            </div>
+          {/* Row 4 — Utility actions */}
+          <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowCorbeille(true)}
+              className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+            >
+              Corbeille{corbeilleCount > 0 ? <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-100 px-1 text-[10px] font-semibold text-red-600">{corbeilleCount}</span> : null}
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowEditLog(true)}
+              className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+            >
+              Historique
+            </button>
+            <button
+              type="button"
+              onClick={() => setTopicModal({ editId: null })}
+              className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+            >
+              + Chapitre / Sous-chapitre
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowTopicManager(true)}
+              className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+            >
+              Gérer chapitres
+            </button>
+            <button
+              type="button"
+              onClick={() => setPanelId('new')}
+              className="h-9 rounded-lg px-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary-50 hover:text-primary"
+            >
+              + Question
+            </button>
           </div>
 
           {error && <p role="alert" className="mt-3 text-sm text-error">{error}</p>}
@@ -473,7 +538,8 @@ export default function AdminDatabasePage() {
             <div className="mt-3">
               <BulkActions
                 selectedIds={selectedIds}
-                topics={activeTopics}
+                topics={topics}
+                questions={questions}
                 onDone={handleRefresh}
                 onClear={() => setSelectedIds(new Set())}
               />
@@ -490,7 +556,6 @@ export default function AdminDatabasePage() {
                 topics={topics}
                 selectedIds={selectedIds}
                 onSelectionChanged={setSelectedIds}
-                onDataChanged={handleRefresh}
                 onDraftChanged={handleDraftChanged}
                 onPopupOpen={setPopup}
               />
@@ -512,7 +577,7 @@ export default function AdminDatabasePage() {
       {topicModal && (
         <TopicFormModal
           editId={topicModal.editId}
-          initial={topicModal.editId ? topicModal.initial : {
+          initial={topicModal.initial ?? {
             title: '',
             description: '',
             parent_id: null,
@@ -520,6 +585,7 @@ export default function AdminDatabasePage() {
           }}
           allTopics={topics}
           onSave={handleTopicSave}
+          onCreateChapter={handleChapterCreate}
           onDelete={topicModal.editId ? handleTopicDelete : undefined}
           onClose={() => setTopicModal(null)}
           saving={topicSaving}
@@ -546,6 +612,13 @@ export default function AdminDatabasePage() {
       {/* Edit log panel */}
       {showEditLog && (
         <EditLogPanel onClose={() => setShowEditLog(false)} />
+      )}
+      {/* Topic manager panel */}
+      {showTopicManager && (
+        <TopicManagerPanel
+          onClose={() => setShowTopicManager(false)}
+          onChanged={() => { setShowTopicManager(false); handleRefresh(); }}
+        />
       )}
       {/* Corbeille panel */}
       {showCorbeille && (

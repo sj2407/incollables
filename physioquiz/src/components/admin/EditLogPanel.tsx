@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import Modal from '@/components/ui/Modal';
 
@@ -26,6 +26,7 @@ const FIELD_LABELS: Record<string, string> = {
   propositions: 'Propositions',
   correct_labels: 'Réponses correctes',
   bulk_move: 'Déplacement',
+  bulk_move_revert: 'Annulation déplacement',
   bulk_activate: 'Activation',
   bulk_deactivate: 'Désactivation',
   bulk_delete: 'Suppression',
@@ -39,6 +40,72 @@ function formatDate(iso: string): string {
 function truncate(s: string | null, max: number): string {
   if (!s) return '—';
   return s.length > max ? s.slice(0, max) + '…' : s;
+}
+
+/** Try to parse enriched bulk_move JSON payload */
+function parseBulkMovePayload(oldValue: string | null): { count: number; questions: { id: string; number: number | null; text: string; from: string }[] } | null {
+  if (!oldValue) return null;
+  try {
+    const parsed = JSON.parse(oldValue);
+    if (parsed && typeof parsed.count === 'number' && Array.isArray(parsed.questions)) return parsed;
+  } catch { /* legacy format — plain text */ }
+  return null;
+}
+
+function LogEntryRow({ entry }: { entry: EditLogEntry }) {
+  const [expanded, setExpanded] = useState(false);
+  const isBulkMove = entry.field_changed === 'bulk_move';
+  const bulkPayload = useMemo(() => isBulkMove ? parseBulkMovePayload(entry.old_value) : null, [isBulkMove, entry.old_value]);
+
+  return (
+    <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0 flex-1">
+          <span className="rounded bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700">
+            {FIELD_LABELS[entry.field_changed] ?? entry.field_changed}
+          </span>
+          {entry.question_text && (
+            <p className="mt-1 truncate text-xs text-neutral-500">
+              {truncate(entry.question_text, 80)}
+            </p>
+          )}
+          {/* Enriched bulk_move display */}
+          {bulkPayload ? (
+            <div className="mt-1.5">
+              <button
+                type="button"
+                onClick={() => setExpanded(!expanded)}
+                className="text-xs text-neutral-500 hover:text-neutral-700"
+              >
+                <span className="text-neutral-400 line-through">{bulkPayload.count} questions</span>
+                <span className="text-neutral-300"> → </span>
+                <span className="font-medium text-neutral-700">{truncate(entry.new_value, 60)}</span>
+                <span className="ml-1 text-primary">{expanded ? '▲' : '▼'}</span>
+              </button>
+              {expanded && (
+                <ul className="mt-1.5 space-y-0.5">
+                  {bulkPayload.questions.map((q) => (
+                    <li key={q.id} className="rounded bg-white px-2 py-1 text-[10px] text-neutral-600">
+                      Q{q.number ?? '?'} — {q.text || '...'} <span className="text-neutral-400">(depuis {q.from})</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ) : (
+            <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
+              <span className="text-neutral-400 line-through">{truncate(entry.old_value, 60)}</span>
+              <span className="text-neutral-300">→</span>
+              <span className="font-medium text-neutral-700">{truncate(entry.new_value, 60)}</span>
+            </div>
+          )}
+        </div>
+        <span className="shrink-0 text-xs text-neutral-400">
+          {formatDate(entry.created_at)}
+        </span>
+      </div>
+    </div>
+  );
 }
 
 export default function EditLogPanel({ onClose }: EditLogPanelProps) {
@@ -126,28 +193,7 @@ export default function EditLogPanel({ onClose }: EditLogPanelProps) {
           <h3 className="mb-2 text-xs font-semibold uppercase text-neutral-400">{date}</h3>
           <div className="space-y-2">
             {items.map((entry) => (
-              <div key={entry.id} className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <span className="rounded bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700">
-                      {FIELD_LABELS[entry.field_changed] ?? entry.field_changed}
-                    </span>
-                    {entry.question_text && (
-                      <p className="mt-1 truncate text-xs text-neutral-500">
-                        {truncate(entry.question_text, 80)}
-                      </p>
-                    )}
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1 text-xs">
-                      <span className="text-neutral-400 line-through">{truncate(entry.old_value, 60)}</span>
-                      <span className="text-neutral-300">→</span>
-                      <span className="font-medium text-neutral-700">{truncate(entry.new_value, 60)}</span>
-                    </div>
-                  </div>
-                  <span className="shrink-0 text-xs text-neutral-400">
-                    {formatDate(entry.created_at)}
-                  </span>
-                </div>
-              </div>
+              <LogEntryRow key={entry.id} entry={entry} />
             ))}
           </div>
         </div>

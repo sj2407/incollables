@@ -11,9 +11,7 @@ import {
   ModuleRegistry,
   AllCommunityModule,
 } from 'ag-grid-community';
-import { saveQuestionField, saveQuestionTopic, createTopicDraft } from '@/lib/adminAutoSave';
-import { findSimilarTopics } from '@/lib/topicDuplicateCheck';
-import ConfirmModal from '@/components/ui/ConfirmModal';
+import { saveQuestionField, saveQuestionTopic } from '@/lib/adminAutoSave';
 import type { AdminQuestionRow, TopicOption } from '@/types/admin';
 
 // Register AG Grid modules
@@ -190,7 +188,6 @@ interface QuestionGridProps {
   topics: TopicOption[];
   selectedIds: Set<string>;
   onSelectionChanged: (ids: Set<string>) => void;
-  onDataChanged: () => void;
   onDraftChanged: () => void;
   onPopupOpen: (req: PopupRequest) => void;
 }
@@ -200,7 +197,6 @@ export default function QuestionGrid({
   topics,
   selectedIds,
   onSelectionChanged,
-  onDataChanged,
   onDraftChanged,
   onPopupOpen,
 }: QuestionGridProps) {
@@ -208,12 +204,6 @@ export default function QuestionGrid({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Pending topic duplicate confirmation
-  const [duplicateConfirm, setDuplicateConfirm] = useState<{
-    message: string;
-    onConfirm: () => void;
-    onCancel: () => void;
-  } | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Clean up timer on unmount
@@ -397,55 +387,28 @@ export default function QuestionGrid({
 
       const isSubchapter = field === 'subchapter';
 
-      // Try to match typed name to an existing topic
+      // Match typed name to an existing topic — no inline creation
       const matchPool = isSubchapter
         ? topics.filter((t) => t.level === 2)
         : topics.filter((t) => t.level === 1);
       const exactMatch = matchPool.find((t) => t.title.toLowerCase() === typedName.toLowerCase());
 
-      let newTopicId: string;
-      let newTopicTitle: string;
-
-      if (exactMatch) {
-        // Matched an existing topic
-        newTopicId = exactMatch.id;
-        newTopicTitle = exactMatch.title;
-      } else {
-        // No match — create a new topic
-        // Check for similar names (typo protection)
-        const similar = findSimilarTopics(typedName, topics);
-        if (similar.length > 0) {
-          const confirmed = await new Promise<boolean>((resolve) => {
-            setDuplicateConfirm({
-              message: `Un chapitre similaire existe : « ${similar[0].title} ». Créer « ${typedName} » quand même ?`,
-              onConfirm: () => { setDuplicateConfirm(null); resolve(true); },
-              onCancel: () => { setDuplicateConfirm(null); resolve(false); },
-            });
-          });
-          if (!confirmed) {
-            showSaveStatus('idle');
-            event.node.setDataValue('topic_id', oldTopicId);
-            return;
-          }
-        }
-
-        let parentId: string | null = null;
-        let level = 1;
+      if (!exactMatch) {
+        // No match — revert and show error
+        showSaveStatus('error', isSubchapter
+          ? 'Ce sous-chapitre n\'existe pas. Utilisez « + Sous-chapitre » pour en créer un.'
+          : 'Ce chapitre n\'existe pas. Utilisez « + Chapitre » pour en créer un.');
         if (isSubchapter) {
-          const currentTopic = topicMap.get(oldTopicId);
-          parentId = currentTopic?.parent_id ?? oldTopicId;
-          level = 2;
+          event.data.topic_title = oldValue ?? '';
+        } else {
+          event.data.parent_topic_title = oldValue ?? '';
         }
-
-        const createResult = await createTopicDraft(typedName, parentId, level);
-        if (!createResult.success || !createResult.topicId) {
-          showSaveStatus('error', createResult.error);
-          event.node.setDataValue('topic_id', oldTopicId);
-          return;
-        }
-        newTopicId = createResult.topicId;
-        newTopicTitle = createResult.title ?? typedName;
+        event.api.refreshCells({ rowNodes: [event.node], columns: [field], force: true });
+        return;
       }
+
+      const newTopicId = exactMatch.id;
+      const newTopicTitle = exactMatch.title;
 
       if (newTopicId === oldTopicId) {
         showSaveStatus('idle');
@@ -462,10 +425,20 @@ export default function QuestionGrid({
       );
       if (result.success) {
         showSaveStatus('saved');
+        // Update local row data so subsequent edits see fresh values
+        event.data.topic_id = newTopicId;
+        event.data.topic_title = newTopicTitle;
+        if (!isSubchapter) event.data.parent_topic_title = newTopicTitle;
         onDraftChanged();
       } else {
         showSaveStatus('error', result.error);
-        event.node.setDataValue('topic_id', oldTopicId);
+        // Revert display on failure
+        if (isSubchapter) {
+          event.data.topic_title = oldValue ?? '';
+        } else {
+          event.data.parent_topic_title = oldValue ?? '';
+        }
+        event.api.refreshCells({ rowNodes: [event.node], columns: [field], force: true });
       }
       return;
     }
@@ -485,7 +458,7 @@ export default function QuestionGrid({
       showSaveStatus('error', result.error);
       event.node.setDataValue(field, oldValue);
     }
-  }, [topicMap, topics, showSaveStatus, onDataChanged, onDraftChanged]);
+  }, [topicMap, topics, showSaveStatus, onDraftChanged]);
 
   // Sync external selectedIds to grid selection
   useEffect(() => {
@@ -564,17 +537,6 @@ export default function QuestionGrid({
           stopEditingWhenCellsLoseFocus={true}
         />
       </div>
-
-      {/* Duplicate topic confirmation modal */}
-      {duplicateConfirm && (
-        <ConfirmModal
-          title="Chapitre similaire"
-          message={duplicateConfirm.message}
-          confirmLabel="Créer quand même"
-          onConfirm={duplicateConfirm.onConfirm}
-          onCancel={duplicateConfirm.onCancel}
-        />
-      )}
     </div>
   );
 }

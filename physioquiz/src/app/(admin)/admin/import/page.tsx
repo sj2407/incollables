@@ -12,10 +12,10 @@ type ImportTab = 'questions' | 'resumes' | 'videos' | 'fiches';
 type ImportStep = 'idle' | 'parsing' | 'preview' | 'importing' | 'done' | 'error';
 
 const TABS: { key: ImportTab; label: string; icon: React.ReactNode; accept: string; description: string }[] = [
-  { key: 'questions', label: 'Questions', icon: <FileDoc size={18} />, accept: '.docx', description: 'Fichier .docx standardisé (questions, propositions, réponses)' },
-  { key: 'resumes', label: 'Résumés', icon: <Notebook size={18} />, accept: '.docx', description: 'Résumé de cours au format .docx' },
-  { key: 'videos', label: 'Vidéos', icon: <VideoCamera size={18} />, accept: '.mp4,.mov,.webm', description: 'Lien YouTube ou fichier vidéo' },
-  { key: 'fiches', label: 'Fiches', icon: <ListChecks size={18} />, accept: '.docx', description: 'Fiche de révision au format .docx' },
+  { key: 'questions', label: 'Questions', icon: <FileDoc size={18} />, accept: '.docx', description: '.docx uniquement (.doc et PDF non supportés)' },
+  { key: 'resumes', label: 'Résumés', icon: <Notebook size={18} />, accept: '.docx', description: '.docx uniquement (.doc et PDF non supportés)' },
+  { key: 'videos', label: 'Vidéos', icon: <VideoCamera size={18} />, accept: '.mp4,.mov,.webm', description: 'Fichier vidéo (max 50 Mo)' },
+  { key: 'fiches', label: 'Fiches', icon: <ListChecks size={18} />, accept: '.docx', description: '.docx uniquement (.doc et PDF non supportés)' },
 ];
 
 // ─── Main Page ───
@@ -217,7 +217,7 @@ function MaterialImportSection({ materialType, label }: { materialType: 'resume'
     <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-md">
       {(step === 'idle' || step === 'error') && (
         <>
-          <DropZone accept=".docx" description={`${label} au format .docx`} onFile={handleFileChange} />
+          <DropZone accept=".docx" description=".docx uniquement (.doc et PDF non supportés)" onFile={handleFileChange} />
           {step === 'error' && <ErrorBox message={errorMessage} onRetry={handleReset} />}
         </>
       )}

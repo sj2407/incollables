@@ -4,13 +4,19 @@ import { createClient } from '@/lib/supabase/client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import UndoToast from '@/components/ui/UndoToast';
-import type { TopicOption } from '@/types/admin';
+import type { AdminQuestionRow, TopicOption } from '@/types/admin';
 
 interface BulkActionsProps {
   selectedIds: Set<string>;
   topics: TopicOption[];
+  questions: AdminQuestionRow[];
   onDone: () => void;
   onClear: () => void;
+}
+
+interface PendingRevert {
+  entries: { questionId: string; oldTopicId: string }[];
+  destinationTopicTitle: string;
 }
 
 type ConfirmAction = 'delete' | 'hard_delete' | 'activate' | null;
@@ -22,13 +28,15 @@ interface UndoState {
   questionIds: string[];
 }
 
-export default function BulkActions({ selectedIds, topics, onDone, onClear }: BulkActionsProps) {
+export default function BulkActions({ selectedIds, topics, questions, onDone, onClear }: BulkActionsProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [undoState, setUndoState] = useState<UndoState | null>(null);
   const [showMoveDropdown, setShowMoveDropdown] = useState(false);
-  const [moveStep, setMoveStep] = useState<'pick' | 'chapter' | 'subchapter' | 'difficulty'>('pick');
+  const [moveStep, setMoveStep] = useState<'chapter' | 'subchapter'>('chapter');
+  const [pendingRevert, setPendingRevert] = useState<PendingRevert | null>(null);
+  const [subchapterParent, setSubchapterParent] = useState<string | null>(null);
   const [massDeleteInput, setMassDeleteInput] = useState('');
   const moveDropdownRef = useRef<HTMLDivElement>(null);
   const cancelledRef = useRef(false);
@@ -158,40 +166,20 @@ export default function BulkActions({ selectedIds, topics, onDone, onClear }: Bu
     setUndoState(null);
   }, []);
 
-  // --- Bulk change difficulty ---
-  const handleBulkDifficulty = useCallback(async (difficulty: string) => {
-    setLoading(true);
-    setError(null);
-    setShowMoveDropdown(false);
-    const supabase = createClient();
-    const ids = Array.from(selectedIds);
-    const { error: err } = await supabase
-      .from('questions')
-      .update({ difficulty, is_draft: true })
-      .in('id', ids);
-    setLoading(false);
-    if (err) {
-      setError(err.message);
-      return;
-    }
-    supabase.rpc('log_admin_edit', {
-      p_question_id: null,
-      p_field: 'bulk_difficulty',
-      p_old: `${ids.length} questions`,
-      p_new: difficulty,
-    }).then(({ error: logError }) => {
-      if (logError) console.error('Failed to log bulk difficulty:', logError.message);
-    });
-    onDone();
-  }, [selectedIds, onDone]);
-
-  // --- Move to chapter ---
+  // --- Move to chapter/sub-chapter ---
   const handleMoveTo = useCallback(async (topicId: string) => {
     setLoading(true);
     setError(null);
     setShowMoveDropdown(false);
     const supabase = createClient();
     const ids = Array.from(selectedIds);
+
+    // Capture old topic_ids BEFORE the move (for revert + enriched log)
+    const revertEntries = ids.map((id) => {
+      const q = questions.find((q) => q.question_id === id);
+      return { questionId: id, oldTopicId: q?.topic_id ?? '' };
+    });
+
     const { error: err } = await supabase
       .from('questions')
       .update({ topic_id: topicId, is_draft: true })
@@ -201,17 +189,87 @@ export default function BulkActions({ selectedIds, topics, onDone, onClear }: Bu
       setError(err.message);
       return;
     }
+
+    // Enriched log: store question details + source topics
     const topic = topics.find((t) => t.id === topicId);
+    const logPayload = JSON.stringify({
+      count: ids.length,
+      questions: ids.map((id) => {
+        const q = questions.find((q) => q.question_id === id);
+        return {
+          id,
+          number: q?.question_number ?? null,
+          text: q?.question_text?.slice(0, 50) ?? '',
+          from: q?.topic_title ?? 'inconnu',
+        };
+      }),
+    });
     supabase.rpc('log_admin_edit', {
       p_question_id: null,
       p_field: 'bulk_move',
-      p_old: `${ids.length} questions`,
+      p_old: logPayload,
       p_new: topic?.title ?? topicId,
     }).then(({ error: logError }) => {
       if (logError) console.error('Failed to log bulk move:', logError.message);
     });
+
+    // Enter pending state — admin must Valider or Annuler
+    setPendingRevert({
+      entries: revertEntries,
+      destinationTopicTitle: topic?.title ?? topicId,
+    });
     onDone();
-  }, [selectedIds, topics, onDone]);
+  }, [selectedIds, topics, questions, onDone]);
+
+  // --- Valider: keep the move, dismiss bar ---
+  const handleValidate = useCallback(() => {
+    setPendingRevert(null);
+    onClear();
+  }, [onClear]);
+
+  // --- Annuler: revert the move ---
+  const handleRevert = useCallback(async () => {
+    if (!pendingRevert) return;
+    setLoading(true);
+    setError(null);
+    const supabase = createClient();
+
+    // Group by old topic to minimize DB calls
+    const byTopic = new Map<string, string[]>();
+    for (const { questionId, oldTopicId } of pendingRevert.entries) {
+      if (!oldTopicId) continue;
+      const list = byTopic.get(oldTopicId) ?? [];
+      list.push(questionId);
+      byTopic.set(oldTopicId, list);
+    }
+
+    for (const [topicId, questionIds] of Array.from(byTopic.entries())) {
+      const { error: err } = await supabase
+        .from('questions')
+        .update({ topic_id: topicId, is_draft: true })
+        .in('id', questionIds);
+      if (err) {
+        setError(err.message);
+        setLoading(false);
+        return;
+      }
+    }
+
+    // Log the revert
+    supabase.rpc('log_admin_edit', {
+      p_question_id: null,
+      p_field: 'bulk_move_revert',
+      p_old: pendingRevert.destinationTopicTitle,
+      p_new: `${pendingRevert.entries.length} questions restaurées`,
+    }).then(({ error: logError }) => {
+      if (logError) console.error('Failed to log revert:', logError.message);
+    });
+
+    setLoading(false);
+    setPendingRevert(null);
+    onDone();
+    onClear();
+  }, [pendingRevert, onDone, onClear]);
 
   // --- Confirm messages ---
   const getConfirmConfig = () => {
@@ -240,6 +298,33 @@ export default function BulkActions({ selectedIds, topics, onDone, onClear }: Bu
 
   return (
     <>
+      {/* Pending revert bar — shown after a bulk move */}
+      {pendingRevert ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-2" data-testid="bulk-actions">
+          <span className="text-sm font-medium text-green-700">
+            {pendingRevert.entries.length} question{pendingRevert.entries.length > 1 ? 's' : ''} déplacée{pendingRevert.entries.length > 1 ? 's' : ''} vers {pendingRevert.destinationTopicTitle}
+          </span>
+          {error && <span className="text-xs text-error">{error}</span>}
+          <div className="ml-auto flex gap-2">
+            <button
+              type="button"
+              onClick={handleRevert}
+              disabled={loading}
+              className="min-h-[44px] rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-700 disabled:opacity-50"
+            >
+              {loading ? '...' : 'Annuler'}
+            </button>
+            <button
+              type="button"
+              onClick={handleValidate}
+              disabled={loading}
+              className="min-h-[44px] rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-green-700 disabled:opacity-50"
+            >
+              Valider
+            </button>
+          </div>
+        </div>
+      ) : (
       <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/20 bg-primary-50 px-4 py-2" data-testid="bulk-actions">
         <span className="text-sm font-medium text-primary">
           {count} sélectionnée{count > 1 ? 's' : ''}
@@ -260,52 +345,37 @@ export default function BulkActions({ selectedIds, topics, onDone, onClear }: Bu
           <div className="relative" ref={moveDropdownRef}>
             <button
               type="button"
-              onClick={() => { setShowMoveDropdown(!showMoveDropdown); setMoveStep('pick'); }}
-              disabled={loading}
+              onClick={() => { setShowMoveDropdown(!showMoveDropdown); setMoveStep('chapter'); setSubchapterParent(null); }}
+              disabled={loading || pendingRevert !== null}
               className="min-h-[44px] rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
             >
               Modifier...
             </button>
             {showMoveDropdown && (
               <div className="absolute left-0 top-full z-20 mt-1 w-72 rounded-xl border border-neutral-200 bg-white shadow-lg">
-                {moveStep === 'pick' && (
-                  <div className="py-1">
-                    <button type="button" onClick={() => setMoveStep('chapter')} className="w-full px-4 py-2.5 text-left text-sm font-medium text-neutral-700 hover:bg-primary-50">Chapitre</button>
-                    <button type="button" onClick={() => setMoveStep('subchapter')} className="w-full px-4 py-2.5 text-left text-sm font-medium text-neutral-700 hover:bg-primary-50">Sous-chapitre</button>
-                    <button type="button" onClick={() => setMoveStep('difficulty')} className="w-full px-4 py-2.5 text-left text-sm font-medium text-neutral-700 hover:bg-primary-50">Difficulté</button>
-                  </div>
-                )}
+                {/* Step 1: Pick a chapter */}
                 {moveStep === 'chapter' && (
                   <div>
-                    <button type="button" onClick={() => setMoveStep('pick')} className="w-full border-b border-neutral-100 px-4 py-2 text-left text-xs font-medium text-neutral-400 hover:text-neutral-600">← Retour</button>
+                    <p className="px-4 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-neutral-400">Choisir un chapitre</p>
                     <div className="max-h-48 overflow-y-auto">
                       {topics.filter((t) => t.level === 1).map((t) => (
-                        <button key={t.id} type="button" onClick={() => handleMoveTo(t.id)} className="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-primary-50">{t.title}</button>
+                        <button key={t.id} type="button" onClick={() => { setSubchapterParent(t.id); setMoveStep('subchapter'); }} className="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-primary-50">{t.title}</button>
                       ))}
                     </div>
                   </div>
                 )}
-                {moveStep === 'subchapter' && (
+                {/* Step 2: Pick a sub-chapter under the selected chapter */}
+                {moveStep === 'subchapter' && subchapterParent && (
                   <div>
-                    <button type="button" onClick={() => setMoveStep('pick')} className="w-full border-b border-neutral-100 px-4 py-2 text-left text-xs font-medium text-neutral-400 hover:text-neutral-600">← Retour</button>
+                    <button type="button" onClick={() => { setMoveStep('chapter'); setSubchapterParent(null); }} className="w-full border-b border-neutral-100 px-4 py-2 text-left text-xs font-medium text-neutral-400 hover:text-neutral-600">← Retour</button>
                     <div className="max-h-48 overflow-y-auto">
-                      {topics.filter((t) => t.level === 2).map((t) => (
-                        <button key={t.id} type="button" onClick={() => handleMoveTo(t.id)} className="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-primary-50">{t.title}</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-                {moveStep === 'difficulty' && (
-                  <div>
-                    <button type="button" onClick={() => setMoveStep('pick')} className="w-full border-b border-neutral-100 px-4 py-2 text-left text-xs font-medium text-neutral-400 hover:text-neutral-600">← Retour</button>
-                    <div className="py-1">
-                      {[
-                        { value: 'easy', label: 'Facile', cls: 'hover:bg-green-50' },
-                        { value: 'medium', label: 'Moyen', cls: 'hover:bg-amber-50' },
-                        { value: 'hard', label: 'Difficile', cls: 'hover:bg-red-50' },
-                      ].map((d) => (
-                        <button key={d.value} type="button" onClick={() => handleBulkDifficulty(d.value)} className={`w-full px-4 py-2.5 text-left text-sm text-neutral-700 ${d.cls}`}>{d.label}</button>
-                      ))}
+                      {topics.filter((t) => t.level === 2 && t.parent_id === subchapterParent).length === 0 ? (
+                        <p className="px-4 py-3 text-xs text-neutral-400">Aucun sous-chapitre</p>
+                      ) : (
+                        topics.filter((t) => t.level === 2 && t.parent_id === subchapterParent).map((t) => (
+                          <button key={t.id} type="button" onClick={() => handleMoveTo(t.id)} className="w-full px-4 py-2 text-left text-sm text-neutral-700 hover:bg-primary-50">{t.title}</button>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
@@ -339,6 +409,7 @@ export default function BulkActions({ selectedIds, topics, onDone, onClear }: Bu
           Annuler
         </button>
       </div>
+      )}
 
       {/* Confirmation modal */}
       {confirmAction && (() => {
