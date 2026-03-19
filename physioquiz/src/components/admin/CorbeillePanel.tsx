@@ -81,7 +81,7 @@ export default function CorbeillePanel({ onClose, onRestored }: CorbeillePanelPr
         </div>
       )}
       <p className="mt-3 text-[10px] text-neutral-400">
-        Les questions supprimées sont automatiquement purgées après 24h.
+        Les questions supprimées sont automatiquement purgées après 7 jours.
       </p>
     </Modal>
   );

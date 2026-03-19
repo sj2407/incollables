@@ -120,7 +120,7 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
       });
       onDone();
     } else if (confirmAction === 'hard_delete') {
-      // Move to trash (soft delete with deleted_at) — auto-purged after 24h
+      // Move to trash (soft delete with deleted_at) — auto-purged after 7 days
       if (isMassDelete && massDeleteInput !== String(count)) return;
       const { error: err } = await supabase
         .from('questions')
@@ -284,8 +284,8 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
       return {
         title: 'Supprimer',
         message: isMassDelete
-          ? `Supprimer ${count} questions ? Récupérable pendant 24h via la Corbeille.`
-          : `Supprimer ${count} question${count > 1 ? 's' : ''} ? Récupérable pendant 24h via la Corbeille.`,
+          ? `Supprimer ${count} questions ? Récupérable pendant 7 jours via la Corbeille.`
+          : `Supprimer ${count} question${count > 1 ? 's' : ''} ? Récupérable pendant 7 jours via la Corbeille.`,
         label: 'Supprimer',
       };
     }
