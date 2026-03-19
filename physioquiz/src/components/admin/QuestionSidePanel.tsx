@@ -245,7 +245,7 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
       <div className="fixed inset-0 bg-black/30 md:hidden" onClick={onClose} />
 
       {/* Panel */}
-      <div ref={panelRef} tabIndex={-1} className="relative ml-auto flex h-full w-full max-w-lg flex-col border-l border-neutral-200 bg-white shadow-xl outline-none md:max-w-md lg:max-w-lg">
+      <div ref={panelRef} tabIndex={-1} className="relative ml-auto flex h-full w-full max-w-lg flex-col border-l border-white/70 bg-white/78 backdrop-blur-2xl shadow-xl outline-none md:max-w-md lg:max-w-lg">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
           <h2 className="text-base font-bold text-neutral-900">

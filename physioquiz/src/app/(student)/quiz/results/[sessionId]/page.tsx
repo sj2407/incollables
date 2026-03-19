@@ -202,7 +202,7 @@ export default function QuizResultsPage({ params }: QuizResultsPageProps) {
         <button
           type="button"
           onClick={fetchResults}
-          className="mt-2 min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
+          className="mt-2 min-h-[44px] rounded-2xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
         >
           Réessayer
         </button>
@@ -215,7 +215,7 @@ export default function QuizResultsPage({ params }: QuizResultsPageProps) {
       <div className="mx-auto max-w-2xl">
         <Link
           href="/practice"
-          className="mb-3 inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+          className="mb-3 inline-flex min-h-[44px] items-center gap-1 rounded-2xl px-2 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
         >
           ← Retour
         </Link>

@@ -59,7 +59,7 @@ export default function CorbeillePanel({ onClose, onRestored }: CorbeillePanelPr
       ) : (
         <div className="max-h-[60vh] space-y-2 overflow-y-auto">
           {items.map((q) => (
-            <div key={q.question_id} className="flex items-center justify-between rounded-lg border border-neutral-200 px-3 py-2">
+            <div key={q.question_id} className="flex items-center justify-between glass-card-inner px-3 py-2">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium text-neutral-800">
                   Q{q.question_number ?? '?'} — {q.question_text.slice(0, 60)}{q.question_text.length > 60 ? '...' : ''}

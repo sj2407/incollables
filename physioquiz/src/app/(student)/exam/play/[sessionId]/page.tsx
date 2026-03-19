@@ -2,6 +2,7 @@
 
 import { ArrowLeft, ArrowRight } from '@phosphor-icons/react';
 import { useExam } from '@/hooks/useExam';
+import { useSwipe } from '@/hooks/useSwipe';
 import Countdown from '@/components/ui/Countdown';
 import ExamQuestionCard from '@/components/exam/ExamQuestionCard';
 import ExamNavigator from '@/components/exam/ExamNavigator';
@@ -94,6 +95,11 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
   // Fetch topic_id for results page link
   const topicId = exam.questions[0]?.topic_id ?? '';
 
+  const swipe = useSwipe({
+    onSwipeLeft: exam.nextQuestion,
+    onSwipeRight: exam.prevQuestion,
+  });
+
   // --- Loading ---
   if (exam.isLoading) {
     return (
@@ -145,7 +151,13 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
   const currentIsFlagged = exam.flaggedIds.has(exam.currentQuestion.id);
 
   return (
-    <div className="mx-auto max-w-2xl">
+    <div
+      className="mx-auto max-w-2xl"
+      style={{ touchAction: 'pan-y' }}
+      onPointerDown={swipe.onPointerDown}
+      onPointerMove={swipe.onPointerMove}
+      onPointerUp={swipe.onPointerUp}
+    >
       {/* Header: countdown */}
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -179,6 +191,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
 
       {/* Question card */}
       <ExamQuestionCard
+        key={exam.currentIndex}
         question={exam.currentQuestion}
         currentIndex={exam.currentIndex}
         totalQuestions={exam.questions.length}
@@ -205,7 +218,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
             disabled={exam.currentIndex === 0}
             onClick={exam.prevQuestion}
             aria-label="Question pr&eacute;c&eacute;dente"
-            className="min-h-[44px] rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:text-neutral-400"
+            className="min-h-[44px] rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:text-neutral-400"
           >
             <ArrowLeft size={14} className="mr-1 inline" />Pr&eacute;c&eacute;dente
           </button>
@@ -214,7 +227,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
               type="button"
               onClick={() => setShowConfirmDialog(true)}
               aria-label="Terminer et soumettre l'examen"
-              className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+              className="min-h-[44px] rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
             >
               Terminer l&apos;examen
             </button>
@@ -223,7 +236,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
               type="button"
               onClick={exam.nextQuestion}
               aria-label="Question suivante"
-              className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+              className="min-h-[44px] rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
             >
               Suivante <ArrowRight size={14} className="ml-1 inline" />
             </button>
@@ -244,7 +257,7 @@ export default function ExamPlayPage({ params }: ExamPlayPageProps) {
           <button
             type="button"
             onClick={() => setShowConfirmDialog(true)}
-            className="mt-3 min-h-[44px] w-full rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50"
+            className="mt-3 min-h-[44px] w-full rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-medium text-neutral-600 transition-colors hover:bg-neutral-50"
           >
             Terminer l&apos;examen
           </button>
@@ -319,7 +332,7 @@ function ConfirmDialog({
       aria-modal="true"
       aria-label="Confirmer la soumission de l'examen"
     >
-      <div className="mx-4 w-full max-w-sm rounded-xl bg-white p-6 shadow-xl">
+      <div className="mx-4 w-full max-w-sm glass-card p-6">
         <h2 className="text-base font-bold text-neutral-900">
           Terminer l&apos;examen ?
         </h2>
@@ -333,7 +346,7 @@ function ConfirmDialog({
             ref={cancelRef}
             type="button"
             onClick={onCancel}
-            className="min-h-[44px] flex-1 rounded-lg border border-neutral-200 bg-white px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100"
+            className="min-h-[44px] flex-1 rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100"
           >
             Continuer
           </button>
@@ -341,7 +354,7 @@ function ConfirmDialog({
             ref={confirmRef}
             type="button"
             onClick={onConfirm}
-            className="min-h-[44px] flex-1 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+            className="min-h-[44px] flex-1 rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
           >
             Soumettre
           </button>

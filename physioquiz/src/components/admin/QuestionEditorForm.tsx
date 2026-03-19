@@ -151,7 +151,7 @@ export default function QuestionEditorForm({
         <button
           type="submit"
           disabled={!canSave}
-          className="min-h-[44px] rounded-xl bg-primary px-6 py-2 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
+          className="min-h-[44px] rounded-2xl bg-primary glass-btn px-6 py-2 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
         >
           {saving ? 'Enregistrement...' : isNew ? 'Créer la question' : 'Enregistrer'}
         </button>

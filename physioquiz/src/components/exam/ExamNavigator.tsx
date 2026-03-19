@@ -20,7 +20,7 @@ export default memo(function ExamNavigator({
   onGoTo,
 }: ExamNavigatorProps) {
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
+    <div className="glass-card p-4 sm:p-6">
       <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-400">
         Navigation rapide
       </p>

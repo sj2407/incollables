@@ -15,7 +15,7 @@ export default function AuthError({
 
   return (
     <div className="mx-auto max-w-md px-4 py-12 text-center" role="alert">
-      <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-md sm:p-8">
+      <div className="glass-card p-6 sm:p-8">
         <p className="text-lg font-bold text-neutral-900">
           Une erreur est survenue
         </p>
@@ -25,7 +25,7 @@ export default function AuthError({
         <button
           type="button"
           onClick={reset}
-          className="mt-4 min-h-[44px] rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+          className="mt-4 min-h-[44px] rounded-2xl bg-primary glass-btn px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
         >
           Réessayer
         </button>

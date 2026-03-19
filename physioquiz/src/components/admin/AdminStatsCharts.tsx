@@ -45,7 +45,7 @@ export default memo(function AdminStatsCharts({ dailyData, chapterScores }: Admi
       <section>
         <h2 className="mb-1 text-[1.125rem] font-semibold text-neutral-900">Sessions par jour</h2>
         <p className="mb-3 text-xs text-neutral-500">Glissez la barre pour ajuster la période</p>
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md" role="img" aria-label="Graphique sessions par jour">
+        <div className="glass-card p-4" role="img" aria-label="Graphique sessions par jour">
           <ResponsiveContainer width="100%" height={240}>
             <LineChart data={dailyData} margin={{ top: 5, right: 10, bottom: 5, left: -15 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
@@ -115,7 +115,7 @@ export default memo(function AdminStatsCharts({ dailyData, chapterScores }: Admi
         <section>
           <h2 className="mb-1 text-[1.125rem] font-semibold text-neutral-900">Performance par chapitre</h2>
           <p className="mb-3 text-xs text-neutral-500">Score moyen et couverture — chapitres les plus difficiles en premier</p>
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md" role="img" aria-label="Graphique performance par chapitre">
+          <div className="glass-card p-4" role="img" aria-label="Graphique performance par chapitre">
             {/* Legend */}
             <div className="mb-3 flex items-center gap-5 text-xs text-neutral-500">
               <span className="flex items-center gap-1.5">

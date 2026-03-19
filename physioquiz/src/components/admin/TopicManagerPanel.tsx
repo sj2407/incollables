@@ -78,7 +78,7 @@ export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPa
           {chapters.map((ch) => {
             const subs = getSubchapters(ch.id);
             return (
-              <div key={ch.id} className="rounded-lg border border-neutral-200">
+              <div key={ch.id} className="glass-card-inner">
                 {/* Chapter row */}
                 <div className="flex items-center justify-between px-3 py-2">
                   <div className="min-w-0 flex-1">

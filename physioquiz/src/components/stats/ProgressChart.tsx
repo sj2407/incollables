@@ -63,8 +63,8 @@ export default memo(function ProgressChart({
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={height}>
-          <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+          <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -10 }} style={{ background: 'linear-gradient(180deg, #f8faff 0%, #ffffff 100%)', borderRadius: 8 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e0e4eb" strokeOpacity={0.4} />
             <XAxis
               dataKey="date"
               tick={{ fontSize: 11, fill: '#9ca3af' }}
@@ -96,32 +96,45 @@ export default memo(function ProgressChart({
                 if (name === 'question_count') return [`${value} questions`, 'Questions'];
                 return [`${value}%`, 'Score'];
               }}
-              contentStyle={{ fontSize: 12, borderRadius: 8 }}
+              contentStyle={{ fontSize: 12, borderRadius: 10, border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.08)', padding: '8px 12px' }}
             />
+            <defs>
+              <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#194ce6" stopOpacity={0.18} />
+                <stop offset="100%" stopColor="#194ce6" stopOpacity={0.01} />
+              </linearGradient>
+              <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#d1d5db" stopOpacity={0.6} />
+                <stop offset="100%" stopColor="#e5e7eb" stopOpacity={0.3} />
+              </linearGradient>
+              <filter id="lineShadow" x="-10%" y="-10%" width="120%" height="120%">
+                <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#194ce6" floodOpacity="0.2" />
+              </filter>
+            </defs>
             {hasQuestionCounts && (
               <Bar
                 yAxisId="right"
                 dataKey="question_count"
-                fill="#e5e7eb"
-                radius={[2, 2, 0, 0]}
-                maxBarSize={20}
+                fill="url(#barGradient)"
+                radius={[4, 4, 0, 0]}
+                maxBarSize={22}
+                isAnimationActive={true}
+                animationDuration={600}
               />
             )}
-            <defs>
-              <linearGradient id="scoreGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#194ce6" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#194ce6" stopOpacity={0} />
-              </linearGradient>
-            </defs>
             <Area
               yAxisId="left"
               type="monotone"
               dataKey="score"
               stroke="#194ce6"
-              strokeWidth={2}
+              strokeWidth={2.5}
               fill="url(#scoreGradient)"
-              dot={{ r: 3, fill: '#194ce6' }}
-              activeDot={{ r: 5 }}
+              dot={{ r: 3.5, fill: '#194ce6', stroke: '#fff', strokeWidth: 1.5 }}
+              activeDot={{ r: 6, fill: '#194ce6', stroke: '#fff', strokeWidth: 2 }}
+              isAnimationActive={true}
+              animationDuration={800}
+              animationEasing="ease-out"
+              style={{ filter: 'url(#lineShadow)' }}
             />
             {chartData.length > 3 && (
               <Brush

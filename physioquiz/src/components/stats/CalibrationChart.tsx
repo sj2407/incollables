@@ -2,6 +2,7 @@
 
 import { memo, useMemo } from 'react';
 import ScoreCircle from '@/components/ui/ScoreCircle';
+import StaggerList from '@/components/ui/StaggerList';
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -154,8 +155,17 @@ export default memo(function CalibrationChart({
       <div aria-label="Graphique de calibration" role="img">
         <p className="sr-only">{srSummary}</p>
         <ResponsiveContainer width="100%" height={220}>
-          <ScatterChart margin={{ top: 10, right: 15, bottom: 5, left: -10 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+          <ScatterChart margin={{ top: 10, right: 15, bottom: 5, left: -10 }} style={{ background: 'linear-gradient(180deg, #f8faff 0%, #ffffff 100%)', borderRadius: 8 }}>
+            <defs>
+              <filter id="dotShadow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="1" stdDeviation="1" floodOpacity="0.15" />
+              </filter>
+              <linearGradient id="chartBg" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#f8faff" />
+                <stop offset="100%" stopColor="#ffffff" />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e0e4eb" strokeOpacity={0.35} vertical={false} />
             <XAxis
               type="number"
               dataKey="x"
@@ -181,20 +191,28 @@ export default memo(function CalibrationChart({
                 const item = payload[0]?.payload;
                 if (!item) return null;
                 return (
-                  <div className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-xs shadow-md">
+                  <div className="rounded-lg border-none bg-white px-3 py-2 text-xs" style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.08)' }}>
                     <p className="font-semibold text-neutral-700">{item.label}</p>
                     <p className="mt-1 text-neutral-600">Score : {Math.round(item.y)}%</p>
                   </div>
                 );
               }}
             />
-            <Scatter data={scatterData}>
+            <Scatter
+              data={scatterData}
+              isAnimationActive={true}
+              animationDuration={800}
+              animationEasing="ease-out"
+              style={{ filter: 'url(#dotShadow)' }}
+            >
               {scatterData.map((entry, i) => (
                 <Cell
                   key={i}
                   fill={CONFIDENCE_COLORS[entry.confidence]}
-                  fillOpacity={0.6}
-                  r={5}
+                  fillOpacity={0.7}
+                  stroke="#fff"
+                  strokeWidth={1}
+                  r={5.5}
                 />
               ))}
             </Scatter>
@@ -220,27 +238,31 @@ export default memo(function CalibrationChart({
           <p className="mt-1 text-xs text-neutral-400">
             Questions où vous étiez sûr mais la réponse était fausse
           </p>
-          <div className="mt-2 max-h-[195px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
-            <div className="flex flex-col gap-1.5 p-2">
-              {falseCertainties.map((fc) => (
-                  <div
-                    key={fc.question_id}
-                    className="flex items-center gap-3 rounded-lg border-l-4 border-l-warning border border-neutral-200 bg-white p-2.5"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-neutral-700 line-clamp-1">
-                        {fc.question_number ? `Q${fc.question_number}. ` : ''}
-                        {fc.question_text}
-                      </p>
-                      <p className="mt-0.5 text-xs text-neutral-400">
-                        {fc.topic_title}
-                      </p>
+          <div className="relative mt-2 glass-card">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 rounded-t-xl bg-gradient-to-b from-neutral-50/90 to-transparent" aria-hidden="true" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 rounded-b-xl bg-gradient-to-t from-neutral-50/90 to-transparent" aria-hidden="true" />
+            <div className="max-h-[195px] overflow-y-auto">
+              <StaggerList className="flex flex-col gap-1.5 p-2" staggerDelay={0.08} duration={0.4}>
+                {falseCertainties.map((fc) => (
+                    <div
+                      key={fc.question_id}
+                      className="flex items-center gap-3 glass-card-inner border-l-4 border-l-warning p-2.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm text-neutral-700 line-clamp-1">
+                          {fc.question_number ? `Q${fc.question_number}. ` : ''}
+                          {fc.question_text}
+                        </p>
+                        <p className="mt-0.5 text-xs text-neutral-400">
+                          {fc.topic_title}
+                        </p>
+                      </div>
+                      <div className="shrink-0">
+                        <ScoreCircle score={fc.score_percent} size={40} strokeWidth={2.5} fontSize={11} />
+                      </div>
                     </div>
-                    <div className="shrink-0">
-                      <ScoreCircle score={fc.score_percent} size={40} strokeWidth={2.5} fontSize={11} />
-                    </div>
-                  </div>
-              ))}
+                ))}
+              </StaggerList>
             </div>
           </div>
         </div>

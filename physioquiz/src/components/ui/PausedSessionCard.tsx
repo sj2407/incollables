@@ -31,7 +31,7 @@ export function PausedSessionCard({
   };
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-5">
+    <div className="glass-card p-4 sm:p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-semibold text-neutral-900">
@@ -55,7 +55,7 @@ export function PausedSessionCard({
               onClick={handleResume}
               disabled={resuming}
               aria-label={`Reprendre la session ${session.topic_title}`}
-              className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97] disabled:bg-neutral-200 disabled:text-neutral-400"
+              className="min-h-[44px] rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97] disabled:bg-neutral-200 disabled:text-neutral-400"
             >
               {resuming ? 'Reprise...' : <><Play size={14} weight="fill" aria-hidden="true" className="mr-1 inline" />Reprendre</>}
             </button>

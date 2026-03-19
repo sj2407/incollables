@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { motion, useInView } from 'motion/react';
 import { getMasteryColor, MASTERY_SCALE } from '@/lib/mastery';
 
 interface ActivityCalendarProps {
@@ -31,7 +32,7 @@ const LEGEND_HEIGHT = 32; // px reserved for legend
 export default function ActivityCalendar({ sessions, height = 220 }: ActivityCalendarProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [cellCount, setCellCount] = useState(90);
-  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number } | null>(null);
+  const [tooltip, setTooltip] = useState<{ text: string; x: number; y: number; dateStr: string } | null>(null);
 
   // Measure container and calculate how many cells fit
   const measure = useCallback(() => {
@@ -103,10 +104,14 @@ export default function ActivityCalendar({ sessions, height = 220 }: ActivityCal
 
   function getCellStyle(day: DayCell): React.CSSProperties {
     if (day.count <= 0) return { backgroundColor: '#F3F4F6' };
-    return { backgroundColor: getMasteryColor(day.avgScore) };
+    const color = getMasteryColor(day.avgScore);
+    return {
+      backgroundColor: color,
+      boxShadow: `0 1px 3px ${color}66, inset 0 1px 0 rgba(255,255,255,0.25)`,
+    };
   }
 
-  function handleCellHover(e: React.MouseEvent, day: DayCell) {
+  function handleCellHover(e: React.PointerEvent | React.MouseEvent, day: DayCell) {
     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const parentRect = containerRef.current?.getBoundingClientRect();
     if (!parentRect) return;
@@ -121,6 +126,7 @@ export default function ActivityCalendar({ sessions, height = 220 }: ActivityCal
       text: lines.join(' · '),
       x: rect.left - parentRect.left + rect.width / 2,
       y: rect.top - parentRect.top - 4,
+      dateStr: day.dateStr,
     });
   }
 
@@ -136,29 +142,22 @@ export default function ActivityCalendar({ sessions, height = 220 }: ActivityCal
         {days.map((day, i) => (
           <div
             key={i}
-            className="cursor-pointer rounded-sm transition-colors"
+            className="cursor-pointer rounded-[4px] transition-all duration-150"
             style={{ ...getCellStyle(day), width: CELL_SIZE, height: CELL_SIZE }}
-            onMouseEnter={(e) => handleCellHover(e, day)}
-            onMouseLeave={() => setTooltip(null)}
+            onPointerEnter={(e) => handleCellHover(e, day)}
+            onPointerLeave={() => setTooltip(null)}
+            onClick={(e) => {
+              if (tooltip?.dateStr === day.dateStr) setTooltip(null);
+              else handleCellHover(e as unknown as React.PointerEvent, day);
+            }}
             aria-label={`${formatDateFr(day.dateStr)}: ${day.count} questions${day.avgScore !== null ? `, score ${day.avgScore}%` : ''}`}
           />
         ))}
       </div>
 
       {/* Legend */}
-      <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-neutral-400">
-        <span className="mr-0.5">Score :</span>
-        {MASTERY_SCALE.filter((l) => l.min >= 0).map((level) => (
-          <div key={level.label} className="flex items-center gap-0.5">
-            <div className="h-3 w-3 rounded-sm" style={{ backgroundColor: level.color }} />
-            <span>{level.label}</span>
-          </div>
-        ))}
-        <div className="flex items-center gap-0.5">
-          <div className="h-3 w-3 rounded-sm bg-neutral-100" />
-          <span>Pas d&apos;activité</span>
-        </div>
-      </div>
+      <LegendStagger />
+
 
       {/* Tooltip */}
       {tooltip && (
@@ -169,6 +168,48 @@ export default function ActivityCalendar({ sessions, height = 220 }: ActivityCal
           {tooltip.text}
         </div>
       )}
+    </div>
+  );
+}
+
+function LegendStagger() {
+  const ref = useRef<HTMLDivElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.5 });
+
+  const items = [
+    ...MASTERY_SCALE.filter((l) => l.min >= 0).map((level) => ({
+      key: level.label,
+      color: level.color,
+      label: level.label,
+    })),
+    { key: 'none', color: '#F3F4F6', label: "Pas d'activité" },
+  ];
+
+  return (
+    <div ref={ref} className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-neutral-400">
+      <motion.span
+        className="mr-0.5"
+        initial={{ opacity: 0 }}
+        animate={inView ? { opacity: 1 } : { opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        Score :
+      </motion.span>
+      {items.map((item, i) => (
+        <motion.div
+          key={item.key}
+          className="flex items-center gap-0.5"
+          initial={{ opacity: 0, x: -6 }}
+          animate={inView ? { opacity: 1, x: 0 } : { opacity: 0, x: -6 }}
+          transition={{ duration: 0.3, delay: 0.1 + i * 0.07 }}
+        >
+          <div
+            className="h-3 w-3 rounded-sm"
+            style={{ backgroundColor: item.color, boxShadow: item.color !== '#F3F4F6' ? `0 1px 2px ${item.color}66` : undefined }}
+          />
+          <span>{item.label}</span>
+        </motion.div>
+      ))}
     </div>
   );
 }

@@ -1,11 +1,12 @@
 'use client';
 
 import { isAbandoned } from '@/lib/pause-manager';
+import { MagnifyingGlass, X } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import TopicTree from '@/components/ui/TopicTree';
-import { useTopics } from '@/hooks/useTopics';
+import { useTopics, type TopicWithCount } from '@/hooks/useTopics';
 import { PausedSessionCard, type PausedSession } from '@/components/ui/PausedSessionCard';
 
 export default function PracticePage() {
@@ -55,6 +56,26 @@ export default function PracticePage() {
     fetchPaused();
   }, [fetchPaused]);
 
+  const [search, setSearch] = useState('');
+
+  const filteredTopics = useMemo(() => {
+    if (!search.trim()) return topics;
+    const q = search.toLowerCase();
+    return topics
+      .map((chapter): TopicWithCount | null => {
+        const chapterMatches = chapter.title.toLowerCase().includes(q);
+        if (chapterMatches) return chapter;
+        const matchingChildren = chapter.children.filter((c) =>
+          c.title.toLowerCase().includes(q),
+        );
+        if (matchingChildren.length > 0) {
+          return { ...chapter, children: matchingChildren };
+        }
+        return null;
+      })
+      .filter((t): t is TopicWithCount => t !== null);
+  }, [topics, search]);
+
   const isLoading = loading || topicsLoading;
 
   if (isLoading) {
@@ -99,21 +120,44 @@ export default function PracticePage() {
         </section>
       )}
 
-      {/* Topic tree */}
+      {/* Search + Topic tree */}
       <div className="mt-6">
+        {!topicsError && topics.length > 0 && (
+          <div className="relative mb-4">
+            <MagnifyingGlass size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Rechercher un chapitre…"
+              aria-label="Rechercher un chapitre"
+              className="min-h-[44px] w-full glass-input py-2.5 pl-9 pr-9 text-base sm:text-sm text-neutral-700 placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-neutral-400 hover:text-neutral-600"
+                aria-label="Effacer la recherche"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        )}
         {topicsError && (
           <div role="alert" className="flex items-center gap-3">
             <p className="text-sm text-error">{topicsError}</p>
             <button
               type="button"
               onClick={retryTopics}
-              className="min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
+              className="min-h-[44px] rounded-2xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
             >
               Réessayer
             </button>
           </div>
         )}
-        {!topicsError && <TopicTree topics={topics} />}
+        {!topicsError && <TopicTree topics={filteredTopics} />}
       </div>
     </div>
   );

@@ -32,7 +32,7 @@ export function QualityAlerts({ alerts }: { alerts: QualityAlert[] }) {
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-error">
             Sans propositions ({noChoices.length})
           </p>
-          <div className="max-h-[210px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
+          <div className="max-h-[210px] overflow-y-auto glass-card-inner">
             <div className="flex flex-col gap-1.5 p-2">
               {noChoices.map((a) => (
                 <AlertRow key={a.question_id} alert={a} />
@@ -46,7 +46,7 @@ export function QualityAlerts({ alerts }: { alerts: QualityAlert[] }) {
           <p className="mb-2 text-xs font-bold uppercase tracking-wider text-warning">
             Taux d&apos;erreur &gt; 80% ({highError.length})
           </p>
-          <div className="max-h-[210px] overflow-y-auto rounded-xl border border-neutral-200 bg-neutral-50/50">
+          <div className="max-h-[210px] overflow-y-auto glass-card-inner">
             <div className="flex flex-col gap-1.5 p-2">
               {highError.map((a) => (
                 <AlertRow key={a.question_id} alert={a} />
@@ -65,7 +65,7 @@ function AlertRow({ alert }: { alert: QualityAlert }) {
   return (
     <Link
       href={`/admin/questions?edit=${alert.question_id}`}
-      className="flex items-center justify-between rounded-lg border border-neutral-200 bg-white p-3 transition-colors hover:bg-neutral-50"
+      className="flex items-center justify-between rounded-lg glass-card-inner p-3 transition-colors hover:bg-white/70"
       style={{ borderLeft: `4px solid ${isNoChoices ? '#B91C1C' : '#B45309'}` }}
     >
       <div className="min-w-0 flex-1">

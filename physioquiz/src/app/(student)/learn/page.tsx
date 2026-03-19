@@ -78,15 +78,22 @@ export default function LearnPage() {
       </p>
 
       {/* Tabs */}
-      <div className="mt-4 flex gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-1">
+      <div className="relative mt-4 flex gap-1 rounded-2xl bg-white/40 backdrop-blur-sm border border-white/40 p-1">
+        <div
+          className="absolute inset-y-1 rounded-md bg-white shadow-sm transition-transform duration-200 ease-out"
+          style={{
+            width: `calc((100% - 0.75rem) / 3)`,
+            transform: `translateX(calc(${TAB_CONFIG.findIndex((t) => t.key === activeTab)} * (100% + 4px)))`,
+          }}
+        />
         {TAB_CONFIG.map((tab) => (
           <button
             key={tab.key}
             type="button"
             onClick={() => setActiveTab(tab.key)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition-colors ${
+            className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition-colors ${
               activeTab === tab.key
-                ? 'bg-white text-primary shadow-sm'
+                ? 'text-primary'
                 : 'text-neutral-500 hover:text-neutral-700'
             }`}
           >
@@ -110,14 +117,19 @@ export default function LearnPage() {
             ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-neutral-300 bg-neutral-50 p-8 text-center">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/40 bg-white/40 backdrop-blur-sm p-8 text-center">
             <span className="text-neutral-400">
               {TAB_CONFIG.find((t) => t.key === activeTab)?.icon}
             </span>
             <p className="mt-3 text-sm text-neutral-500">
-              Aucun contenu disponible pour le moment.
+              Aucun {activeTab === 'resume' ? 'résumé' : activeTab === 'video' ? 'vidéo' : 'fiche'} disponible pour le moment.
             </p>
-            <p className="mt-1 text-xs text-neutral-400">Bientôt disponible</p>
+            {materials.length > 0 && (
+              <p className="mt-1 text-xs text-neutral-400">Consultez les autres onglets</p>
+            )}
+            {materials.length === 0 && (
+              <p className="mt-1 text-xs text-neutral-400">Bientôt disponible</p>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -148,7 +160,7 @@ function MaterialCard({ material, onSelect }: { material: LearningMaterial; onSe
     <button
       type="button"
       onClick={onSelect}
-      className="flex min-h-[44px] items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
+      className="flex min-h-[44px] items-center gap-3 glass-card p-4 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
     >
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10">
         {icon}
@@ -176,7 +188,7 @@ function MaterialViewer({ material, onClose }: { material: LearningMaterial; onC
         <button
           type="button"
           onClick={onClose}
-          className="min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
+          className="min-h-[44px] rounded-2xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
         >
           &larr; Retour
         </button>
@@ -187,7 +199,7 @@ function MaterialViewer({ material, onClose }: { material: LearningMaterial; onC
       </h1>
 
       {/* Content */}
-      <div className="mt-4 rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
+      <div className="mt-4 glass-card p-4 sm:p-6">
         {/* Résumé or Fiche: render HTML */}
         {(material.material_type === 'resume' || material.material_type === 'fiche') && material.content_html && (
           <div

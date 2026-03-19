@@ -9,6 +9,9 @@ import { MetricCard, ChartIcon, SessionsIcon, TimerIcon, FlaskIcon } from '@/com
 import { WeakQuestionsSection, type WeakQuestion } from '@/components/stats/WeakQuestions';
 import type { HeatmapNode } from '@/components/stats/Heatmap';
 import ScoreCircle from '@/components/ui/ScoreCircle';
+import StaggerList from '@/components/ui/StaggerList';
+import TiltCard from '@/components/ui/TiltCard';
+import PillToggle from '@/components/ui/PillToggle';
 
 const ProgressChart = dynamic(() => import('@/components/stats/ProgressChart'), { ssr: false });
 const ActivityCalendar = dynamic(() => import('@/components/stats/ActivityCalendar'), { ssr: false });
@@ -175,13 +178,24 @@ export default function StatsPage() {
       }
     }
 
-    // Progress
+    // Progress — group by day with weighted average by question count
     if (progressResult.data && !progressResult.error) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const points: ProgressPoint[] = (progressResult.data as any[]).map((d) => ({
-        date: d.completed_at,
-        score: Number(d.score_percent ?? 0),
-        question_count: Number(d.question_count ?? 0),
+      const raw = progressResult.data as any[];
+      const dailyMap = new Map<string, { totalWeightedScore: number; totalQuestions: number; isoDate: string }>();
+      for (const d of raw) {
+        const day = new Date(d.completed_at).toISOString().slice(0, 10);
+        const qCount = Number(d.question_count ?? 0);
+        const score = Number(d.score_percent ?? 0);
+        const existing = dailyMap.get(day) ?? { totalWeightedScore: 0, totalQuestions: 0, isoDate: d.completed_at };
+        existing.totalWeightedScore += score * qCount;
+        existing.totalQuestions += qCount;
+        dailyMap.set(day, existing);
+      }
+      const points: ProgressPoint[] = Array.from(dailyMap.entries()).map(([, v]) => ({
+        date: v.isoDate,
+        score: v.totalQuestions > 0 ? Math.round((v.totalWeightedScore / v.totalQuestions) * 10) / 10 : 0,
+        question_count: v.totalQuestions,
       }));
       setProgress(points);
     }
@@ -275,7 +289,7 @@ export default function StatsPage() {
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
             aria-label="Filtrer par type de session"
-            className="min-h-[44px] rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-700 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="min-h-[44px] glass-input px-3 py-1.5 text-base sm:text-sm text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="all">Tous les types</option>
             <option value="short">Entraînement</option>
@@ -301,7 +315,7 @@ export default function StatsPage() {
         <button
           type="button"
           onClick={() => fetchData(filterType)}
-          className="mt-2 min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
+          className="mt-2 min-h-[44px] rounded-2xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
         >
           Réessayer
         </button>
@@ -354,7 +368,7 @@ export default function StatsPage() {
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
           aria-label="Filtrer par type de session"
-          className="min-h-[44px] rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-sm text-neutral-700 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          className="h-8 glass-input px-2 py-1 text-xs text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
           <option value="all">Tous les types</option>
           <option value="short">Entraînement</option>
@@ -367,6 +381,8 @@ export default function StatsPage() {
         <MetricCard
           label="Score hebdo"
           value={avgScore != null ? `${Math.round(avgScore)}%` : '—'}
+          numericValue={avgScore != null ? Math.round(avgScore) : undefined}
+          numericSuffix="%"
           icon={<ChartIcon color="#194ce6" />}
           borderColor="#194ce6"
           tooltip="Score moyen de vos sessions des 7 derniers jours."
@@ -375,6 +391,7 @@ export default function StatsPage() {
         <MetricCard
           label="Sessions"
           value={String(stats?.session_count_this_week ?? 0)}
+          numericValue={stats?.session_count_this_week ?? 0}
           icon={<SessionsIcon color="#0ea5e9" />}
           borderColor="#0ea5e9"
           tooltip="Nombre de sessions terminées dans les 7 derniers jours."
@@ -391,6 +408,7 @@ export default function StatsPage() {
         <MetricCard
           label="Rép. partielles"
           value={String(stats?.partial_count ?? 0)}
+          numericValue={stats?.partial_count ?? 0}
           icon={<FlaskIcon color="#6366f1" />}
           borderColor="#6366f1"
           tooltip="Nombre de réponses partiellement correctes (certains bons choix cochés, mais pas tous) des 7 derniers jours. Diffère des « Questions à revoir » qui montre toutes les questions avec un score moyen < 100 % sur l'ensemble de vos tentatives."
@@ -404,35 +422,20 @@ export default function StatsPage() {
           <h2 id="scores-heading" className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
             Progression
           </h2>
-          <div className="grid w-[160px] grid-cols-2 rounded-lg border border-neutral-200 p-0.5">
-            <button
-              type="button"
-              onClick={() => setProgressView('chart')}
-              className={`rounded-md py-1 text-center text-xs font-medium transition-colors ${
-                progressView === 'chart'
-                  ? 'bg-primary text-white'
-                  : 'text-neutral-500 hover:text-neutral-700'
-              }`}
-            >
-              Courbe
-            </button>
-            <button
-              type="button"
-              onClick={() => setProgressView('calendar')}
-              className={`rounded-md py-1 text-center text-xs font-medium transition-colors ${
-                progressView === 'calendar'
-                  ? 'bg-primary text-white'
-                  : 'text-neutral-500 hover:text-neutral-700'
-              }`}
-            >
-              Activité
-            </button>
-          </div>
+          <PillToggle
+            options={[
+              { key: 'chart', label: 'Courbe' },
+              { key: 'calendar', label: 'Activité' },
+            ]}
+            active={progressView}
+            onChange={(key) => setProgressView(key as 'chart' | 'calendar')}
+          />
         </div>
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
-          {progressView === 'chart' ? (
+        <TiltCard className="glass-card p-4 sm:p-6" tiltDeg={1.5} gentle>
+          <div className={progressView === 'chart' ? '' : 'hidden'}>
             <ProgressChart data={progress} height={PROGRESSION_HEIGHT} />
-          ) : (
+          </div>
+          <div className={progressView === 'calendar' ? '' : 'hidden'}>
             <ActivityCalendar
               sessions={progress.map((p) => ({
                 completed_at: p.date,
@@ -441,8 +444,8 @@ export default function StatsPage() {
               }))}
               height={PROGRESSION_HEIGHT}
             />
-          )}
-        </div>
+          </div>
+        </TiltCard>
       </section>
 
       {/* 3. Heatmap (attempted topics only) */}
@@ -451,9 +454,9 @@ export default function StatsPage() {
           <h2 id="heatmap-heading" className="mb-3 text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
             Carte des connaissances
           </h2>
-          <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
+          <TiltCard className="glass-card p-4 sm:p-6" tiltDeg={1.5} gentle>
             <Heatmap data={heatmapData} />
-          </div>
+          </TiltCard>
         </section>
       )}
 
@@ -466,13 +469,13 @@ export default function StatsPage() {
           Votre taux de réussite réel vs votre confiance déclarée
           <span className="ml-1 inline-flex align-middle text-neutral-400" title="Chaque point = une réponse individuelle (non moyennée par question)"><InfoIcon /></span>
         </p>
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
+        <TiltCard className="glass-card p-4 sm:p-6" tiltDeg={1.5} gentle>
           <CalibrationChart
             data={calibration ?? { levels: null, false_certainties: null }}
             answers={calibrationAnswers}
             confidenceFillRate={stats?.confidence_fill_rate ?? 0}
           />
-        </div>
+        </TiltCard>
       </section>
 
       {/* 5. Weak questions */}
@@ -509,7 +512,7 @@ export default function StatsPage() {
                     onBlur={() => setTimeout(() => setHistorySearchOpen(false), 150)}
                     placeholder="Filtrer par cours…"
                     aria-label="Filtrer par cours"
-                    className="min-h-[44px] w-[180px] rounded-lg border border-neutral-200 bg-white px-3 py-1.5 text-xs text-neutral-700 shadow-sm placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="h-8 w-[140px] glass-input px-2 py-1 text-xs text-neutral-700 placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   {historyTopicFilter && (
                     <button
@@ -522,7 +525,7 @@ export default function StatsPage() {
                     </button>
                   )}
                   {historySearchOpen && historyTopicFilter && matchingTopics.length > 0 && (
-                    <ul className="absolute right-0 top-full z-10 mt-1 max-h-40 w-[220px] overflow-y-auto rounded-lg border border-neutral-200 bg-white py-1 shadow-lg">
+                    <ul className="absolute right-0 top-full z-10 mt-1 max-h-40 w-[220px] overflow-y-auto glass-card py-1">
                       {matchingTopics.map((t) => (
                         <li key={t}>
                           <button
@@ -540,34 +543,32 @@ export default function StatsPage() {
                 </div>
               )}
             </div>
-            <div className="mt-3 flex flex-col gap-2">
-              {visibleSessions.map((s) => {
-                return (
-                  <Link
-                    key={s.id}
-                    href={s.session_type === 'exam' ? `/exam/results/${s.id}` : `/quiz/results/${s.id}`}
-                    className="flex items-center justify-between rounded-xl border border-neutral-200 border-l-4 border-l-primary bg-white p-3 shadow-md transition-colors hover:bg-neutral-50 sm:p-4"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-neutral-700">
-                        {s.topic_title}
-                      </p>
-                      <p className="mt-0.5 text-xs text-neutral-400">
-                        {s.question_count} questions · {s.session_type === 'exam' ? 'Examen' : 'Entraînement'} · {formatDate(s.completed_at)}
-                      </p>
-                    </div>
-                    <div className="shrink-0">
-                      <ScoreCircle score={s.score_percent} size={40} strokeWidth={2.5} fontSize={11} />
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+            <StaggerList className="mt-3 flex flex-col gap-2">
+              {visibleSessions.map((s) => (
+                <Link
+                  key={s.id}
+                  href={s.session_type === 'exam' ? `/exam/results/${s.id}` : `/quiz/results/${s.id}`}
+                  className="flex items-center justify-between glass-card border-l-4 border-l-primary p-3 transition-colors hover:bg-white/80 sm:p-4"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium text-neutral-700">
+                      {s.topic_title}
+                    </p>
+                    <p className="mt-0.5 text-xs text-neutral-400">
+                      {s.question_count} questions · {s.session_type === 'exam' ? 'Examen' : 'Entraînement'} · {formatDate(s.completed_at)}
+                    </p>
+                  </div>
+                  <div className="shrink-0">
+                    <ScoreCircle score={s.score_percent} size={40} strokeWidth={2.5} fontSize={11} />
+                  </div>
+                </Link>
+              ))}
+            </StaggerList>
             {hasMore && !showAllSessions && (
               <button
                 type="button"
                 onClick={() => setShowAllSessions(true)}
-                className="mt-2 min-h-[44px] w-full rounded-lg border border-neutral-200 bg-white py-2 text-sm font-medium text-primary shadow-sm transition-colors hover:bg-primary-50"
+                className="mt-2 min-h-[44px] w-full rounded-2xl glass-btn-secondary py-2 text-sm font-medium text-primary transition-colors hover:bg-primary-50"
               >
                 Voir tout ({filteredSessions.length})
               </button>
@@ -576,7 +577,7 @@ export default function StatsPage() {
               <button
                 type="button"
                 onClick={() => setShowAllSessions(false)}
-                className="mt-2 min-h-[44px] w-full rounded-lg py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-50"
+                className="mt-2 min-h-[44px] w-full rounded-2xl py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-50"
               >
                 Réduire
               </button>

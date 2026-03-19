@@ -165,7 +165,7 @@ export default function AdminDashboardPage() {
         <h1 className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]">Dashboard</h1>
         <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-3">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-28 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100" />
+            <div key={i} className="h-28 animate-pulse glass-card" />
           ))}
         </div>
       </div>
@@ -249,7 +249,7 @@ export default function AdminDashboardPage() {
         <p className="mb-3 text-xs text-neutral-500">
           Questions sans propositions ou avec un taux d&apos;erreur &gt; 80%
         </p>
-        <div className="rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6">
+        <div className="glass-card p-4 sm:p-6">
           <QualityAlerts alerts={alerts} />
         </div>
       </section>

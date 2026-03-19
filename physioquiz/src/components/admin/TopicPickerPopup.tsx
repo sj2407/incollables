@@ -215,7 +215,7 @@ export default function TopicPickerPopup({
           />
 
           {showDropdown && (filtered.length > 0 || isNewTopic) && (
-            <div className="absolute left-0 top-full z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-lg border border-neutral-200 bg-white shadow-lg">
+            <div className="absolute left-0 top-full z-10 mt-1 max-h-48 w-full overflow-y-auto glass-card">
               {filtered.map((t) => (
                 <button
                   key={t.id}
@@ -248,7 +248,7 @@ export default function TopicPickerPopup({
           <button
             type="button"
             onClick={onClose}
-            className="min-h-[44px] rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+            className="min-h-[44px] rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
           >
             Annuler
           </button>
@@ -256,7 +256,7 @@ export default function TopicPickerPopup({
             type="button"
             onClick={handleSave}
             disabled={!canSave}
-            className="min-h-[44px] rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50"
+            className="min-h-[44px] rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50"
           >
             {saving ? 'Enregistrement...' : 'Enregistrer'}
           </button>

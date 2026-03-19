@@ -5,6 +5,7 @@ import DOMPurify from 'isomorphic-dompurify';
 import Link from 'next/link';
 import { useState } from 'react';
 import ScoreCircle from '@/components/ui/ScoreCircle';
+import StaggerList from '@/components/ui/StaggerList';
 
 interface AnswerDetail {
   question_id: string;
@@ -52,7 +53,6 @@ export default function SessionSummary({
       ? Math.round(durationSeconds / questionCount)
       : null;
 
-  // Compute average score from individual answers (more accurate than stored value)
   const computedAvgScore =
     answers.length > 0
       ? Math.round((answers.reduce((sum, a) => sum + a.score_percent, 0) / answers.length) * 10) / 10
@@ -66,40 +66,28 @@ export default function SessionSummary({
   return (
     <div className="mx-auto max-w-2xl">
       {/* Score card */}
-      <div className="animate-fade-in rounded-xl border border-neutral-200 bg-white p-4 text-center shadow-md sm:p-6">
-        <h1 className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]">
+      <div className="animate-fade-in glass-card p-3 text-center sm:p-4">
+        <h1 className="text-base font-bold text-neutral-900 sm:text-lg">
           Résultats de la session
         </h1>
 
-        <div className="mt-4 flex justify-center">
-          <ScoreCircle score={computedAvgScore} size={96} strokeWidth={4} fontSize={28} />
+        <div className="mt-3 flex justify-center">
+          <ScoreCircle score={computedAvgScore} size={80} strokeWidth={3.5} fontSize={24} />
         </div>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="mt-1 text-xs text-neutral-500">
           {correctCount}/{questionCount} correctes
         </p>
 
         {/* Stats row */}
-        <div className="mt-6 flex items-center justify-center gap-6">
-          <StatBadge
-            label="Correctes"
-            count={correctCount}
-            colorClass="text-secondary-500 bg-secondary-50"
-          />
-          <StatBadge
-            label="Partielles"
-            count={partialCount}
-            colorClass="text-warning bg-amber-50"
-          />
-          <StatBadge
-            label="Incorrectes"
-            count={wrongCount}
-            colorClass="text-error bg-red-50"
-          />
+        <div className="mt-4 flex items-center justify-center gap-5">
+          <StatBadge label="Correctes" count={correctCount} colorClass="text-secondary-500 bg-secondary-50" />
+          <StatBadge label="Partielles" count={partialCount} colorClass="text-warning bg-amber-50" />
+          <StatBadge label="Incorrectes" count={wrongCount} colorClass="text-error bg-red-50" />
         </div>
 
         {/* Duration */}
         {durationSeconds !== null && (
-          <div className="mt-6 flex items-center justify-center gap-6 text-sm text-neutral-500">
+          <div className="mt-4 flex items-center justify-center gap-4 text-xs text-neutral-500">
             <span>Durée : {formatDuration(durationSeconds)}</span>
             {avgTimePerQuestion !== null && (
               <span>Moy. : {avgTimePerQuestion}s / question</span>
@@ -108,53 +96,51 @@ export default function SessionSummary({
         )}
       </div>
 
-      {/* Failed & partial questions */}
+      {/* Failed & partial questions — scrollable */}
       {failedAnswers.length > 0 && (
-        <div className="mt-6">
+        <div className="mt-5">
           <h2 className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
             Questions à revoir ({failedAnswers.length})
           </h2>
-          <div className="mt-3 flex flex-col gap-2">
-            {failedAnswers.map((answer) => (
-              <AnswerReviewCard
-                key={answer.question_id}
-                answer={answer}
-                isExpanded={expandedId === answer.question_id}
-                onToggle={() =>
-                  setExpandedId(
-                    expandedId === answer.question_id
-                      ? null
-                      : answer.question_id,
-                  )
-                }
-              />
-            ))}
+          <div className="relative mt-3 glass-card">
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 rounded-t-xl bg-gradient-to-b from-neutral-50/90 to-transparent" aria-hidden="true" />
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 rounded-b-xl bg-gradient-to-t from-neutral-50/90 to-transparent" aria-hidden="true" />
+            <div className="max-h-[260px] overflow-y-auto">
+              <StaggerList className="flex flex-col gap-1.5 p-2" staggerDelay={0.06} duration={0.35}>
+                {failedAnswers.map((answer) => (
+                  <AnswerReviewCard
+                    key={answer.question_id}
+                    answer={answer}
+                    isExpanded={expandedId === answer.question_id}
+                    onToggle={() =>
+                      setExpandedId(
+                        expandedId === answer.question_id ? null : answer.question_id,
+                      )
+                    }
+                  />
+                ))}
+              </StaggerList>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Action buttons */}
-      <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+      {/* Action buttons — single row */}
+      <div className="mt-5 flex items-center justify-end gap-2">
+        <Link
+          href="/stats"
+          className="min-h-[44px] rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-semibold text-primary transition-colors hover:bg-primary-50"
+        >
+          Progression
+        </Link>
         {failedAnswers.length > 0 && (
           <Link
             href={`/quiz/setup/${topicId}?retry=${encodeURIComponent(failedQuestionIds.join(','))}`}
-            className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary px-5 py-3 text-center text-sm font-semibold text-white transition-colors hover:bg-primary-700 active:scale-[0.97]"
+            className="min-h-[44px] rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
           >
             Recommencer les ratées
           </Link>
         )}
-        <Link
-          href="/stats"
-          className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-primary-200 bg-white px-5 py-3 text-center text-sm font-semibold text-primary transition-colors hover:bg-primary-50 active:scale-[0.97]"
-        >
-          Voir ma progression
-        </Link>
-        <Link
-          href="/practice"
-          className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-neutral-200 bg-white px-5 py-3 text-center text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-50 active:scale-[0.97]"
-        >
-          Retour aux cours
-        </Link>
       </div>
     </div>
   );
@@ -170,13 +156,13 @@ function StatBadge({
   colorClass: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-1">
+    <div className="flex flex-col items-center gap-0.5">
       <span
-        className={`flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold ${colorClass}`}
+        className={`flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold ${colorClass}`}
       >
         {count}
       </span>
-      <span className="text-xs text-neutral-500">{label}</span>
+      <span className="text-[10px] text-neutral-500">{label}</span>
     </div>
   );
 }
@@ -197,13 +183,13 @@ function AnswerReviewCard({
   );
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white shadow-md">
+    <div className="glass-card-inner">
       <button
         type="button"
         onClick={onToggle}
         aria-expanded={isExpanded}
         aria-label={`Voir la correction pour ${answer.question_number ? `Q${answer.question_number}` : 'cette question'}`}
-        className="flex min-h-[44px] w-full items-center gap-3 p-3 text-left sm:p-4"
+        className="flex min-h-[44px] w-full items-center gap-2.5 p-2.5 text-left"
       >
         {/* Status icon */}
         <span
@@ -220,29 +206,25 @@ function AnswerReviewCard({
           {answer.is_partially_correct ? 'Partielle' : 'Incorrecte'}
         </span>
 
-        {/* Question text (truncated) */}
         <span className="flex-1 truncate text-sm text-neutral-700">
           {answer.question_number ? `Q${answer.question_number}. ` : ''}
           {answer.question_text}
         </span>
 
-        {/* Score */}
         <span className="shrink-0 text-xs font-medium text-neutral-400">
           {answer.score_percent}%
         </span>
 
-        {/* Chevron */}
         <CaretRight
-          size={16}
+          size={14}
           className={`shrink-0 text-neutral-400 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
           aria-hidden="true"
         />
       </button>
 
       {isExpanded && (
-        <div className="border-t border-neutral-200 p-3 sm:p-4">
-          {/* Choices with coloring */}
-          <div className="flex flex-col gap-1.5">
+        <div className="border-t border-white/40 p-2.5">
+          <div className="flex flex-col gap-1">
             {sortedChoices.map((choice) => {
               const wasSelected = selectedSet.has(choice.id);
               const isCorrectChoice = correctSet.has(choice.id);
@@ -283,9 +265,8 @@ function AnswerReviewCard({
             })}
           </div>
 
-          {/* Explanation */}
           {answer.explanation_html && (
-            <div className="mt-3 border-t border-neutral-200 pt-3">
+            <div className="mt-2 border-t border-white/40 pt-2">
               <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-400">
                 Explication
               </p>

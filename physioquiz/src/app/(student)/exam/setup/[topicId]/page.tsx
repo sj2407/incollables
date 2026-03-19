@@ -134,7 +134,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
         <button
           type="button"
           onClick={fetchData}
-          className="mt-2 min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
+          className="mt-2 min-h-[44px] rounded-2xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
         >
           Réessayer
         </button>
@@ -155,7 +155,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
       <div className="mt-6 space-y-6">
         {/* Subtopics toggle */}
         {hasSubtopics && (
-          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 glass-card p-4">
             <input
               type="checkbox"
               checked={includeSubtopics}
@@ -176,7 +176,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
         )}
 
         {/* Exam info summary */}
-        <div className="rounded-xl border border-neutral-200 bg-white p-4">
+        <div className="glass-card p-4">
           <div className="flex items-center justify-between py-2">
             <span className="text-sm text-neutral-500">Questions</span>
             <span className="text-sm font-bold text-neutral-900">
@@ -197,7 +197,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
           type="button"
           disabled={!canStart}
           onClick={startExam}
-          className="min-h-[44px] w-full rounded-xl bg-primary px-5 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
+          className="min-h-[44px] w-full rounded-2xl bg-primary glass-btn px-5 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
         >
           {starting ? 'Préparation...' : 'Démarrer l\u2019examen'}
         </button>

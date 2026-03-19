@@ -58,7 +58,7 @@ function LogEntryRow({ entry }: { entry: EditLogEntry }) {
   const bulkPayload = useMemo(() => isBulkMove ? parseBulkMovePayload(entry.old_value) : null, [isBulkMove, entry.old_value]);
 
   return (
-    <div className="rounded-lg border border-neutral-100 bg-neutral-50 p-3">
+    <div className="glass-card-inner p-3">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <span className="rounded bg-primary-50 px-1.5 py-0.5 text-xs font-medium text-primary-700">

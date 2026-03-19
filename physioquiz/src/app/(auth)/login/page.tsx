@@ -34,8 +34,8 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8">
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-md sm:p-8">
+    <div className="flex min-h-screen items-center justify-center bg-page-gradient px-4 py-8">
+      <div className="w-full max-w-md glass-card p-6 sm:p-8">
         <h1 className="mb-2 text-center text-2xl font-bold text-neutral-900">Les Incollables</h1>
         <p className="mb-8 text-center text-sm text-neutral-500">
           Connectez-vous pour continuer
@@ -53,7 +53,7 @@ export default function LoginPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full glass-input px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="votre@email.com"
             />
           </div>
@@ -69,7 +69,7 @@ export default function LoginPage() {
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-lg border border-neutral-200 px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full glass-input px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Votre mot de passe"
             />
           </div>
@@ -83,7 +83,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="min-h-[44px] w-full rounded-lg bg-primary py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
+            className="min-h-[44px] w-full rounded-2xl bg-primary glass-btn py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:bg-neutral-200 disabled:text-neutral-400"
           >
             {loading ? 'Connexion...' : 'Se connecter'}
           </button>
