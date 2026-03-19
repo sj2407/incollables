@@ -11,14 +11,20 @@ interface CorrectionViewProps {
 export default memo(function CorrectionView({
   correction,
 }: CorrectionViewProps) {
-  const { explanation_html } = correction;
+  const { explanation_html, is_correct, is_partially_correct } = correction;
 
   // No explanation → don't render anything (choice color coding is enough)
   if (!explanation_html) return null;
 
+  const borderColor = is_correct
+    ? 'border-l-secondary-500'
+    : is_partially_correct
+      ? 'border-l-warning'
+      : 'border-l-error';
+
   return (
     <div
-      className="mt-4 animate-fade-in rounded-xl border border-neutral-200 bg-white p-4 shadow-md sm:p-6"
+      className={`mt-4 animate-correction-slide-in glass-card border-l-4 ${borderColor} p-4 sm:p-6`}
       aria-live="polite"
     >
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-400">

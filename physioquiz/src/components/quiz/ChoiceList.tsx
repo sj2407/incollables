@@ -1,5 +1,6 @@
 'use client';
 
+import { Prohibit } from '@phosphor-icons/react';
 import type { SafeChoice } from '@/types';
 import { memo } from 'react';
 
@@ -49,7 +50,7 @@ export default memo(function ChoiceList({
   const correctSet = new Set(correctChoiceIds ?? []);
 
   return (
-    <div className="flex flex-col gap-3" role="group" aria-label="Propositions">
+    <div className="flex flex-col gap-2" role="group" aria-label="Propositions">
       {choices.map((choice) => {
         const isSelected = selectedIds.has(choice.id);
         const isCorrect = correctSet.has(choice.id);
@@ -63,19 +64,19 @@ export default memo(function ChoiceList({
 
         if (isValidated) {
           if (isSelected && isCorrect) {
-            borderColor = 'border-secondary-500';
+            borderColor = 'border-transparent';
             bgColor = 'bg-secondary-50';
             animClass = 'animate-correct-reveal';
             icon = <CheckIcon className="text-secondary-500" />;
             badgeBg = 'bg-secondary-500 text-white';
           } else if (isSelected && !isCorrect) {
-            borderColor = 'border-error';
+            borderColor = 'border-transparent';
             bgColor = 'bg-red-50';
             animClass = 'animate-wrong-shake';
             icon = <XIcon className="text-error" />;
             badgeBg = 'bg-error text-white';
           } else if (!isSelected && isCorrect) {
-            borderColor = 'border-secondary-500/50';
+            borderColor = 'border-transparent';
             bgColor = 'bg-secondary-50/50';
             animClass = 'animate-correct-reveal';
             icon = <CheckIcon className="text-secondary-500/60" />;
@@ -92,12 +93,14 @@ export default memo(function ChoiceList({
               onClick={() => onToggle(choice.id)}
               disabled={disabled}
               aria-pressed={isSelected}
-              className={`flex min-h-[44px] flex-1 items-center gap-4 rounded-xl border-2 p-4 text-left transition-all ${borderColor} ${bgColor} ${animClass} ${
-                !disabled
-                  ? isSelected && !isValidated
-                    ? 'border-primary bg-primary/5'
-                    : 'hover:border-primary/50 hover:bg-primary/5'
-                  : ''
+              className={`flex min-h-[44px] flex-1 items-center gap-3 rounded-xl border-2 p-2.5 text-left transition-all ${animClass} ${
+                isValidated
+                  ? (isSelected || isCorrect)
+                    ? `${borderColor} ${bgColor}`
+                    : 'border-transparent bg-neutral-50/80'
+                  : isSelected
+                    ? 'border-transparent bg-primary/5'
+                    : 'border-transparent bg-neutral-50/80 hover:bg-neutral-100'
               } ${disabled ? 'cursor-default' : 'cursor-pointer'} ${isCrossedOut ? 'opacity-40' : ''}`}
             >
               {/* Letter badge */}
@@ -124,9 +127,9 @@ export default memo(function ChoiceList({
                 type="button"
                 onClick={() => onToggleCrossOut(choice.id)}
                 aria-label={isCrossedOut ? `Restaurer la proposition ${choice.label}` : `Éliminer la proposition ${choice.label}`}
-                className="ml-1 flex w-8 shrink-0 items-center justify-center rounded-lg text-neutral-300 transition-colors hover:text-neutral-500"
+                className="ml-0.5 flex w-7 shrink-0 items-center justify-center rounded-lg text-neutral-300 transition-colors hover:text-neutral-500"
               >
-                <XIcon className={`h-4 w-4 ${isCrossedOut ? 'text-neutral-500' : ''}`} />
+                <Prohibit size={18} weight={isCrossedOut ? 'fill' : 'regular'} className={isCrossedOut ? 'text-neutral-600' : 'text-neutral-400'} />
               </button>
             )}
           </div>
@@ -134,7 +137,7 @@ export default memo(function ChoiceList({
       })}
       {!isValidated && onToggleCrossOut && (
         <p className="mt-1 text-[11px] text-neutral-400">
-          Utilisez <span className="font-medium">✕</span> pour éliminer visuellement une proposition. Cliquez à nouveau pour annuler.
+          Utilisez <Prohibit size={11} className="inline" /> pour éliminer une proposition. Cliquez à nouveau pour la restaurer.
         </p>
       )}
     </div>

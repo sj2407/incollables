@@ -31,14 +31,14 @@ export default function ConfirmModal({
         <button
           type="button"
           onClick={onCancel}
-          className="min-h-[44px] rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+          className="min-h-[44px] rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
         >
           {cancelLabel}
         </button>
         <button
           type="button"
           onClick={onConfirm}
-          className={`min-h-[44px] rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-lg ${
+          className={`min-h-[44px] rounded-2xl glass-btn px-4 py-2 text-sm font-semibold text-white shadow-lg ${
             danger
               ? 'bg-error shadow-error/25 hover:bg-red-700'
               : 'bg-primary shadow-primary/25 hover:bg-primary/90'

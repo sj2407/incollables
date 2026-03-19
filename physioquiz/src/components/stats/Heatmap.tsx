@@ -1,6 +1,7 @@
 'use client';
 
 import { memo, useState, useCallback } from 'react';
+import { motion } from 'motion/react';
 import Link from 'next/link';
 import { ResponsiveContainer, Treemap } from 'recharts';
 import { getMasteryColor, getMasteryLabel, MASTERY_SCALE } from '@/lib/mastery';
@@ -72,8 +73,16 @@ function TreemapCell(props: {
   const barTrackColor = needsDarkText ? 'rgba(31,41,55,0.15)' : 'rgba(255,255,255,0.3)';
   const barFillColor = needsDarkText ? 'rgba(31,41,55,0.5)' : 'rgba(255,255,255,0.8)';
 
+  const gradId = `tm-grad-${props.index}`;
+
   return (
     <g>
+      <defs>
+        <linearGradient id={gradId} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#fff" stopOpacity={0.25} />
+          <stop offset="100%" stopColor="#000" stopOpacity={0.1} />
+        </linearGradient>
+      </defs>
       <rect
         x={cx}
         y={cy}
@@ -86,6 +95,16 @@ function TreemapCell(props: {
       >
         <title>{tooltipText}</title>
       </rect>
+      <rect
+        x={cx}
+        y={cy}
+        width={cw}
+        height={ch}
+        rx={12}
+        fill={`url(#${gradId})`}
+        stroke="none"
+        style={{ cursor: 'pointer', pointerEvents: 'none' }}
+      />
       {showText && (
         <foreignObject x={cx + 8} y={cy + 6} width={cw - 16} height={ch - 12} style={{ pointerEvents: 'none' }}>
           <div
@@ -178,7 +197,7 @@ function TopicDetailPanel({
   const label = getMasteryLabel(node.mastery);
 
   return (
-    <div className="mt-3 rounded-xl border border-neutral-200 bg-white p-4 shadow-md">
+    <div className="mt-3 glass-card p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="h-3 w-3 shrink-0 rounded" style={{ backgroundColor: color }} />
@@ -204,72 +223,114 @@ function TopicDetailPanel({
       {loading ? (
         <div className="mt-3 flex gap-2">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 flex-1 animate-pulse rounded-lg bg-neutral-100" />
+            <div key={i} className="h-14 flex-1 animate-pulse rounded-lg bg-white/30" />
           ))}
         </div>
       ) : stats ? (
-        <>
-          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            <div className="rounded-lg bg-neutral-50 p-2.5">
-              <p className="text-[10px] font-medium text-neutral-500">Sessions</p>
-              <p className="text-sm font-bold text-neutral-800">{stats.session_count}</p>
-            </div>
-            <div className="rounded-lg bg-neutral-50 p-2.5">
-              <p className="text-[10px] font-medium text-neutral-500">Questions</p>
-              <p className="text-sm font-bold text-neutral-800">{stats.total_questions_answered}</p>
-            </div>
-            <div className="rounded-lg bg-neutral-50 p-2.5">
-              <p className="text-[10px] font-medium text-neutral-500">Temps total</p>
-              <p className="text-sm font-bold text-neutral-800">{formatTime(stats.total_time_seconds)}</p>
-            </div>
-            <div className="rounded-lg bg-neutral-50 p-2.5">
-              <p className="text-[10px] font-medium text-neutral-500">Score moyen</p>
-              <p className="text-sm font-bold text-neutral-800">{stats.avg_score}%</p>
-            </div>
-          </div>
-
-          <div className="mt-2 grid grid-cols-3 gap-2">
-            <div className="rounded-lg bg-secondary-50 p-2.5">
-              <p className="text-[10px] font-medium text-secondary-600">Correctes</p>
-              <p className="text-sm font-bold text-secondary-700">{stats.correct_count}</p>
-            </div>
-            <div className="rounded-lg bg-warning/10 p-2.5">
-              <p className="text-[10px] font-medium text-warning">Partielles</p>
-              <p className="text-sm font-bold text-warning">{stats.partial_count}</p>
-            </div>
-            <div className="rounded-lg bg-error/10 p-2.5">
-              <p className="text-[10px] font-medium text-error">Incorrectes</p>
-              <p className="text-sm font-bold text-error">{stats.wrong_count}</p>
-            </div>
-          </div>
-
-          {stats.avg_confidence > 0 && (
-            <div className="mt-2 rounded-lg bg-primary-50 p-2.5">
-              <p className="text-[10px] font-medium text-primary">Confiance moyenne</p>
-              <p className="text-sm font-bold text-primary-700">
-                {stats.avg_confidence}%
-                <span className="ml-2 text-[10px] font-normal text-primary">
-                  ({stats.confidence_fill_rate}% des réponses)
-                </span>
-              </p>
-            </div>
-          )}
-
-          <p className="mt-2 text-[10px] text-neutral-400">
-            Couverture : {Math.round(node.coverage)}% ({node.size} questions au total)
-          </p>
-
-          <Link
-            href={`/quiz/setup/${node.topic_id}`}
-            className="mt-3 block w-full rounded-lg border border-primary/20 px-3 py-2 text-center text-sm font-medium text-primary transition-colors hover:bg-primary-50"
-          >
-            Réviser ce chapitre
-          </Link>
-        </>
+        <DetailStatsContent stats={stats} node={node} />
       ) : (
         <p className="mt-3 text-xs text-neutral-400">Aucune donnée disponible.</p>
       )}
     </div>
+  );
+}
+
+function DetailStatsContent({ stats, node }: { stats: TopicDetailStats; node: HeatmapNode }) {
+  const total = stats.total_questions_answered || 1;
+  const correctPct = Math.round((stats.correct_count / total) * 100);
+  const partialPct = Math.round((stats.partial_count / total) * 100);
+  const wrongPct = Math.round((stats.wrong_count / total) * 100);
+
+  const row1 = [
+    { label: 'Sessions', value: String(stats.session_count), bg: 'bg-white/40', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
+    { label: 'Questions', value: String(stats.total_questions_answered), bg: 'bg-white/40', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
+    { label: 'Temps total', value: formatTime(stats.total_time_seconds), bg: 'bg-white/40', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
+    { label: 'Score moyen', value: `${stats.avg_score}%`, bg: 'bg-white/40', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
+  ];
+
+  const row2 = [
+    { label: 'Correctes', value: `${correctPct}%`, bg: 'bg-secondary-50', text: 'text-secondary-700', labelColor: 'text-secondary-600' },
+    { label: 'Partielles', value: `${partialPct}%`, bg: 'bg-warning/10', text: 'text-warning', labelColor: 'text-warning' },
+    { label: 'Incorrectes', value: `${wrongPct}%`, bg: 'bg-error/10', text: 'text-error', labelColor: 'text-error' },
+  ];
+
+  const allItems = [...row1, ...row2];
+  // Confidence card index (after row1 + row2)
+  const hasConfidence = stats.avg_confidence > 0;
+  const coverageIndex = allItems.length + (hasConfidence ? 1 : 0);
+  const reviserIndex = coverageIndex + 1;
+
+  return (
+    <>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {row1.map((item, i) => (
+          <motion.div
+            key={item.label}
+            className={`rounded-lg ${item.bg} p-2.5`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: i * 0.04, ease: 'easeOut' }}
+          >
+            <p className={`text-[10px] font-medium ${item.labelColor}`}>{item.label}</p>
+            <p className={`text-sm font-bold ${item.text}`}>{item.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        {row2.map((item, i) => (
+          <motion.div
+            key={item.label}
+            className={`rounded-lg ${item.bg} p-2.5`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25, delay: (row1.length + i) * 0.04, ease: 'easeOut' }}
+          >
+            <p className={`text-[10px] font-medium ${item.labelColor}`}>{item.label}</p>
+            <p className={`text-sm font-bold ${item.text}`}>{item.value}</p>
+          </motion.div>
+        ))}
+      </div>
+
+      {hasConfidence && (
+        <motion.div
+          className="mt-2 rounded-lg bg-primary-50 p-2.5"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, delay: allItems.length * 0.06, ease: 'easeOut' }}
+        >
+          <p className="text-[10px] font-medium text-primary">Confiance moyenne</p>
+          <p className="text-sm font-bold text-primary-700">
+            {stats.avg_confidence}%
+            <span className="ml-2 text-[10px] font-normal text-primary">
+              ({stats.confidence_fill_rate}% des réponses)
+            </span>
+          </p>
+        </motion.div>
+      )}
+
+      <motion.p
+        className="mt-2 text-[10px] text-neutral-400"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3, delay: coverageIndex * 0.06 }}
+      >
+        Couverture : {Math.round(node.coverage)}% ({node.size} questions au total)
+      </motion.p>
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: reviserIndex * 0.06, ease: 'easeOut' }}
+      >
+        <Link
+          href={`/quiz/setup/${node.topic_id}`}
+          className="mt-3 block w-full rounded-2xl glass-btn-secondary px-3 py-2 text-center text-sm font-medium text-primary transition-colors hover:bg-primary-50"
+        >
+          Réviser ce chapitre
+        </Link>
+      </motion.div>
+    </>
   );
 }
 
@@ -407,7 +468,7 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
             key={node.topic_id}
             type="button"
             onClick={() => handleNodeClick(node)}
-            className={`flex items-center justify-between rounded-xl border border-neutral-200 bg-white p-3 shadow-md transition-colors hover:bg-neutral-50 ${
+            className={`flex items-center justify-between glass-card p-3 transition-colors hover:bg-neutral-50 ${
               selectedNode?.topic_id === node.topic_id ? 'ring-2 ring-primary' : ''
             }`}
           >

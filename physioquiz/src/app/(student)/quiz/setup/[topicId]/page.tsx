@@ -132,7 +132,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
         <button
           type="button"
           onClick={fetchData}
-          className="mt-2 min-h-[44px] rounded-lg px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
+          className="mt-2 min-h-[44px] rounded-2xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
         >
           Réessayer
         </button>
@@ -151,10 +151,10 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
       </p>
 
       {/* Setup card */}
-      <div className="mt-6 space-y-6">
+      <div className="mt-5 space-y-4">
         {/* Subtopics toggle */}
         {hasSubtopics && (
-          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 rounded-xl border border-neutral-200 bg-white p-4">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 glass-card p-3">
             <input
               type="checkbox"
               checked={includeSubtopics}
@@ -179,7 +179,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
 
         {/* Question count selection */}
         <div>
-          <p className="mb-3 text-sm font-semibold text-neutral-700">
+          <p className="mb-2 text-sm font-semibold text-neutral-700">
             Nombre de questions
           </p>
           <div className="grid grid-cols-3 gap-3">
@@ -212,11 +212,11 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
         {/* Exam mode link */}
         <Link
           href={`/exam/setup/${topic.id}`}
-          className="flex min-h-[44px] items-center justify-between rounded-xl border border-neutral-200 bg-white p-4 transition-colors hover:bg-neutral-50"
+          className="flex min-h-[44px] items-center justify-between glass-card p-3 transition-colors hover:bg-white/80"
         >
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50">
-              <Timer size={20} className="text-amber-600" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">
+              <Timer size={16} className="text-amber-600" />
             </div>
             <div>
               <p className="text-sm font-semibold text-neutral-900">Mode examen blanc</p>
@@ -231,7 +231,8 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
           type="button"
           disabled={selectedCount === null || availableCount === 0 || starting}
           onClick={startSession}
-          className="min-h-[44px] w-full rounded-xl bg-primary px-5 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
+          className={`min-h-[44px] w-full rounded-2xl bg-primary glass-btn px-5 py-3 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none${selectedCount !== null && availableCount > 0 && !starting ? ' animate-glow-pulse' : ''}`}
+          style={{ transition: 'transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}
         >
           {starting ? 'Préparation...' : 'Démarrer la session'}
         </button>
@@ -253,7 +254,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
       <button
         type="button"
         onClick={() => router.push('/practice')}
-        className="mt-4 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
+        className="mt-3 min-h-[44px] text-sm font-medium text-primary hover:text-primary-700"
       >
         <ArrowLeft size={14} className="mr-1 inline" />Retour aux cours
       </button>
@@ -279,9 +280,9 @@ function CountOption({
       <button
         type="button"
         disabled
-        className="flex min-h-[44px] flex-col items-center justify-center rounded-xl border border-neutral-200 bg-neutral-100 p-4 text-neutral-400"
+        className="flex min-h-[44px] flex-col items-center justify-center glass-card-inner opacity-50 p-3 text-neutral-400"
       >
-        <span className="text-xl font-bold">{label}</span>
+        <span className="text-lg font-bold">{label}</span>
         <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">{sublabel}</span>
       </button>
     );
@@ -292,13 +293,13 @@ function CountOption({
       type="button"
       onClick={onSelect}
       aria-pressed={selected}
-      className={`flex min-h-[44px] flex-col items-center justify-center rounded-xl border-2 p-4 transition-all ${
+      className={`flex min-h-[44px] flex-col items-center justify-center rounded-xl border-2 p-3 transition-all ${
         selected
           ? 'border-primary bg-primary/5 text-primary'
           : 'border-neutral-200 bg-white text-neutral-600 hover:border-primary/50'
       }`}
     >
-      <span className="text-xl font-bold">{label}</span>
+      <span className="text-lg font-bold">{label}</span>
       <span className="text-[10px] font-bold uppercase tracking-widest opacity-70">{sublabel}</span>
     </button>
   );

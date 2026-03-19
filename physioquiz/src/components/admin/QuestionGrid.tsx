@@ -8,6 +8,7 @@ import {
   type CellValueChangedEvent,
   type ICellRendererParams,
   type ICellEditorParams,
+  type IFilterParams,
   ModuleRegistry,
   AllCommunityModule,
 } from 'ag-grid-community';
@@ -65,6 +66,33 @@ function ActiveToggleRenderer(props: ICellRendererParams<AdminQuestionRow>) {
     </button>
   );
 }
+
+const SelectFilter = forwardRef((props: IFilterParams & { options: { value: string; label: string }[] }, ref) => {
+  const [value, setValue] = useState('');
+  useImperativeHandle(ref, () => ({
+    isFilterActive: () => value !== '',
+    doesFilterPass: (params: { data: Record<string, unknown> }) => {
+      if (!value) return true;
+      const field = (props as unknown as { colDef: { field: string } }).colDef.field;
+      return String(params.data[field]) === value;
+    },
+    getModel: () => (value ? { value } : null),
+    setModel: (model: { value: string } | null) => setValue(model?.value ?? ''),
+  }));
+  const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setValue(e.target.value);
+    (props as unknown as { filterChangedCallback: () => void }).filterChangedCallback();
+  };
+  return (
+    <div className="p-2">
+      <select value={value} onChange={onChange} className="h-8 w-full rounded-lg border border-neutral-300 px-2 text-xs">
+        <option value="">Tous</option>
+        {props.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+      </select>
+    </div>
+  );
+});
+SelectFilter.displayName = 'SelectFilter';
 
 function DifficultyRenderer(props: ICellRendererParams<AdminQuestionRow>) {
   const d = props.value as string;
@@ -326,7 +354,8 @@ export default function QuestionGrid({
       field: 'difficulty',
       cellRenderer: DifficultyRenderer,
       width: 100,
-      filter: 'agSetColumnFilter',
+      filter: SelectFilter,
+      filterParams: { options: [{ value: 'easy', label: 'Facile' }, { value: 'medium', label: 'Moyen' }, { value: 'hard', label: 'Difficile' }] },
       editable: true,
       cellEditor: DifficultyEditor,
     },
@@ -335,7 +364,8 @@ export default function QuestionGrid({
       field: 'is_active',
       cellRenderer: ActiveToggleRenderer,
       width: 80,
-      filter: 'agSetColumnFilter',
+      filter: SelectFilter,
+      filterParams: { options: [{ value: 'true', label: 'Actives' }, { value: 'false', label: 'Inactives' }] },
     },
     {
       headerName: 'Tentatives',
@@ -501,7 +531,7 @@ export default function QuestionGrid({
 
   if (questions.length === 0) {
     return (
-      <div className="flex items-center justify-center rounded-xl border border-neutral-200 bg-white py-16">
+      <div className="flex items-center justify-center glass-card py-16">
         <p className="text-sm text-neutral-400">Aucune question trouvée.</p>
       </div>
     );

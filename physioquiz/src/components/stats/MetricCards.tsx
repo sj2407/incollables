@@ -1,6 +1,8 @@
 'use client';
 
 import { TrendUp, TrendDown, Minus } from '@phosphor-icons/react';
+import CountUp from '@/components/ui/CountUp';
+import TiltCard from '@/components/ui/TiltCard';
 
 interface MetricCardProps {
   label: string;
@@ -8,13 +10,15 @@ interface MetricCardProps {
   icon: React.ReactNode;
   borderColor: string;
   tooltip: string;
+  numericValue?: number;
+  numericSuffix?: string;
   trend?: {
     value: number;
     label: string;
   };
 }
 
-export function MetricCard({ label, value, icon, borderColor, tooltip, trend }: MetricCardProps) {
+export function MetricCard({ label, value, icon, borderColor, tooltip, numericValue, numericSuffix, trend }: MetricCardProps) {
   const trendColor =
     trend && trend.value > 0
       ? 'text-secondary-500'
@@ -31,8 +35,9 @@ export function MetricCard({ label, value, icon, borderColor, tooltip, trend }: 
         : <Minus size={14} />;
 
   return (
-    <div
-      className="group relative overflow-hidden rounded-xl border border-neutral-200 bg-white p-3 shadow-md"
+    <TiltCard
+      tiltDeg={6}
+      className="group relative overflow-hidden glass-card p-3"
       style={{ borderLeft: `4px solid ${borderColor}` }}
       title={tooltip}
     >
@@ -44,13 +49,15 @@ export function MetricCard({ label, value, icon, borderColor, tooltip, trend }: 
           {icon}
         </span>
       </div>
-      <p className="mt-1.5 text-xl font-bold text-neutral-900">{value}</p>
+      <p className="mt-1.5 text-xl font-bold text-neutral-900">
+        {numericValue !== undefined ? <CountUp end={numericValue} suffix={numericSuffix} /> : value}
+      </p>
       {trend && (
         <p className={`mt-1.5 flex items-center gap-1 text-xs font-medium ${trendColor}`}>
           {trendIcon} {trendPrefix}{trend.value}% {trend.label}
         </p>
       )}
-    </div>
+    </TiltCard>
   );
 }
 

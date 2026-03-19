@@ -1,6 +1,6 @@
 'use client';
 
-import { PencilSimple } from '@phosphor-icons/react';
+import { PencilSimple, DotsThreeVertical } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
 import { saveQuestionField, publishAllDrafts, getDraftCount } from '@/lib/adminAutoSave';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -51,8 +51,6 @@ export default function AdminDatabasePage() {
   const topicFilter = subchapterFilter || chapterFilter;
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState<string>('');
-  const [difficultyFilter, setDifficultyFilter] = useState<string>('');
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Derived: only topics that have at least one question (for filter dropdowns + Modifier)
@@ -101,6 +99,7 @@ export default function AdminDatabasePage() {
   const [showCorbeille, setShowCorbeille] = useState(false);
   const [showTopicManager, setShowTopicManager] = useState(false);
   const [corbeilleCount, setCorbeilleCount] = useState(0);
+  const [showActionsMenu, setShowActionsMenu] = useState(false);
 
   // Topic management modal
   const [topicModal, setTopicModal] = useState<{
@@ -127,8 +126,8 @@ export default function AdminDatabasePage() {
     const { data, error: qError } = await supabase.rpc('get_admin_question_database_v2', {
       p_topic_id: topicFilter || null,
       p_search: debouncedSearch || null,
-      p_active_filter: activeFilter || null,
-      p_difficulty_filter: difficultyFilter || null,
+      p_active_filter: null,
+      p_difficulty_filter: null,
     });
 
     if (qError) {
@@ -159,7 +158,7 @@ export default function AdminDatabasePage() {
     setLoading(false);
     initialLoadDone.current = true;
     setError(null);
-  }, [topicFilter, debouncedSearch, activeFilter, difficultyFilter]);
+  }, [topicFilter, debouncedSearch]);
 
   const fetchTopics = useCallback(async () => {
     const supabase = createClient();
@@ -375,17 +374,12 @@ export default function AdminDatabasePage() {
       {/* Main content */}
       <div className={`min-w-0 flex-1 ${panelId ? 'hidden md:block' : ''}`}>
         <div className="mx-auto max-w-full px-1 md:px-4">
-          {/* Row 1 — Title */}
-          <h1
-            className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]"
-            title="Pour ajouter un chapitre ou sous-chapitre : cliquez sur « + Chapitre / Sous-chapitre ».&#10;Pour changer la classification de questions : sélectionnez-les avec les cercles, cliquez « Modifier... », choisissez le chapitre puis le sous-chapitre, et cliquez « Valider »."
-          >Base de données</h1>
-
-          {/* Row 2 — Stats pills */}
-          <div className="mt-2 flex flex-wrap gap-2">
-            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600">{questions.length} questions</span>
-            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600">{topics.filter((t) => t.level === 1).length} chapitres</span>
-            <span className="rounded-full bg-neutral-100 px-3 py-1 text-xs font-medium text-neutral-600">{topics.filter((t) => t.level === 2).length} sous-chapitres</span>
+          {/* Row 1 — Title + sync status + actions menu */}
+          <div className="flex items-center gap-3">
+            <h1
+              className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]"
+              title="Pour ajouter un chapitre ou sous-chapitre : cliquez sur « + Chapitre / Sous-chapitre ».&#10;Pour changer la classification de questions : sélectionnez-les avec les cercles, cliquez « Modifier... », choisissez le chapitre puis le sous-chapitre, et cliquez « Valider »."
+            >Base de données</h1>
             <button
               type="button"
               onClick={async () => {
@@ -406,18 +400,51 @@ export default function AdminDatabasePage() {
             {publishSuccess && (
               <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-700">{publishSuccess}</span>
             )}
+            <div className="relative ml-auto flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setShowActionsMenu(!showActionsMenu)}
+                className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600"
+                aria-label="Plus d'actions"
+              >
+                <DotsThreeVertical size={18} weight="bold" />
+              </button>
+              {showActionsMenu && (
+                <div className="absolute right-0 top-full z-20 mt-1 w-52 glass-card py-1">
+                  <button type="button" onClick={() => { setPanelId('new'); setShowActionsMenu(false); }} className="w-full px-3 py-2 text-left text-xs font-medium text-primary hover:bg-white/50">
+                    + Question
+                  </button>
+                  <button type="button" onClick={() => { setTopicModal({ editId: null }); setShowActionsMenu(false); }} className="w-full px-3 py-2 text-left text-xs text-neutral-700 hover:bg-white/50">
+                    + Chapitre / Sous-chapitre
+                  </button>
+                  <button type="button" onClick={() => { setShowEditLog(true); setShowActionsMenu(false); }} className="w-full px-3 py-2 text-left text-xs text-neutral-700 hover:bg-white/50">
+                    Historique
+                  </button>
+                  <button type="button" onClick={() => { setShowTopicManager(true); setShowActionsMenu(false); }} className="w-full px-3 py-2 text-left text-xs text-neutral-700 hover:bg-white/50">
+                    Gérer chapitres
+                  </button>
+                  <button type="button" onClick={() => { setShowCorbeille(true); setShowActionsMenu(false); }} className="w-full px-3 py-2 text-left text-xs text-neutral-700 hover:bg-white/50">
+                    Corbeille{corbeilleCount > 0 ? ` (${corbeilleCount})` : ''}
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Row 3 — Filters */}
-          {/* Filter row 1 — Chapitre + Sous-chapitre */}
-          <div className="mt-3 flex items-center gap-2">
+          {/* Row 2 — Stats */}
+          <p className="mt-1 text-xs text-neutral-500">
+            {questions.length} questions · {topics.filter((t) => t.level === 1).length} chapitres · {topics.filter((t) => t.level === 2).length} sous-chapitres
+          </p>
+
+          {/* Row 3 — Filters (single row) */}
+          <div className="mt-3 flex items-center gap-1.5">
             <select
               value={chapterFilter}
               onChange={(e) => { setChapterFilter(e.target.value); setSubchapterFilter(''); }}
               aria-label="Filtrer par chapitre"
-              className="h-9 min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-7 w-28 shrink-0 truncate rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="">Tous les chapitres</option>
+              <option value="">Chapitre</option>
               {activeChapters.map((t) => (
                 <option key={t.id} value={t.id}>{t.title}</option>
               ))}
@@ -427,41 +454,14 @@ export default function AdminDatabasePage() {
               value={subchapterFilter}
               onChange={(e) => setSubchapterFilter(e.target.value)}
               aria-label="Filtrer par sous-chapitre"
-              className="h-9 min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-7 w-32 shrink-0 truncate rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             >
-              <option value="">Tous les sous-chapitres</option>
+              <option value="">Sous-chapitre</option>
               {activeSubchapters
                 .filter((t) => !chapterFilter || t.parent_id === chapterFilter)
                 .map((t) => (
                   <option key={t.id} value={t.id}>{t.title}</option>
                 ))}
-            </select>
-          </div>
-
-          {/* Filter row 2 — Statut + Difficulté + Recherche */}
-          <div className="mt-2 flex items-center gap-2">
-            <select
-              value={activeFilter}
-              onChange={(e) => setActiveFilter(e.target.value)}
-              aria-label="Filtrer par statut"
-              className="h-9 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">Statut : toutes</option>
-              <option value="active">Actives</option>
-              <option value="inactive">Inactives</option>
-              <option value="draft">Brouillons</option>
-            </select>
-
-            <select
-              value={difficultyFilter}
-              onChange={(e) => setDifficultyFilter(e.target.value)}
-              aria-label="Filtrer par difficulté"
-              className="h-9 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
-            >
-              <option value="">Difficulté : toutes</option>
-              <option value="easy">Facile</option>
-              <option value="medium">Moyen</option>
-              <option value="hard">Difficile</option>
             </select>
 
             <input
@@ -470,10 +470,9 @@ export default function AdminDatabasePage() {
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Rechercher..."
               aria-label="Rechercher une question"
-              className="h-9 min-w-0 flex-1 rounded-lg border border-neutral-300 px-2 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-7 min-w-0 flex-1 rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
             />
 
-            {/* Topic gear icon */}
             {chapterFilter && (
               <button
                 type="button"
@@ -491,7 +490,7 @@ export default function AdminDatabasePage() {
                     });
                   }
                 }}
-                className="h-9 w-9 rounded-lg border border-neutral-200 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 flex items-center justify-center"
+                className="h-7 w-7 rounded-lg border border-neutral-200 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600 flex items-center justify-center"
                 aria-label="Modifier ce chapitre"
                 title="Modifier ce chapitre"
               >
@@ -500,44 +499,6 @@ export default function AdminDatabasePage() {
             )}
           </div>
 
-          {/* Row 4 — Utility actions */}
-          <div className="mt-2 flex flex-wrap items-center justify-center gap-1.5">
-            <button
-              type="button"
-              onClick={() => setShowCorbeille(true)}
-              className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
-            >
-              Corbeille{corbeilleCount > 0 ? <span className="ml-1 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-100 px-1 text-[10px] font-semibold text-red-600">{corbeilleCount}</span> : null}
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowEditLog(true)}
-              className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
-            >
-              Historique
-            </button>
-            <button
-              type="button"
-              onClick={() => setTopicModal({ editId: null })}
-              className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
-            >
-              + Chapitre / Sous-chapitre
-            </button>
-            <button
-              type="button"
-              onClick={() => setShowTopicManager(true)}
-              className="h-9 rounded-lg px-2.5 text-xs font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
-            >
-              Gérer chapitres
-            </button>
-            <button
-              type="button"
-              onClick={() => setPanelId('new')}
-              className="h-9 rounded-lg px-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary-50 hover:text-primary"
-            >
-              + Question
-            </button>
-          </div>
 
           {error && <p role="alert" className="mt-3 text-sm text-error">{error}</p>}
 

@@ -50,7 +50,7 @@ export default function PropositionEditor({ propositions, onChange }: Propositio
       </p>
       <div className="mt-2 space-y-2">
         {propositions.map((prop, index) => (
-          <div key={index} className="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white p-2">
+          <div key={index} className="flex items-center gap-2 glass-card-inner p-2">
             {/* Label badge */}
             <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${
               prop.is_correct ? 'bg-secondary-500 text-white' : 'bg-neutral-100 text-neutral-500'

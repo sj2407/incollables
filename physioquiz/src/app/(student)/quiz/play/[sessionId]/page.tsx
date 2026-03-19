@@ -4,11 +4,14 @@ import ChoiceList from '@/components/quiz/ChoiceList';
 import CorrectionView from '@/components/quiz/CorrectionView';
 import QuestionCard from '@/components/quiz/QuestionCard';
 import ConfidenceSelector from '@/components/ui/ConfidenceSelector';
+import ResultsBottomSheet from '@/components/quiz/ResultsBottomSheet';
+import { motion } from 'motion/react';
 import { useQuiz } from '@/hooks/useQuiz';
+import { useSwipe } from '@/hooks/useSwipe';
 import { useTimer } from '@/hooks/useTimer';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 interface QuizPlayPageProps {
   params: { sessionId: string };
@@ -39,6 +42,12 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
     }
   }, [shouldRedirectToResults, router, sessionId]);
 
+  const [showResults, setShowResults] = useState(false);
+
+  const swipe = useSwipe({
+    onSwipeLeft: quiz.isValidated && !quiz.isSessionComplete ? quiz.nextQuestion : undefined,
+  });
+
   // Loading state (checked after hooks but redirect waits for loading to finish)
   if (quiz.isLoading) {
     return (
@@ -60,7 +69,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
   if (quiz.isAbandoned) {
     return (
       <div className="mx-auto max-w-2xl text-center">
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-md sm:p-8">
+        <div className="glass-card p-6 sm:p-8">
           <p className="text-lg font-bold text-neutral-900">Session expirée</p>
           <p className="mt-2 text-sm text-neutral-500">
             Cette session est en pause depuis plus de 7 jours.
@@ -68,7 +77,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
           <button
             type="button"
             onClick={() => router.push('/practice')}
-            className="mt-4 min-h-[44px] rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+            className="mt-4 min-h-[44px] rounded-2xl bg-primary glass-btn px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
           >
             Commencer une nouvelle session
           </button>
@@ -95,46 +104,67 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
   // Session just completed on last answer
   if (quiz.isSessionComplete && quiz.isValidated) {
     return (
-      <div className="mx-auto max-w-2xl text-center">
-        <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-md sm:p-8">
-          <h2 className="text-lg font-bold text-neutral-900">
+      <div className="mx-auto max-w-2xl">
+        <Link
+          href="/practice"
+          className="mb-2 inline-flex min-h-[44px] items-center gap-1 rounded-2xl px-2 py-1 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+        >
+          ← Retour
+        </Link>
+
+        {/* Static background — always visible */}
+        <div className="glass-card p-4 text-center sm:p-5">
+          <h2 className="text-base font-bold text-neutral-900">
             Session terminée !
           </h2>
           {quiz.correction?.session_stats && (
-            <div className="mt-4">
-              <p className="text-3xl font-bold text-primary">
+            <div className="mt-3">
+              <p className="text-2xl font-bold text-primary">
                 {quiz.correction.session_stats.average_score != null
                   ? `${quiz.correction.session_stats.average_score}%`
                   : `${quiz.correction.session_stats.score_percent}%`}
               </p>
-              <p className="mt-2 text-sm text-neutral-500">
-                Score moyen sur{' '}
-                {quiz.correction.session_stats.question_count} questions
+              <p className="mt-1 text-xs text-neutral-500">
+                Score moyen sur {quiz.correction.session_stats.question_count} questions
               </p>
-              <div className="mt-3 flex justify-center gap-4 text-sm">
-                <span className="text-secondary-500">
-                  {quiz.correction.session_stats.correct_count} correcte
-                  {quiz.correction.session_stats.correct_count !== 1 ? 's' : ''}
-                </span>
-                <span className="text-warning">
-                  {quiz.correction.session_stats.partial_count} partielle
-                  {quiz.correction.session_stats.partial_count !== 1 ? 's' : ''}
-                </span>
-                <span className="text-error">
-                  {quiz.correction.session_stats.wrong_count} incorrecte
-                  {quiz.correction.session_stats.wrong_count !== 1 ? 's' : ''}
-                </span>
-              </div>
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => router.push(`/quiz/results/${sessionId}`)}
-            className="mt-6 min-h-[44px] rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
-          >
-            Voir les résultats détaillés
-          </button>
         </div>
+
+        {/* Peek handle — fixed above nav bar */}
+        {!showResults && (
+          <motion.button
+            type="button"
+            onClick={() => setShowResults(true)}
+            className="fixed inset-x-0 bottom-16 z-30 mx-auto w-[calc(100%-2rem)] max-w-2xl rounded-t-2xl bg-white/70 backdrop-blur-xl border border-white/60 px-4 pb-3 pt-2.5 text-center shadow-[0_-4px_16px_rgba(0,0,0,0.08)]"
+            initial={{ y: 80 }}
+            animate={{ y: 0 }}
+            transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="mx-auto mb-1.5 h-1 w-10 rounded-full bg-neutral-300" />
+            <p className="text-sm font-semibold text-primary">Voir les résultats détaillés</p>
+          </motion.button>
+        )}
+
+        {/* Full-screen results overlay — slides up from bottom */}
+        {showResults && (
+          <motion.div
+            className="fixed inset-x-0 bottom-0 top-0 z-40 overflow-y-auto bg-page-gradient"
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <div className="mx-auto max-w-2xl px-4 pb-24 pt-16">
+              <Link
+                href="/practice"
+                className="mb-2 inline-flex min-h-[44px] items-center gap-1 rounded-2xl px-2 py-1 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+              >
+                ← Retour
+              </Link>
+              <ResultsBottomSheet sessionId={sessionId} />
+            </div>
+          </motion.div>
+        )}
       </div>
     );
   }
@@ -151,17 +181,26 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
   const hasSelections = quiz.selectedChoiceIds.size > 0;
 
   return (
-    <div className="mx-auto max-w-2xl" ref={quiz.questionRef} tabIndex={-1}>
+    <div
+      className="mx-auto max-w-2xl"
+      ref={quiz.questionRef}
+      tabIndex={-1}
+      style={{ touchAction: 'pan-y' }}
+      onPointerDown={swipe.onPointerDown}
+      onPointerMove={swipe.onPointerMove}
+      onPointerUp={swipe.onPointerUp}
+    >
       {/* Back link */}
       <Link
         href="/practice"
-        className="mb-3 inline-flex min-h-[44px] items-center gap-1 rounded-lg px-2 py-2 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
+        className="mb-2 inline-flex min-h-[44px] items-center gap-1 rounded-2xl px-2 py-1 text-sm font-medium text-neutral-500 transition-colors hover:bg-neutral-100 hover:text-neutral-700"
       >
         ← Retour
       </Link>
 
       {/* Question card with progress */}
       <QuestionCard
+        key={quiz.currentIndex}
         question={quiz.currentQuestion}
         currentIndex={quiz.currentIndex}
         totalQuestions={quiz.questions.length}
@@ -174,7 +213,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
       />
 
       {/* Choices */}
-      <div className="mt-4">
+      <div className="mt-3">
         <ChoiceList
           choices={quiz.currentQuestion.choices}
           selectedIds={quiz.selectedChoiceIds}
@@ -191,7 +230,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
       </div>
 
       {/* Confidence selector */}
-      <div className="mt-4">
+      <div className="mt-3">
         <ConfidenceSelector
           value={quiz.confidence}
           onChange={quiz.setConfidence}
@@ -201,14 +240,17 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
 
       {/* Validate button */}
       {!quiz.isValidated && (
-        <button
-          type="button"
-          onClick={quiz.validateAnswer}
-          disabled={quiz.isValidating || !hasSelections}
-          className="mt-6 min-h-[44px] w-full rounded-xl bg-primary px-5 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
-        >
-          {quiz.isValidating ? 'Validation...' : 'Valider ma réponse'}
-        </button>
+        <div className="mt-4 flex justify-end">
+          <button
+            type="button"
+            onClick={quiz.validateAnswer}
+            disabled={quiz.isValidating || !hasSelections}
+            className="min-h-[44px] rounded-2xl bg-primary glass-btn px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none"
+            style={{ transition: 'transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+          >
+            {quiz.isValidating ? 'Validation...' : 'Valider'}
+          </button>
+        </div>
       )}
 
       {/* Error during validation */}
@@ -227,13 +269,16 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
 
           {/* Next question button */}
           {!quiz.isSessionComplete && (
-            <button
-              type="button"
-              onClick={quiz.nextQuestion}
-              className="mt-4 min-h-[44px] w-full rounded-xl bg-primary px-5 py-4 text-base font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98]"
-            >
-              Question suivante
-            </button>
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={quiz.nextQuestion}
+                className="min-h-[44px] rounded-2xl bg-primary glass-btn px-6 py-2.5 text-sm font-bold text-white shadow-md shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98]"
+                style={{ transition: 'transform 150ms cubic-bezier(0.34, 1.56, 0.64, 1)' }}
+              >
+                Suivante →
+              </button>
+            </div>
           )}
         </>
       )}

@@ -105,7 +105,7 @@ export default function CorrectAnswersPopup({
         <button
           type="button"
           onClick={onClose}
-          className="min-h-[44px] rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+          className="min-h-[44px] rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
         >
           Annuler
         </button>
@@ -113,7 +113,7 @@ export default function CorrectAnswersPopup({
           type="button"
           onClick={handleSave}
           disabled={!hasCorrect || saving}
-          className="min-h-[44px] rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50"
+          className="min-h-[44px] rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50"
         >
           {saving ? 'Enregistrement...' : 'Enregistrer'}
         </button>

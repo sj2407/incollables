@@ -32,16 +32,13 @@ export default memo(function QuestionCard({
   const timeDisplay = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 
   return (
-    <div>
+    <div className="animate-slide-in-right">
       {/* Progress section */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
-        <div className="flex items-end justify-between mb-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1">Progression</p>
-            <h2 className="text-2xl font-bold text-neutral-900">
-              Question {currentIndex + 1} <span className="text-neutral-300 font-medium">/ {totalQuestions}</span>
-            </h2>
-          </div>
+      <div className="mb-3 glass-card px-3 py-2 sm:px-4 sm:py-2.5">
+        <div className="flex items-center justify-between mb-1.5">
+          <h2 className="text-base font-bold text-neutral-900">
+            Question {currentIndex + 1} <span className="text-neutral-300 font-medium text-sm">/ {totalQuestions}</span>
+          </h2>
           <div className="flex items-center gap-3">
             {showTimer && (
               <span className="text-sm font-bold tabular-nums text-primary" aria-label={`Temps écoulé : ${timeDisplay}`}>
@@ -54,7 +51,7 @@ export default memo(function QuestionCard({
                 onClick={onPause}
                 disabled={isPausing}
                 aria-label="Mettre en pause"
-                className="min-h-[44px] rounded-lg border border-neutral-200 px-3 py-1.5 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-100 disabled:text-neutral-400"
+                className="min-h-[44px] rounded-2xl px-2 py-1 text-sm font-medium text-neutral-400 transition-colors hover:text-neutral-600 disabled:text-neutral-300"
               >
                 {isPausing ? 'Pause...' : <><Pause size={16} weight="bold" className="mr-1 inline" />Pause</>}
               </button>
@@ -63,7 +60,7 @@ export default memo(function QuestionCard({
           </div>
         </div>
         <div
-          className="h-2.5 overflow-hidden rounded-full bg-neutral-200"
+          className="h-1.5 overflow-hidden rounded-full bg-neutral-200"
           role="progressbar"
           aria-valuenow={Math.round(progress)}
           aria-valuemin={0}
@@ -78,8 +75,8 @@ export default memo(function QuestionCard({
       </div>
 
       {/* Question text */}
-      <div className="space-y-4">
-        <h3 className="text-xl font-bold leading-snug text-neutral-900 md:text-2xl">
+      <div className="space-y-3">
+        <h3 className="text-base font-bold leading-snug text-neutral-900 md:text-lg">
           {question.question_text}
         </h3>
 

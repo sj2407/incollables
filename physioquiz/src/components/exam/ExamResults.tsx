@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, X as XIcon, Square, CaretDown } from '@phosphor-icons/react';
+import { Check, X as XIcon, Square, CaretDown, Flag } from '@phosphor-icons/react';
 import type { ExamQuestionResult, ExamResults as ExamResultsType } from '@/hooks/useExam';
 import DOMPurify from 'isomorphic-dompurify';
 import Link from 'next/link';
@@ -38,7 +38,7 @@ export default function ExamResultsView({ results, topicId }: ExamResultsProps) 
   return (
     <div className="mx-auto max-w-2xl">
       {/* Score header */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-6 text-center shadow-md sm:p-8" aria-live="polite">
+      <div className="mb-6 glass-card p-6 text-center sm:p-8" aria-live="polite">
         <h1 className="mb-2 text-lg font-bold text-neutral-900 sm:text-xl">
           Résultat de l&apos;examen blanc
         </h1>
@@ -82,13 +82,13 @@ export default function ExamResultsView({ results, topicId }: ExamResultsProps) 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Link
           href={`/exam/setup/${topicId}`}
-          className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg bg-primary px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+          className="flex min-h-[44px] flex-1 items-center justify-center rounded-2xl bg-primary glass-btn px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
         >
           Refaire cet examen
         </Link>
         <Link
           href="/practice"
-          className="flex min-h-[44px] flex-1 items-center justify-center rounded-lg border border-neutral-200 bg-white px-5 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100"
+          className="flex min-h-[44px] flex-1 items-center justify-center rounded-2xl glass-btn-secondary px-5 py-3 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100"
         >
           Retour
         </Link>
@@ -135,7 +135,7 @@ function ReviewCard({ question }: { question: ExamQuestionResult }) {
   const selectedSet = new Set(question.selected_choice_ids);
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white shadow-md">
+    <div className="glass-card">
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
@@ -146,6 +146,7 @@ function ReviewCard({ question }: { question: ExamQuestionResult }) {
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-lg font-bold ${statusColor}`}>
           {statusIcon}
         </span>
+        {question.is_flagged && <Flag size={14} weight="fill" className="shrink-0 text-warning" />}
         <span className="flex-1 text-sm text-neutral-700 line-clamp-2">
           {question.question_number ? `Q${question.question_number}. ` : ''}
           {question.question_text}

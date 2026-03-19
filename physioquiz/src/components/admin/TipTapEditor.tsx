@@ -104,7 +104,7 @@ export default function TipTapEditor({ value, onSave, onClose }: TipTapEditorPro
   return (
     <Modal onClose={onClose} title="Modifier l'explication" maxWidth="max-w-2xl">
       {/* Toolbar */}
-      <div className="mb-3 flex flex-wrap gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-1.5">
+      <div className="mb-3 flex flex-wrap gap-1 rounded-lg bg-white/40 backdrop-blur-sm border border-white/40 p-1.5">
         <ToolbarButton
           active={editor.isActive('bold')}
           onClick={() => editor.chain().focus().toggleBold().run()}
@@ -163,7 +163,7 @@ export default function TipTapEditor({ value, onSave, onClose }: TipTapEditorPro
       </div>
 
       {/* Editor */}
-      <div className="rounded-lg border border-neutral-200 bg-white">
+      <div className="glass-card-inner">
         <EditorContent editor={editor} />
       </div>
 
@@ -176,7 +176,7 @@ export default function TipTapEditor({ value, onSave, onClose }: TipTapEditorPro
         <button
           type="button"
           onClick={onClose}
-          className="min-h-[44px] rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
+          className="min-h-[44px] rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-100"
         >
           Annuler
         </button>
@@ -184,7 +184,7 @@ export default function TipTapEditor({ value, onSave, onClose }: TipTapEditorPro
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="min-h-[44px] rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50"
+          className="min-h-[44px] rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-primary/25 hover:bg-primary/90 disabled:opacity-50"
         >
           {saving ? 'Enregistrement...' : isEmpty ? 'Enregistrer (vide)' : 'Enregistrer'}
         </button>

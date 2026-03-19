@@ -50,7 +50,7 @@ export default function Modal({ children, onClose, title, ariaLabel, maxWidth = 
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`w-full ${maxWidth} max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-lg outline-none animate-fade-in`}
+        className={`w-full ${maxWidth} max-h-[90vh] overflow-y-auto glass-card outline-none animate-fade-in`}
       >
         {title && (
           <div className="flex items-center justify-between border-b border-neutral-200 px-5 py-3">
@@ -58,7 +58,7 @@ export default function Modal({ children, onClose, title, ariaLabel, maxWidth = 
             <button
               type="button"
               onClick={onClose}
-              className="min-h-[44px] min-w-[44px] rounded-lg text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
+              className="min-h-[44px] min-w-[44px] rounded-2xl text-neutral-400 hover:bg-neutral-100 hover:text-neutral-600"
               aria-label="Fermer"
             >
               <X size={20} />

@@ -5,6 +5,7 @@ import type { TopicWithCount } from '@/hooks/useTopics';
 import { getTotalQuestionCount } from '@/hooks/useTopics';
 import Link from 'next/link';
 import { useState } from 'react';
+import StaggerList from '@/components/ui/StaggerList';
 
 interface TopicTreeProps {
   topics: TopicWithCount[];
@@ -17,12 +18,14 @@ export default function TopicTree({ topics }: TopicTreeProps) {
     );
   }
 
+  const filtered = topics.filter((t) => getTotalQuestionCount(t) > 0);
+
   return (
-    <div className="flex flex-col gap-2">
-      {topics.filter((t) => getTotalQuestionCount(t) > 0).map((topic) => (
+    <StaggerList className="flex flex-col gap-2" staggerDelay={0.08} duration={0.4}>
+      {filtered.map((topic) => (
         <TopicNode key={topic.id} topic={topic} depth={0} />
       ))}
-    </div>
+    </StaggerList>
   );
 }
 
@@ -32,15 +35,20 @@ interface TopicNodeProps {
 }
 
 function TopicNode({ topic, depth }: TopicNodeProps) {
-  const [isOpen, setIsOpen] = useState(depth === 0);
+  // A: Collapse by default
+  const [isOpen, setIsOpen] = useState(false);
   const hasChildren = topic.children.length > 0;
   const totalQuestions = getTotalQuestionCount(topic);
+
+  const isChapter = depth === 0;
 
   return (
     <div>
       <div
-        className={`flex items-center gap-2 rounded-xl border border-neutral-200 bg-white p-3 shadow-md transition-colors hover:border-primary-200 hover:bg-primary-50 sm:p-4 ${
-          depth > 0 ? 'ml-4 sm:ml-6' : ''
+        className={`flex items-center gap-2 rounded-xl transition-colors hover:border-primary-200 hover:bg-primary-50 ${
+          isChapter
+            ? 'glass-card p-1 sm:p-1.5'
+            : 'ml-4 glass-card-inner p-1 sm:ml-6 sm:p-1.5'
         }`}
       >
         {/* Expand/collapse button for nodes with children */}
@@ -50,29 +58,31 @@ function TopicNode({ topic, depth }: TopicNodeProps) {
             onClick={() => setIsOpen(!isOpen)}
             aria-label={isOpen ? 'Replier' : 'Déplier'}
             aria-expanded={isOpen}
-            className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"
+            className={`flex shrink-0 items-center justify-center rounded-md text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700 ${
+              isChapter ? 'min-h-[44px] min-w-[44px]' : 'min-h-[36px] min-w-[36px]'
+            }`}
           >
             <CaretRight
-              size={16}
+              size={isChapter ? 16 : 14}
               className={`transition-transform ${isOpen ? 'rotate-90' : ''}`}
             />
           </button>
         ) : (
-          <span className="w-11 shrink-0" />
+          <span className={isChapter ? 'w-11 shrink-0' : 'w-9 shrink-0'} />
         )}
 
         {/* Topic link */}
         <Link
           href={totalQuestions > 0 ? `/quiz/setup/${topic.id}` : '#'}
           aria-disabled={totalQuestions === 0}
-          className={`flex min-h-[44px] flex-1 items-center gap-3 ${
-            totalQuestions === 0 ? 'pointer-events-none opacity-50' : ''
-          }`}
+          className={`flex flex-1 items-center gap-3 ${
+            isChapter ? 'min-h-[44px]' : 'min-h-[36px]'
+          } ${totalQuestions === 0 ? 'pointer-events-none opacity-50' : ''}`}
         >
           <div className="flex-1">
             <span
-              className={`font-semibold text-neutral-900 ${
-                depth === 0 ? 'text-base sm:text-lg' : 'text-sm sm:text-base'
+              className={`text-neutral-900 ${
+                isChapter ? 'text-sm font-semibold sm:text-base' : 'text-sm font-medium sm:text-base'
               }`}
             >
               {topic.title}
@@ -87,11 +97,18 @@ function TopicNode({ topic, depth }: TopicNodeProps) {
       </div>
 
       {/* Children */}
-      {hasChildren && isOpen && (
-        <div className="mt-2 flex flex-col gap-2">
-          {topic.children.filter((c) => getTotalQuestionCount(c) > 0).map((child) => (
-            <TopicNode key={child.id} topic={child} depth={depth + 1} />
-          ))}
+      {hasChildren && (
+        <div
+          className="mt-1.5 grid transition-[grid-template-rows] duration-300 ease-out"
+          style={{ gridTemplateRows: isOpen ? '1fr' : '0fr' }}
+        >
+          <div className="overflow-hidden">
+            <div className="flex flex-col gap-1.5">
+              {topic.children.filter((c) => getTotalQuestionCount(c) > 0).map((child) => (
+                <TopicNode key={child.id} topic={child} depth={depth + 1} />
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

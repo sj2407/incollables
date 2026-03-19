@@ -59,7 +59,7 @@ export default function QuestionTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-neutral-200 bg-white shadow-md">
+    <div className="overflow-x-auto glass-card">
       <table className="w-full text-left text-sm">
         <thead>
           <tr className="border-b border-neutral-200 bg-neutral-50 text-xs font-semibold uppercase tracking-wide text-neutral-500">

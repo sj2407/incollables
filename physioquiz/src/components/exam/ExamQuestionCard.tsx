@@ -17,9 +17,9 @@ export default memo(function ExamQuestionCard({
   progress,
 }: ExamQuestionCardProps) {
   return (
-    <div>
+    <div className="animate-slide-in-right">
       {/* Progress section */}
-      <div className="mb-6 rounded-xl border border-neutral-200 bg-white p-4 sm:p-6">
+      <div className="mb-6 glass-card p-4 sm:p-6">
         <div className="flex items-end justify-between mb-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-1">Progression</p>

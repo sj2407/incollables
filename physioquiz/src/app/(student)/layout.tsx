@@ -7,7 +7,7 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
       <Header />
       <div className="flex flex-1">
         <DesktopSidebar />
-        <main className="flex-1 overflow-y-auto p-4 pb-20 md:p-6 md:pb-6">{children}</main>
+        <main className="flex-1 overflow-y-auto bg-page-gradient p-4 pb-20 md:p-6 md:pb-6">{children}</main>
       </div>
       <MobileBottomNav />
     </div>

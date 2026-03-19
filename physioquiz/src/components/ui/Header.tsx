@@ -22,7 +22,7 @@ export default function Header() {
               {profile.role === 'admin' && (
                 <Link
                   href="/admin"
-                  className="min-h-[44px] inline-flex items-center rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-100"
+                  className="min-h-[44px] inline-flex items-center rounded-2xl bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary hover:bg-primary-100"
                 >
                   Admin
                 </Link>
@@ -31,7 +31,7 @@ export default function Header() {
                 type="button"
                 onClick={signOut}
                 aria-label="Se déconnecter"
-                className="min-h-[44px] rounded-lg px-3 py-1.5 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
+                className="min-h-[44px] rounded-2xl px-3 py-1.5 text-xs font-medium text-neutral-500 hover:bg-neutral-100 hover:text-neutral-700"
               >
                 Déconnexion
               </button>

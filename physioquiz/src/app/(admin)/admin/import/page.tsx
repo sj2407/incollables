@@ -31,7 +31,7 @@ export default function AdminImportPage() {
       </p>
 
       {/* Tabs */}
-      <div className="mt-4 flex gap-1 rounded-lg border border-neutral-200 bg-neutral-50 p-1">
+      <div className="mt-4 flex gap-1 rounded-lg bg-white/40 backdrop-blur-sm border border-white/40 p-1">
         {TABS.map((tab) => (
           <button
             key={tab.key}
@@ -110,7 +110,7 @@ function QuestionImportSection() {
   }, []);
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-md">
+    <div className="glass-card p-6">
       {(step === 'idle' || step === 'error') && (
         <>
           <DropZone accept=".docx" description="Fichier .docx standardisé" onFile={handleFileChange} />
@@ -153,7 +153,7 @@ function QuestionImportSection() {
           {importResult.errors.length > 0 && <WarningList items={importResult.errors} />}
           <p className="mt-4 text-xs text-neutral-400">Vérifiez-les dans Base de données et activez-les.</p>
           <div className="mt-4 flex gap-3">
-            <a href="/admin/questions" className="min-h-[44px] flex-1 rounded-xl bg-primary px-4 py-2 text-center text-sm font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90">
+            <a href="/admin/questions" className="min-h-[44px] flex-1 rounded-2xl bg-primary px-4 py-2 text-center text-sm font-bold text-white glass-btn transition-all hover:bg-primary/90">
               Voir dans Base de données
             </a>
             <SecondaryButton onClick={handleReset}>Importer un autre fichier</SecondaryButton>
@@ -214,7 +214,7 @@ function MaterialImportSection({ materialType, label }: { materialType: 'resume'
   }, []);
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-md">
+    <div className="glass-card p-6">
       {(step === 'idle' || step === 'error') && (
         <>
           <DropZone accept=".docx" description=".docx uniquement (.doc et PDF non supportés)" onFile={handleFileChange} />
@@ -232,7 +232,7 @@ function MaterialImportSection({ materialType, label }: { materialType: 'resume'
             placeholder="Titre"
             className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
-          <div className="mt-3 max-h-[300px] overflow-y-auto rounded-lg border border-neutral-200 bg-neutral-50 p-4">
+          <div className="mt-3 max-h-[300px] overflow-y-auto glass-card-inner p-4">
             <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: contentHtml }} />
           </div>
           <div className="mt-4 flex gap-3">
@@ -321,7 +321,7 @@ function VideoImportSection() {
   }, []);
 
   return (
-    <div className="rounded-xl border border-neutral-200 bg-white p-6 shadow-md">
+    <div className="glass-card p-6">
       {step === 'idle' && !mode && (
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
@@ -496,7 +496,7 @@ function WarningList({ items }: { items: string[] }) {
 
 function StatCard({ label, value, color }: { label: string; value: number; color?: string }) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-neutral-50 p-3">
+    <div className="glass-card-inner p-3">
       <p className={`text-lg font-bold ${color ?? 'text-neutral-700'}`}>{value}</p>
       <p className="text-[10px] uppercase tracking-wide text-neutral-400">{label}</p>
     </div>
@@ -506,7 +506,7 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 function PrimaryButton({ onClick, disabled, children }: { onClick: () => void; disabled?: boolean; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled}
-      className="min-h-[44px] flex-1 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white shadow-lg shadow-primary/25 transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none">
+      className="min-h-[44px] flex-1 rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white glass-btn transition-all hover:bg-primary/90 active:scale-[0.98] disabled:bg-neutral-200 disabled:text-neutral-400 disabled:shadow-none">
       {children}
     </button>
   );
@@ -515,7 +515,7 @@ function PrimaryButton({ onClick, disabled, children }: { onClick: () => void; d
 function SecondaryButton({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
   return (
     <button type="button" onClick={onClick}
-      className="min-h-[44px] rounded-xl border border-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50">
+      className="min-h-[44px] rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-medium text-neutral-700 transition-colors hover:bg-neutral-50">
       {children}
     </button>
   );

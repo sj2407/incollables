@@ -352,7 +352,7 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
               Modifier...
             </button>
             {showMoveDropdown && (
-              <div className="absolute left-0 top-full z-20 mt-1 w-72 rounded-xl border border-neutral-200 bg-white shadow-lg">
+              <div className="absolute left-0 top-full z-20 mt-1 w-72 glass-card">
                 {/* Step 1: Pick a chapter */}
                 {moveStep === 'chapter' && (
                   <div>

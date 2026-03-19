@@ -104,7 +104,7 @@ export default function TopicFormModal({
   if (!isCreate) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true">
-        <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+        <div className="mx-4 w-full max-w-md glass-card p-6">
           <h2 className="text-base font-bold text-neutral-900">Modifier le chapitre</h2>
           <form onSubmit={handleEditSubmit} className="mt-4 space-y-4">
             <div>
@@ -141,17 +141,17 @@ export default function TopicFormModal({
             <div className="flex gap-3 pt-2">
               {onDelete && (
                 <button type="button" onClick={onDelete} disabled={saving}
-                  className="min-h-[44px] rounded-lg border border-error px-4 py-2 text-sm font-semibold text-error transition-colors hover:bg-red-50 disabled:opacity-50">
+                  className="min-h-[44px] rounded-2xl border border-error px-4 py-2 text-sm font-semibold text-error transition-colors hover:bg-red-50 disabled:opacity-50">
                   Supprimer
                 </button>
               )}
               <div className="flex-1" />
               <button type="button" onClick={onClose} disabled={saving}
-                className="min-h-[44px] rounded-lg border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100">
+                className="min-h-[44px] rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100">
                 Annuler
               </button>
               <button type="submit" disabled={saving || !title.trim()}
-                className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:bg-neutral-200 disabled:text-neutral-400">
+                className="min-h-[44px] rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:bg-neutral-200 disabled:text-neutral-400">
                 {saving ? 'Enregistrement...' : 'Enregistrer'}
               </button>
             </div>
@@ -164,7 +164,7 @@ export default function TopicFormModal({
   // ===================== CREATE MODE =====================
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" role="dialog" aria-modal="true">
-      <div className="mx-4 w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+      <div className="mx-4 w-full max-w-md glass-card p-6">
         <h2 className="text-base font-bold text-neutral-900">Nouveau chapitre / sous-chapitre</h2>
 
         <form onSubmit={handleCreateSubmit} className="mt-4 space-y-4">
@@ -219,11 +219,11 @@ export default function TopicFormModal({
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} disabled={saving}
-              className="min-h-[44px] rounded-lg border border-neutral-200 px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100">
+              className="min-h-[44px] rounded-2xl glass-btn-secondary px-4 py-2 text-sm font-semibold text-neutral-700 transition-colors hover:bg-neutral-100">
               Annuler
             </button>
             <button type="submit" disabled={saving || !chapterTitle.trim()}
-              className="min-h-[44px] rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:bg-neutral-200 disabled:text-neutral-400">
+              className="min-h-[44px] rounded-2xl bg-primary glass-btn px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 disabled:bg-neutral-200 disabled:text-neutral-400">
               {saving ? 'Création...' : 'Créer'}
             </button>
           </div>
