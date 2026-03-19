@@ -69,17 +69,19 @@ function AlertRow({ alert }: { alert: QualityAlert }) {
       style={{ borderLeft: `4px solid ${isNoChoices ? '#B91C1C' : '#B45309'}` }}
     >
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-neutral-700">
-          {alert.question_number ? `Q${alert.question_number}. ` : ''}
-          {alert.question_text}
-        </p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="truncate text-sm font-medium text-neutral-700">
+            {alert.question_number ? `Q${alert.question_number}. ` : ''}
+            {alert.question_text}
+          </p>
+          <span className={`shrink-0 text-xs font-bold ${isNoChoices ? 'text-error' : 'text-warning'}`}>
+            {isNoChoices ? '0 prop.' : `${(alert.error_rate * alert.attempt_count / 100).toFixed(2)} err.`}
+          </span>
+        </div>
         <p className="mt-0.5 text-xs text-neutral-400">
           {alert.topic_title}
         </p>
       </div>
-      <span className={`shrink-0 text-right text-xs font-bold ${isNoChoices ? 'text-error' : 'text-warning'}`}>
-        {isNoChoices ? '0 prop.' : `${alert.error_rate}% err. · ${alert.attempt_count}×`}
-      </span>
     </Link>
   );
 }

@@ -29,7 +29,18 @@ export default function LoginPage() {
       return;
     }
 
-    router.push('/practice');
+    // Redirect based on role
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      router.push(profile?.role === 'admin' ? '/admin' : '/practice');
+    } else {
+      router.push('/practice');
+    }
     router.refresh();
   }
 
