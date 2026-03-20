@@ -37,7 +37,7 @@ export function MetricCard({ label, value, icon, borderColor, tooltip, numericVa
   return (
     <TiltCard
       tiltDeg={6}
-      className="group relative overflow-hidden glass-card p-3"
+      className="group relative overflow-hidden glass-card-inner p-3" style={{ background: 'rgba(255, 255, 255, 0.40)' }}
       style={{ borderLeft: `4px solid ${borderColor}` }}
       title={tooltip}
     >

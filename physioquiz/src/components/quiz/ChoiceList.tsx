@@ -97,10 +97,10 @@ export default memo(function ChoiceList({
                 isValidated
                   ? (isSelected || isCorrect)
                     ? `${borderColor} ${bgColor}`
-                    : 'border-transparent bg-neutral-50/80'
+                    : 'border-transparent bg-white/35'
                   : isSelected
                     ? 'border-transparent bg-primary/5'
-                    : 'border-transparent bg-neutral-50/80 hover:bg-neutral-100'
+                    : 'border-transparent bg-white/35 hover:bg-neutral-100'
               } ${disabled ? 'cursor-default' : 'cursor-pointer'} ${isCrossedOut ? 'opacity-40' : ''}`}
             >
               {/* Letter badge */}

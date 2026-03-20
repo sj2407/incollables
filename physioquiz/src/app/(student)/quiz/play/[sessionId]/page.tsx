@@ -113,7 +113,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
         </Link>
 
         {/* Static background — always visible */}
-        <div className="glass-card p-4 text-center sm:p-5">
+        <div className="glass-card-inner p-4 text-center sm:p-5">
           <h2 className="text-base font-bold text-neutral-900">
             Session terminée !
           </h2>
@@ -136,7 +136,7 @@ export default function QuizPlayPage({ params }: QuizPlayPageProps) {
           <motion.button
             type="button"
             onClick={() => setShowResults(true)}
-            className="fixed inset-x-0 bottom-16 z-30 mx-auto w-[calc(100%-2rem)] max-w-2xl rounded-t-2xl bg-white/70 backdrop-blur-xl border border-white/60 px-4 pb-3 pt-2.5 text-center shadow-[0_-4px_16px_rgba(0,0,0,0.08)]"
+            className="fixed inset-x-0 bottom-16 z-30 mx-auto w-[calc(100%-2rem)] max-w-2xl rounded-t-2xl bg-white/35 border border-white/40 px-4 pb-3 pt-2.5 text-center shadow-[0_-4px_16px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.6)]"
             initial={{ y: 80 }}
             animate={{ y: 0 }}
             transition={{ duration: 0.5, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}

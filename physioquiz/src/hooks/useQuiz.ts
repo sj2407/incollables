@@ -239,6 +239,7 @@ export function useQuiz(sessionId: string) {
         const images = [...(rawImages as { sort_order: number }[])].sort(
           (a, b) => a.sort_order - b.sort_order,
         );
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { published_question_images: _pqi, ...rest } = q as Record<string, unknown> & typeof q;
         return {
           ...rest,

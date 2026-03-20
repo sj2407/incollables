@@ -201,6 +201,7 @@ export function useExam(sessionId: string) {
             img.storage_path = storageBaseUrl + img.storage_path;
           }
         }
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { published_question_images: _pqi, ...rest } = q as Record<string, unknown> & typeof q;
         return {
           ...rest,

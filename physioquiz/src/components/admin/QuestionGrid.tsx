@@ -60,8 +60,42 @@ function ActiveToggleRenderer(props: ICellRendererParams<AdminQuestionRow>) {
       className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center"
       onClick={handleToggle}
     >
-      <span className={`inline-block h-3 w-6 rounded-full ${active ? 'bg-secondary-400' : 'bg-neutral-300'}`}>
-        <span className={`mt-0.5 block h-2 w-2 rounded-full bg-white transition-transform ${active ? 'translate-x-3.5' : 'translate-x-0.5'}`} />
+      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+        active ? 'bg-green-100 text-green-700' : 'bg-neutral-200 text-neutral-500'
+      }`}>
+        {active ? 'Actif' : 'Inactif'}
+      </span>
+    </button>
+  );
+}
+
+function ReviewToggleRenderer(props: ICellRendererParams<AdminQuestionRow>) {
+  const needsReview = props.value as boolean;
+  const questionId = props.data?.question_id;
+  const onDraftChanged = (props.context as { onDraftChanged?: () => void })?.onDraftChanged;
+
+  const handleToggle = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!questionId) return;
+    const newValue = !needsReview;
+    const result = await saveQuestionField(questionId, 'needs_review', String(needsReview), String(newValue));
+    if (result.success && props.node) {
+      props.node.setDataValue('needs_review', newValue);
+      onDraftChanged?.();
+    }
+  }, [needsReview, questionId, props.node, onDraftChanged]);
+
+  return (
+    <button
+      type="button"
+      aria-label={needsReview ? 'Marquer comme vérifié' : 'Marquer à vérifier'}
+      className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center"
+      onClick={handleToggle}
+    >
+      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+        needsReview ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
+      }`}>
+        {needsReview ? 'À vérifier' : 'Vérifié'}
       </span>
     </button>
   );
@@ -380,6 +414,14 @@ export default function QuestionGrid({
       cellRenderer: ScoreRenderer,
       width: 80,
       filter: 'agNumberColumnFilter',
+    },
+    {
+      headerName: 'Vérifié',
+      field: 'needs_review',
+      cellRenderer: ReviewToggleRenderer,
+      width: 90,
+      filter: SelectFilter,
+      filterParams: { options: [{ value: 'true', label: 'À vérifier' }, { value: 'false', label: 'Vérifié' }] },
     },
   ], [topics]);
 

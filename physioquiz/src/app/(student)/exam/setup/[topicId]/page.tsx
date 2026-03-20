@@ -155,7 +155,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
       <div className="mt-6 space-y-6">
         {/* Subtopics toggle */}
         {hasSubtopics && (
-          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 glass-card p-4">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 glass-card-inner p-4">
             <input
               type="checkbox"
               checked={includeSubtopics}
@@ -176,7 +176,7 @@ export default function ExamSetupPage({ params }: ExamSetupPageProps) {
         )}
 
         {/* Exam info summary */}
-        <div className="glass-card p-4">
+        <div className="glass-card-inner p-4">
           <div className="flex items-center justify-between py-2">
             <span className="text-sm text-neutral-500">Questions</span>
             <span className="text-sm font-bold text-neutral-900">

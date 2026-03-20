@@ -66,7 +66,7 @@ export default function SessionSummary({
   return (
     <div className="mx-auto max-w-2xl">
       {/* Score card */}
-      <div className="animate-fade-in glass-card p-3 text-center sm:p-4">
+      <div className="animate-fade-in glass-card-inner p-3 text-center sm:p-4">
         <h1 className="text-base font-bold text-neutral-900 sm:text-lg">
           Résultats de la session
         </h1>
@@ -102,10 +102,8 @@ export default function SessionSummary({
           <h2 className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
             Questions à revoir ({failedAnswers.length})
           </h2>
-          <div className="relative mt-3 glass-card">
-            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 h-6 rounded-t-xl bg-gradient-to-b from-neutral-50/90 to-transparent" aria-hidden="true" />
-            <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-6 rounded-b-xl bg-gradient-to-t from-neutral-50/90 to-transparent" aria-hidden="true" />
-            <div className="max-h-[260px] overflow-y-auto">
+          <div className="relative mt-3">
+            <div className="max-h-[260px] overflow-y-auto rounded-xl">
               <StaggerList className="flex flex-col gap-1.5 p-2" staggerDelay={0.06} duration={0.35}>
                 {failedAnswers.map((answer) => (
                   <AnswerReviewCard
@@ -183,7 +181,7 @@ function AnswerReviewCard({
   );
 
   return (
-    <div className="glass-card-inner">
+    <div className="glass-card-scroll">
       <button
         type="button"
         onClick={onToggle}

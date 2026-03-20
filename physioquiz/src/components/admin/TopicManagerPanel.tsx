@@ -18,6 +18,7 @@ interface TopicManagerPanelProps {
   onChanged: () => void;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPanelProps) {
   const [topics, setTopics] = useState<TopicWithCount[]>([]);
   const [loading, setLoading] = useState(true);

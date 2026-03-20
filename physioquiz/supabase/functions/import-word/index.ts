@@ -263,6 +263,7 @@ Deno.serve(async (req: Request) => {
           explanation_html: q.explanationHtml || null,
           difficulty: 'medium',
           is_active: isActive,
+          needs_review: true,
         }).throwOnError();
 
         // Insert choices

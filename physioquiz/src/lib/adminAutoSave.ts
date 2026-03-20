@@ -20,7 +20,7 @@ export async function saveQuestionField(
 
   // Parse value for boolean fields
   let dbValue: string | boolean | null = newValue;
-  if (field === 'is_active') {
+  if (field === 'is_active' || field === 'needs_review') {
     dbValue = newValue === 'true';
   }
 
@@ -121,14 +121,14 @@ export async function createTopicDraft(
  * Publish all changes: copies current_hash to published_hash for all questions
  * with unpublished changes. Also sets is_draft=false for backward compat.
  */
-export async function publishAllDrafts(): Promise<{
+export async function publishAllDrafts(force = false): Promise<{
   success: boolean;
   questionCount?: number;
   topicCount?: number;
   error?: string;
 }> {
   const supabase = createClient();
-  const { data: count, error } = await supabase.rpc('publish_all_changes');
+  const { data: count, error } = await supabase.rpc('publish_all_changes', { p_force: force });
   if (error) {
     return { success: false, error: error.message };
   }
@@ -154,6 +154,7 @@ function mapFieldToColumn(field: string): string | null {
     question_text: 'question_text',
     difficulty: 'difficulty',
     is_active: 'is_active',
+    needs_review: 'needs_review',
     explanation_html: 'explanation_html',
     topic_id: 'topic_id',
   };

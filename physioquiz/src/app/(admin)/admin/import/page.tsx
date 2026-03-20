@@ -5,6 +5,7 @@ import { useCallback, useState } from 'react';
 import { parseWordFile, type ImportParseResult } from '@/lib/importWord';
 import { parseWordToHtml, extractYouTubeId } from '@/lib/importLearningMaterial';
 import { createClient } from '@/lib/supabase/client';
+import DOMPurify from 'dompurify';
 
 // ─── Types ───
 
@@ -200,6 +201,8 @@ function MaterialImportSection({ materialType, label }: { materialType: 'resume'
         content_html: contentHtml,
         file_name: fileName,
         is_active: true,
+        is_draft: true,
+        needs_review: true,
       });
       if (error) { setErrorMessage(`Erreur : ${error.message}`); setStep('error'); return; }
       setStep('done');
@@ -233,7 +236,7 @@ function MaterialImportSection({ materialType, label }: { materialType: 'resume'
             className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <div className="mt-3 max-h-[300px] overflow-y-auto glass-card-inner p-4">
-            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: contentHtml }} />
+            <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contentHtml) }} />
           </div>
           <div className="mt-4 flex gap-3">
             <PrimaryButton onClick={handleImport} disabled={!title.trim()}>Importer</PrimaryButton>
@@ -245,7 +248,7 @@ function MaterialImportSection({ materialType, label }: { materialType: 'resume'
       {step === 'done' && (
         <div>
           <SuccessHeader label={`${label} importé`} />
-          <p className="mt-2 text-sm text-neutral-500">&laquo; {title} &raquo; est disponible pour les étudiants.</p>
+          <p className="mt-2 text-sm text-neutral-500">&laquo; {title} &raquo; a été importé (en attente de synchronisation).</p>
           <div className="mt-4">
             <SecondaryButton onClick={handleReset}>Importer un autre</SecondaryButton>
           </div>
@@ -277,6 +280,8 @@ function VideoImportSection() {
         title: title.trim(),
         video_url: `https://www.youtube.com/watch?v=${ytId}`,
         is_active: true,
+        is_draft: true,
+        needs_review: true,
       });
       if (error) { setErrorMessage(`Erreur : ${error.message}`); setStep('error'); return; }
       setStep('done');
@@ -307,6 +312,8 @@ function VideoImportSection() {
         file_name: videoFile.name,
         file_size: videoFile.size,
         is_active: true,
+        is_draft: true,
+        needs_review: true,
       });
       if (error) { setErrorMessage(`Erreur : ${error.message}`); setStep('error'); return; }
       setStep('done');
@@ -413,7 +420,7 @@ function VideoImportSection() {
       {step === 'done' && (
         <div>
           <SuccessHeader label="Vidéo ajoutée" />
-          <p className="mt-2 text-sm text-neutral-500">&laquo; {title} &raquo; est disponible pour les étudiants.</p>
+          <p className="mt-2 text-sm text-neutral-500">&laquo; {title} &raquo; a été importée (en attente de synchronisation).</p>
           <div className="mt-4">
             <SecondaryButton onClick={handleReset}>Ajouter une autre vidéo</SecondaryButton>
           </div>

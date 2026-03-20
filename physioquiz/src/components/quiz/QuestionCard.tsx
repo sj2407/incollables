@@ -75,7 +75,7 @@ export default memo(function QuestionCard({
       </div>
 
       {/* Question text */}
-      <div className="space-y-3">
+      <div className="space-y-3 pl-2.5 pr-10">
         <h3 className="text-base font-bold leading-snug text-neutral-900 md:text-lg">
           {question.question_text}
         </h3>

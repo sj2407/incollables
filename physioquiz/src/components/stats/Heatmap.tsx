@@ -16,7 +16,7 @@ export interface HeatmapNode {
   children?: HeatmapNode[];
 }
 
-interface TopicDetailStats {
+export interface TopicDetailStats {
   session_count: number;
   total_questions_answered: number;
   correct_count: number;
@@ -32,6 +32,19 @@ interface HeatmapProps {
   data: HeatmapNode[];
   /** Compact mode for dashboard miniature */
   compact?: boolean;
+  /** Callback when a node is selected/deselected — parent renders the detail panel externally */
+  onNodeSelect?: (node: HeatmapNode | null) => void;
+}
+
+export async function fetchTopicDetailStats(topicId: string): Promise<TopicDetailStats | null> {
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: result } = await supabase.rpc('get_topic_detail_stats', {
+    p_user_id: user.id,
+    p_topic_id: topicId,
+  });
+  return result as TopicDetailStats | null;
 }
 
 // Custom content renderer for Treemap cells
@@ -182,7 +195,7 @@ function formatTime(seconds: number): string {
   return rm > 0 ? `${h}h ${rm}min` : `${h}h`;
 }
 
-function TopicDetailPanel({
+export function TopicDetailPanel({
   node,
   stats,
   loading,
@@ -197,7 +210,7 @@ function TopicDetailPanel({
   const label = getMasteryLabel(node.mastery);
 
   return (
-    <div className="mt-3 glass-card p-4">
+    <div className="mt-3 glass-card-inner p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <div className="h-3 w-3 shrink-0 rounded" style={{ backgroundColor: color }} />
@@ -242,10 +255,10 @@ function DetailStatsContent({ stats, node }: { stats: TopicDetailStats; node: He
   const wrongPct = Math.round((stats.wrong_count / total) * 100);
 
   const row1 = [
-    { label: 'Sessions', value: String(stats.session_count), bg: 'bg-white/40', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
-    { label: 'Questions', value: String(stats.total_questions_answered), bg: 'bg-white/40', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
-    { label: 'Temps total', value: formatTime(stats.total_time_seconds), bg: 'bg-white/40', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
-    { label: 'Score moyen', value: `${stats.avg_score}%`, bg: 'bg-white/40', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
+    { label: 'Sessions', value: String(stats.session_count), bg: 'bg-white/25', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
+    { label: 'Questions', value: String(stats.total_questions_answered), bg: 'bg-white/25', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
+    { label: 'Temps total', value: formatTime(stats.total_time_seconds), bg: 'bg-white/25', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
+    { label: 'Score moyen', value: `${stats.avg_score}%`, bg: 'bg-white/25', text: 'text-neutral-800', labelColor: 'text-neutral-500' },
   ];
 
   const row2 = [
@@ -334,7 +347,7 @@ function DetailStatsContent({ stats, node }: { stats: TopicDetailStats; node: He
   );
 }
 
-export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
+export default memo(function Heatmap({ data, compact = false, onNodeSelect }: HeatmapProps) {
   const [selectedNode, setSelectedNode] = useState<HeatmapNode | null>(null);
   const [detailStats, setDetailStats] = useState<TopicDetailStats | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -362,11 +375,16 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
     if (selectedNode?.topic_id === node.topic_id) {
       setSelectedNode(null);
       setDetailStats(null);
+      onNodeSelect?.(null);
       return;
     }
     setSelectedNode(node);
-    fetchTopicDetail(node.topic_id);
-  }, [selectedNode, fetchTopicDetail]);
+    if (onNodeSelect) {
+      onNodeSelect(node);
+    } else {
+      fetchTopicDetail(node.topic_id);
+    }
+  }, [selectedNode, fetchTopicDetail, onNodeSelect]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleTreemapClick = useCallback((nodeData: any) => {
@@ -468,7 +486,7 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
             key={node.topic_id}
             type="button"
             onClick={() => handleNodeClick(node)}
-            className={`flex items-center justify-between glass-card p-3 transition-colors hover:bg-neutral-50 ${
+            className={`flex items-center justify-between glass-card-inner p-3 transition-colors hover:bg-white/50 ${
               selectedNode?.topic_id === node.topic_id ? 'ring-2 ring-primary' : ''
             }`}
           >
@@ -495,8 +513,8 @@ export default memo(function Heatmap({ data, compact = false }: HeatmapProps) {
         ))}
       </div>
 
-      {/* Detail panel */}
-      {selectedNode && (
+      {/* Detail panel — only render internally when parent is NOT handling it */}
+      {selectedNode && !onNodeSelect && (
         <TopicDetailPanel
           node={selectedNode}
           stats={detailStats}

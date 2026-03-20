@@ -25,36 +25,15 @@ export function QualityAlerts({ alerts }: { alerts: QualityAlert[] }) {
   const highError = [...alerts.filter((a) => a.alert_type === 'high_error_rate')]
     .sort((a, b) => b.attempt_count * b.error_rate - a.attempt_count * a.error_rate);
 
+  const allAlerts = [...noChoices, ...highError];
+
   return (
-    <div className="space-y-4">
-      {noChoices.length > 0 && (
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-error">
-            Sans propositions ({noChoices.length})
-          </p>
-          <div className="max-h-[210px] overflow-y-auto glass-card-inner">
-            <div className="flex flex-col gap-1.5 p-2">
-              {noChoices.map((a) => (
-                <AlertRow key={a.question_id} alert={a} />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-      {highError.length > 0 && (
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-wider text-warning">
-            Taux d&apos;erreur &gt; 80% ({highError.length})
-          </p>
-          <div className="max-h-[210px] overflow-y-auto glass-card-inner">
-            <div className="flex flex-col gap-1.5 p-2">
-              {highError.map((a) => (
-                <AlertRow key={a.question_id} alert={a} />
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="max-h-[280px] overflow-y-auto rounded-xl">
+      <div className="flex flex-col gap-2">
+        {allAlerts.map((a) => (
+          <AlertRow key={a.question_id} alert={a} />
+        ))}
+      </div>
     </div>
   );
 }
@@ -65,7 +44,7 @@ function AlertRow({ alert }: { alert: QualityAlert }) {
   return (
     <Link
       href={`/admin/questions?edit=${alert.question_id}`}
-      className="flex items-center justify-between rounded-lg glass-card-inner p-3 transition-colors hover:bg-white/70"
+      className="flex items-center justify-between rounded-lg glass-card-scroll p-3 transition-colors hover:bg-white/70"
       style={{ borderLeft: `4px solid ${isNoChoices ? '#B91C1C' : '#B45309'}` }}
     >
       <div className="min-w-0 flex-1">

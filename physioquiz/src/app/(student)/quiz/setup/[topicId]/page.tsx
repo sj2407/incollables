@@ -154,7 +154,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
       <div className="mt-5 space-y-4">
         {/* Subtopics toggle */}
         {hasSubtopics && (
-          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 glass-card p-3">
+          <label className="flex min-h-[44px] cursor-pointer items-center gap-3 glass-card-inner p-3">
             <input
               type="checkbox"
               checked={includeSubtopics}
@@ -212,7 +212,7 @@ export default function QuizSetupPage({ params }: QuizSetupPageProps) {
         {/* Exam mode link */}
         <Link
           href={`/exam/setup/${topic.id}`}
-          className="flex min-h-[44px] items-center justify-between glass-card p-3 transition-colors hover:bg-white/80"
+          className="flex min-h-[44px] items-center justify-between glass-card-inner p-3 transition-colors hover:bg-white/80"
         >
           <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50">

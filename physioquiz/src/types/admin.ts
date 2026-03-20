@@ -29,6 +29,7 @@ export interface AdminQuestionRow {
   total_attempts: number;
   avg_score: number;
   is_draft: boolean;
+  needs_review: boolean;
 }
 
 /** Row from admin_edit_log table */
@@ -97,4 +98,44 @@ export interface AdminChapterScore {
   topic_title: string;
   avg_score: number;
   session_count: number;
+}
+
+// ============================================================
+// Learning Materials — Admin types
+// ============================================================
+
+export type MaterialType = 'resume' | 'video' | 'fiche';
+
+/** Row returned by get_admin_materials RPC */
+export interface AdminMaterialRow {
+  id: string;
+  topic_id: string | null;
+  material_type: MaterialType;
+  title: string;
+  video_url: string | null;
+  file_name: string | null;
+  is_active: boolean;
+  is_draft: boolean;
+  needs_review: boolean;
+  created_at: string;
+  // Joined from topics
+  topic_title: string | null;
+  parent_topic_title: string | null;
+}
+
+/** Deleted material for corbeille */
+export interface DeletedMaterial {
+  id: string;
+  title: string;
+  material_type: MaterialType;
+  topic_title: string | null;
+  deleted_at: string;
+}
+
+/** Sync diff item for material publish confirmation */
+export interface MaterialSyncDiffItem {
+  id: string;
+  title: string;
+  material_type: MaterialType;
+  needs_review: boolean;
 }

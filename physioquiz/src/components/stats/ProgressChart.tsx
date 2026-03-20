@@ -63,7 +63,7 @@ export default memo(function ProgressChart({
         </p>
       ) : (
         <ResponsiveContainer width="100%" height={height}>
-          <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -10 }} style={{ background: 'linear-gradient(180deg, #f8faff 0%, #ffffff 100%)', borderRadius: 8 }}>
+          <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -10 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e0e4eb" strokeOpacity={0.4} />
             <XAxis
               dataKey="date"

@@ -67,7 +67,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-start justify-center bg-page-gradient px-4 py-8">
+    <div className="flex min-h-screen items-start justify-center bg-page-gradient px-5 py-8">
       <div className="w-full max-w-md glass-card p-6 sm:p-8">
         <h1 className="mb-2 text-center text-2xl font-bold text-neutral-900">Les Incollables</h1>
         <p className="mb-8 text-center text-sm text-neutral-500">Cr&eacute;ez votre compte</p>

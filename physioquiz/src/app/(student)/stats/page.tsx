@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 import { MetricCard, ChartIcon, SessionsIcon, TimerIcon, FlaskIcon } from '@/components/stats/MetricCards';
 import { WeakQuestionsSection, type WeakQuestion } from '@/components/stats/WeakQuestions';
 import type { HeatmapNode } from '@/components/stats/Heatmap';
+import { TopicDetailPanel, fetchTopicDetailStats, type TopicDetailStats } from '@/components/stats/Heatmap';
 import ScoreCircle from '@/components/ui/ScoreCircle';
 import StaggerList from '@/components/ui/StaggerList';
 import TiltCard from '@/components/ui/TiltCard';
@@ -71,6 +72,25 @@ export default function StatsPage() {
 
   // Page-level type filter
   const [filterType, setFilterType] = useState<string>('all');
+
+  // Heatmap detail panel (rendered outside TiltCard)
+  const [heatmapSelectedNode, setHeatmapSelectedNode] = useState<HeatmapNode | null>(null);
+  const [heatmapDetailStats, setHeatmapDetailStats] = useState<TopicDetailStats | null>(null);
+  const [heatmapDetailLoading, setHeatmapDetailLoading] = useState(false);
+
+  const handleHeatmapNodeSelect = useCallback(async (node: HeatmapNode | null) => {
+    if (!node) {
+      setHeatmapSelectedNode(null);
+      setHeatmapDetailStats(null);
+      return;
+    }
+    setHeatmapSelectedNode(node);
+    setHeatmapDetailLoading(true);
+    setHeatmapDetailStats(null);
+    const stats = await fetchTopicDetailStats(node.topic_id);
+    setHeatmapDetailStats(stats);
+    setHeatmapDetailLoading(false);
+  }, []);
 
   // Session history controls
   const [showAllSessions, setShowAllSessions] = useState(false);
@@ -289,7 +309,7 @@ export default function StatsPage() {
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
             aria-label="Filtrer par type de session"
-            className="min-h-[44px] glass-input px-3 py-1.5 text-base sm:text-sm text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="min-h-[44px] glass-card-inner px-3 py-1.5 text-base sm:text-sm text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           >
             <option value="all">Tous les types</option>
             <option value="short">Entraînement</option>
@@ -358,7 +378,7 @@ export default function StatsPage() {
   const hasPrevWeekData = prevWeekStats !== null && prevWeekStats.total_sessions > 0;
 
   return (
-    <div className="mx-auto max-w-2xl px-2 sm:px-0">
+    <div className="mx-auto max-w-2xl">
       {/* Header with page-level filter */}
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-[1.375rem] font-bold text-neutral-900 md:text-[1.75rem]">
@@ -368,7 +388,7 @@ export default function StatsPage() {
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
           aria-label="Filtrer par type de session"
-          className="h-8 glass-input px-2 py-1 text-xs text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+          className="h-8 glass-card-inner px-2 py-1 text-xs text-neutral-700 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
         >
           <option value="all">Tous les types</option>
           <option value="short">Entraînement</option>
@@ -431,7 +451,7 @@ export default function StatsPage() {
             onChange={(key) => setProgressView(key as 'chart' | 'calendar')}
           />
         </div>
-        <TiltCard className="glass-card p-4 sm:p-6" tiltDeg={1.5} gentle>
+        <TiltCard className="glass-card-inner p-4 sm:p-6" tiltDeg={1.5} gentle>
           <div className={progressView === 'chart' ? '' : 'hidden'}>
             <ProgressChart data={progress} height={PROGRESSION_HEIGHT} />
           </div>
@@ -454,9 +474,17 @@ export default function StatsPage() {
           <h2 id="heatmap-heading" className="mb-3 text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
             Carte des connaissances
           </h2>
-          <TiltCard className="glass-card p-4 sm:p-6" tiltDeg={1.5} gentle>
-            <Heatmap data={heatmapData} />
+          <TiltCard className="glass-card-inner p-4 sm:p-6" tiltDeg={1.5} gentle>
+            <Heatmap data={heatmapData} onNodeSelect={handleHeatmapNodeSelect} />
           </TiltCard>
+          {heatmapSelectedNode && (
+            <TopicDetailPanel
+              node={heatmapSelectedNode}
+              stats={heatmapDetailStats}
+              loading={heatmapDetailLoading}
+              onClose={() => { setHeatmapSelectedNode(null); setHeatmapDetailStats(null); }}
+            />
+          )}
         </section>
       )}
 
@@ -469,7 +497,7 @@ export default function StatsPage() {
           Votre taux de réussite réel vs votre confiance déclarée
           <span className="ml-1 inline-flex align-middle text-neutral-400" title="Chaque point = une réponse individuelle (non moyennée par question)"><InfoIcon /></span>
         </p>
-        <TiltCard className="glass-card p-4 sm:p-6" tiltDeg={1.5} gentle>
+        <TiltCard className="glass-card-inner p-4 sm:p-6" tiltDeg={1.5} gentle>
           <CalibrationChart
             data={calibration ?? { levels: null, false_certainties: null }}
             answers={calibrationAnswers}
@@ -477,6 +505,43 @@ export default function StatsPage() {
           />
         </TiltCard>
       </section>
+
+      {/* 4b. False certainties */}
+      {calibration?.false_certainties && calibration.false_certainties.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
+            Fausses certitudes ({calibration.false_certainties.length})
+          </h2>
+          <p className="mt-1 text-xs text-neutral-400">
+            Questions où vous étiez sûr mais la réponse était fausse
+          </p>
+          <div className="relative mt-3">
+            <div className="max-h-[230px] overflow-y-auto rounded-xl">
+              <StaggerList className="flex flex-col gap-2 p-1" staggerDelay={0.08} duration={0.4}>
+                {calibration.false_certainties.map((fc) => (
+                  <div
+                    key={fc.question_id}
+                    className="flex items-center gap-3 glass-card-scroll border-l-4 border-l-warning p-2.5"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-neutral-700 line-clamp-1">
+                        {fc.question_number ? `Q${fc.question_number}. ` : ''}
+                        {fc.question_text}
+                      </p>
+                      <p className="mt-0.5 text-xs text-neutral-400">
+                        {fc.topic_title}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      <ScoreCircle score={fc.score_percent} size={40} strokeWidth={2.5} fontSize={11} />
+                    </div>
+                  </div>
+                ))}
+              </StaggerList>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* 5. Weak questions */}
       {weakQuestions.length > 0 && (
@@ -512,7 +577,7 @@ export default function StatsPage() {
                     onBlur={() => setTimeout(() => setHistorySearchOpen(false), 150)}
                     placeholder="Filtrer par cours…"
                     aria-label="Filtrer par cours"
-                    className="h-8 w-[140px] glass-input px-2 py-1 text-xs text-neutral-700 placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    className="h-8 w-[140px] glass-card-inner px-2 py-1 text-xs text-neutral-700 placeholder:text-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
                   />
                   {historyTopicFilter && (
                     <button
@@ -525,7 +590,7 @@ export default function StatsPage() {
                     </button>
                   )}
                   {historySearchOpen && historyTopicFilter && matchingTopics.length > 0 && (
-                    <ul className="absolute right-0 top-full z-10 mt-1 max-h-40 w-[220px] overflow-y-auto glass-card py-1">
+                    <ul className="absolute right-0 top-full z-10 mt-1 max-h-40 w-[220px] overflow-y-auto glass-card-inner py-1">
                       {matchingTopics.map((t) => (
                         <li key={t}>
                           <button
@@ -548,7 +613,7 @@ export default function StatsPage() {
                 <Link
                   key={s.id}
                   href={s.session_type === 'exam' ? `/exam/results/${s.id}` : `/quiz/results/${s.id}`}
-                  className="flex items-center justify-between glass-card border-l-4 border-l-primary p-3 transition-colors hover:bg-white/80 sm:p-4"
+                  className="flex items-center justify-between glass-card-inner border-l-4 border-l-primary p-3 transition-colors hover:bg-white/50 sm:p-4"
                 >
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-neutral-700">
@@ -568,7 +633,7 @@ export default function StatsPage() {
               <button
                 type="button"
                 onClick={() => setShowAllSessions(true)}
-                className="mt-2 min-h-[44px] w-full rounded-2xl glass-btn-secondary py-2 text-sm font-medium text-primary transition-colors hover:bg-primary-50"
+                className="mt-2 min-h-[44px] w-full rounded-2xl glass-card-inner py-2 text-sm font-medium text-primary transition-colors hover:bg-white/50"
               >
                 Voir tout ({filteredSessions.length})
               </button>

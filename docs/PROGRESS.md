@@ -2,7 +2,7 @@
 
 ---
 
-## ⚠️ CURRENT STATE — READ THIS FIRST (2026-03-17)
+## ⚠️ CURRENT STATE — READ THIS FIRST (2026-03-20)
 
 **THE ADMIN "BASE DE DONNÉES" TAB IS AN AG GRID EXCEL-STYLE SPREADSHEET.**
 
@@ -18,9 +18,11 @@
 5. To edit propositions: click the cell → small popup with A-E text fields
 6. To edit correct answers: click the cell → small popup with checkboxes
 7. To edit explanation: click the cell → TipTap WYSIWYG editor popup
-8. To toggle active: single-click the toggle
-9. All edits auto-save immediately and mark the question as a draft
-10. Admin clicks "Synchroniser" button to publish all drafts to students
+8. To toggle active: single-click the toggle (green "Actif" / gray "Inactif" pill)
+9. To toggle review status: single-click the "Vérifié" column (orange "À vérifier" / green "Vérifié")
+10. All edits auto-save immediately and mark the question as a draft
+11. Admin clicks "Synchroniser" button to publish all drafts to students
+12. Sync warns if unreviewed items exist — admin can skip unreviewed or force publish all
 
 ### Key files (DO NOT DELETE OR REPLACE)
 - `src/components/admin/QuestionGrid.tsx` — THE spreadsheet (AG Grid)
@@ -31,6 +33,8 @@
 - `src/components/admin/EditLogPanel.tsx` — edit history
 - `src/lib/adminAutoSave.ts` — auto-save + draft mode
 - `src/components/admin/QuestionSidePanel.tsx` — ONLY for the "+ Question" button (NEW questions)
+- `src/components/admin/MaterialGrid.tsx` — AG Grid for Cours/Vidéos/Fichiers tabs
+- `src/components/admin/MaterialList.tsx` — wrapper with filters, bulk actions, and MaterialGrid
 
 ### What's broken right now
 - **BUG 2**: Drag-to-fill requires AG Grid Enterprise (we have Community)
@@ -40,7 +44,7 @@
 - **Leaked password protection**: Disabled in Supabase Auth. Enable in Dashboard → Authentication → Settings.
 
 ### What works
-Chapter/sub-chapter inline editing (textarea popup, same as Énoncé), Synchroniser tracking all changes, Corbeille (trash with 24h auto-purge), bulk actions (Modifier, Désactiver, Supprimer), draft mode, popup editors, filters with dynamic topic lists, 22 E2E tests + 8 draft tracking tests.
+Chapter/sub-chapter inline editing (textarea popup, same as Énoncé), Synchroniser tracking all changes, Corbeille (trash with 24h auto-purge), bulk actions (Modifier, Désactiver, Supprimer), draft mode, popup editors, filters with dynamic topic lists, 22 E2E tests + 8 draft tracking tests, review workflow (Vérifié column on all tabs), Material AG Grid (Cours/Vidéos/Fichiers), import sets is_draft+needs_review, sync review warning with force/skip options, DOMPurify on import preview.
 
 **Full details in numbered sections below.**
 
