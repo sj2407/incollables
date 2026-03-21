@@ -3,34 +3,33 @@
  *
  * Flow:
  *   1. Auth guard (admin-only)
- *   2. Write .docx to temp file
- *   3. Call Python preprocessing script (scripts/preprocessing_json.py)
- *      — python-docx for structure (questions, propositions, answers, chapters, bold detection)
- *      — mammoth for HTML (explanation formatting, embedded images as base64)
- *   4. Returns structured JSON ready for the import Edge Function
+ *   2. Forward .docx binary to Railway parse server (Flask API)
+ *   3. Returns structured JSON ready for the import Edge Function
  */
 
 import { createClient } from '@/lib/supabase/server';
 import type { ImportParseResult } from '@/lib/importWord';
-import { execFile } from 'child_process';
-import { writeFile, unlink } from 'fs/promises';
-import { tmpdir } from 'os';
-import { join } from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-const PARSE_TIMEOUT = 60_000; // 60s — Python parsing can be slower on large docs
-
-// Resolve path to the Python script (repo root is one level above physioquiz/)
-const SCRIPT_PATH = join(process.cwd(), '..', 'scripts', 'preprocessing_json.py');
+const PARSE_TIMEOUT = 60_000; // 60s
+const PARSE_SERVER_URL = process.env.PARSE_SERVER_URL;
+const PARSE_API_KEY = process.env.PARSE_API_KEY;
 
 // ---------------------------------------------------------------------------
 // Route handler
 // ---------------------------------------------------------------------------
 
 export async function POST(request: NextRequest) {
+  if (!PARSE_SERVER_URL || !PARSE_API_KEY) {
+    return NextResponse.json(
+      { error: 'Parse server not configured' },
+      { status: 500 },
+    );
+  }
+
   // 0. Size limit (early check via header)
   const contentLength = parseInt(request.headers.get('content-length') ?? '0', 10);
   if (contentLength > MAX_FILE_SIZE) {
@@ -67,53 +66,44 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // 3. Parse via Python preprocessing script
+  // 3. Forward to Railway parse server
   try {
-    const result = await parseWithPython(arrayBuffer);
-    return NextResponse.json(result);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Erreur de parsing';
-    return NextResponse.json({ error: message }, { status: 500 });
-  }
-}
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), PARSE_TIMEOUT);
 
-// ---------------------------------------------------------------------------
-// Python subprocess wrapper
-// ---------------------------------------------------------------------------
-
-async function parseWithPython(buffer: ArrayBuffer): Promise<ImportParseResult> {
-  // Write to temp file
-  const tmpPath = join(tmpdir(), `parse-word-${Date.now()}-${Math.random().toString(36).slice(2)}.docx`);
-  await writeFile(tmpPath, Buffer.from(buffer));
-
-  try {
-    const stdout = await new Promise<string>((resolve, reject) => {
-      execFile(
-        'python3',
-        [SCRIPT_PATH, tmpPath],
-        { timeout: PARSE_TIMEOUT, maxBuffer: 50 * 1024 * 1024 },
-        (err, stdout, stderr) => {
-          if (err) {
-            const msg = stderr?.trim() || err.message;
-            reject(new Error(`Erreur preprocessing: ${msg}`));
-          } else {
-            resolve(stdout);
-          }
-        },
-      );
+    const response = await fetch(`${PARSE_SERVER_URL}/parse-word`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/octet-stream',
+        'X-API-Key': PARSE_API_KEY,
+      },
+      body: arrayBuffer,
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
 
-    // Parse JSON output
-    const result = JSON.parse(stdout);
-
-    // Check if the script returned an error
-    if (result.error) {
-      throw new Error(result.error);
+    const result = await response.json();
+    if (!response.ok) {
+      return NextResponse.json(
+        { error: result.error || `Erreur serveur (${response.status})` },
+        { status: response.status },
+      );
     }
-
-    return result as ImportParseResult;
-  } finally {
-    // Clean up temp file
-    await unlink(tmpPath).catch(() => {});
+    return NextResponse.json(result as ImportParseResult);
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') {
+      return NextResponse.json(
+        { error: 'Délai dépassé pour le parsing (60s)' },
+        { status: 504 },
+      );
+    }
+    const message =
+      err instanceof Error &&
+      (err.message.includes('ECONNREFUSED') || err.message.includes('fetch failed'))
+        ? 'Le serveur de parsing est temporairement indisponible. Réessayez dans quelques minutes.'
+        : err instanceof Error
+          ? err.message
+          : 'Erreur de parsing';
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
