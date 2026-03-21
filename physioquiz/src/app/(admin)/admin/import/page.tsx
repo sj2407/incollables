@@ -220,7 +220,7 @@ function MaterialImportSection({ materialType, label }: { materialType: 'resume'
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Titre"
-            className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="mt-2 w-full glass-card-inner px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <div className="mt-3 max-h-[300px] overflow-y-auto glass-card-inner p-4">
             <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(contentHtml) }} />
@@ -321,7 +321,7 @@ function VideoImportSection() {
           <button
             type="button"
             onClick={() => setMode('youtube')}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-neutral-200 p-6 text-sm font-medium text-neutral-700 transition-colors hover:border-primary/50 hover:bg-primary/5"
+            className="flex flex-1 items-center justify-center gap-2 glass-card-inner p-6 text-sm font-medium text-neutral-700 transition-colors hover:border-primary/50 hover:bg-white/60"
           >
             <LinkSimple size={20} />
             Lien YouTube
@@ -329,7 +329,7 @@ function VideoImportSection() {
           <button
             type="button"
             onClick={() => setMode('upload')}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl border-2 border-neutral-200 p-6 text-sm font-medium text-neutral-700 transition-colors hover:border-primary/50 hover:bg-primary/5"
+            className="flex flex-1 items-center justify-center gap-2 glass-card-inner p-6 text-sm font-medium text-neutral-700 transition-colors hover:border-primary/50 hover:bg-white/60"
           >
             <VideoCamera size={20} />
             Fichier vidéo
@@ -345,14 +345,14 @@ function VideoImportSection() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Titre de la vidéo"
-            className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="mt-2 w-full glass-card-inner px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <input
             type="url"
             value={videoUrl}
             onChange={(e) => setVideoUrl(e.target.value)}
             placeholder="https://www.youtube.com/watch?v=..."
-            className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="mt-2 w-full glass-card-inner px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           {videoUrl && extractYouTubeId(videoUrl) && (
             <div className="mt-3 overflow-hidden rounded-lg">
@@ -381,7 +381,7 @@ function VideoImportSection() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Titre de la vidéo"
-            className="mt-2 w-full rounded-lg border border-neutral-200 px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="mt-2 w-full glass-card-inner px-3 py-2 text-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <div className="mt-2">
             <DropZone

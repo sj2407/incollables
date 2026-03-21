@@ -642,7 +642,7 @@ export default function AdminDatabasePage() {
               disabled={dupeMode}
               title={dupeMode ? 'Désactiver le mode doublons pour filtrer' : undefined}
               aria-label="Filtrer par chapitre"
-              className="h-7 w-28 shrink-0 truncate rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-7 w-28 shrink-0 truncate glass-card-inner px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">Chapitre</option>
               {activeChapters.map((t) => (
@@ -656,7 +656,7 @@ export default function AdminDatabasePage() {
               disabled={dupeMode}
               title={dupeMode ? 'Désactiver le mode doublons pour filtrer' : undefined}
               aria-label="Filtrer par sous-chapitre"
-              className="h-7 w-32 shrink-0 truncate rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-7 w-32 shrink-0 truncate glass-card-inner px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">Sous-chapitre</option>
               {activeSubchapters
@@ -674,7 +674,7 @@ export default function AdminDatabasePage() {
               title={dupeMode ? 'Désactiver le mode doublons pour filtrer' : undefined}
               placeholder="Rechercher..."
               aria-label="Rechercher une question"
-              className="h-7 min-w-0 flex-1 rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
+              className="h-7 min-w-0 flex-1 glass-card-inner px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
             />
 
             {chapterFilter && (

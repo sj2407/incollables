@@ -96,13 +96,14 @@
 .question-grid-theme {
   --ag-font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
   --ag-font-size: 13px;
-  --ag-header-background-color: #F9FAFB;
+  --ag-header-background-color: rgba(249, 250, 251, 0.40);
   --ag-header-foreground-color: #374151;
   --ag-row-hover-color: rgba(238, 242, 255, 0.5);
   --ag-selected-row-background-color: rgba(238, 242, 255, 0.6);
   --ag-border-color: #E5E7EB;
   --ag-row-border-color: #F3F4F6;
-  --ag-background-color: #FFFFFF;
+  --ag-background-color: rgba(255, 255, 255, 0.40);
+  --ag-odd-row-background-color: transparent;
   --ag-foreground-color: #374151;
   --ag-border-radius: 12px;
   --ag-wrapper-border-radius: 12px;
