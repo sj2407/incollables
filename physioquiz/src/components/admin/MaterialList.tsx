@@ -55,7 +55,7 @@ export default function MaterialList({ materialType, onDraftCountChanged }: Mate
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Draft count (reported to parent)
-  const [draftCount, setDraftCount] = useState(0);
+  const [, setDraftCount] = useState(0);
 
   // Panels
   const [showCorbeille, setShowCorbeille] = useState(false);

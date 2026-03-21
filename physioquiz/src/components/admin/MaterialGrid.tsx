@@ -149,7 +149,7 @@ interface MaterialGridProps {
 
 export default function MaterialGrid({
   materials,
-  topics,
+  topics: _topics,
   selectedIds,
   onSelectionChanged,
   onDraftChanged,
