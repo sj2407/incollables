@@ -55,6 +55,69 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
+/** Strip HTML tags and decode common entities → clean plain text. */
+function stripHtmlToPlainText(html: string): string {
+  // Remove all HTML tags
+  let text = html.replace(/<[^>]*>/g, '');
+  // Decode common HTML entities
+  text = text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+  // Collapse whitespace
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Find all <img src="data:...;base64,..."> in HTML, upload each to
+ * Supabase Storage, and replace the data URI with the public URL.
+ */
+// deno-lint-ignore no-explicit-any
+async function replaceBase64ImagesWithStorageUrls(
+  html: string,
+  pathPrefix: string,
+  adminClient: any,
+): Promise<string> {
+  if (!html) return html;
+
+  const regex = /<img\s+[^>]*src="data:([^;]+);base64,([^"]+)"[^>]*\/?>/gi;
+  let result = html;
+  const matches: Array<{ fullMatch: string; contentType: string; base64: string }> = [];
+  let match;
+  while ((match = regex.exec(html)) !== null) {
+    // Size guard: skip images with > 5 MB of base64 data (~3.75 MB decoded)
+    if (match[2].length > 5 * 1024 * 1024) continue;
+    matches.push({ fullMatch: match[0], contentType: match[1], base64: match[2] });
+  }
+
+  for (let i = 0; i < matches.length; i++) {
+    const m = matches[i];
+    try {
+      const bytes = base64ToUint8Array(m.base64);
+      const ext = (m.contentType.split('/')[1] ?? 'png').replace('jpeg', 'jpg');
+      const filename = `${pathPrefix}_${i}.${ext}`;
+
+      await adminClient.storage.from('question-images').upload(filename, bytes, {
+        contentType: m.contentType,
+        upsert: true,
+      });
+
+      const { data } = adminClient.storage.from('question-images').getPublicUrl(filename);
+      if (data?.publicUrl) {
+        result = result.replace(m.fullMatch, `<img src="${data.publicUrl}" />`);
+      }
+    } catch (err) {
+      console.error(`Failed to upload explanation image ${i}:`, err);
+      // Leave base64 as-is on failure (graceful fallback)
+    }
+  }
+
+  return result;
+}
+
 // --- Main handler ---
 
 Deno.serve(async (req: Request) => {
@@ -253,14 +316,26 @@ Deno.serve(async (req: Request) => {
           }
         }
 
+        // Clean question text: strip HTML tags → plain text
+        const cleanQuestionText = stripHtmlToPlainText(q.stemText);
+
+        // Clean explanation: replace base64 images with Supabase Storage URLs
+        const cleanExplanationHtml = q.explanationHtml
+          ? await replaceBase64ImagesWithStorageUrls(
+              q.explanationHtml,
+              `q${q.sequentialNumber}/expl`,
+              adminClient,
+            )
+          : null;
+
         // Insert question
         const questionId = generateUUID();
         await adminClient.from('questions').insert({
           id: questionId,
           topic_id: topicId,
           question_number: q.sequentialNumber,
-          question_text: q.stemText,
-          explanation_html: q.explanationHtml || null,
+          question_text: cleanQuestionText,
+          explanation_html: cleanExplanationHtml,
           difficulty: 'medium',
           is_active: isActive,
           needs_review: true,

@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client';
 import { saveQuestionField, publishAllDrafts, getDraftCount } from '@/lib/adminAutoSave';
 import { getMaterialDraftCount, publishMaterialDrafts, getMaterialSyncDiff } from '@/lib/adminMaterialActions';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { findDuplicates, buildGroupLookup, type DuplicateResult } from '@/lib/findDuplicates';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import PillToggle from '@/components/ui/PillToggle';
 import { useSearchParams } from 'next/navigation';
@@ -28,6 +29,7 @@ const QuestionGrid = dynamic(
 const PropositionPopup = dynamic(() => import('@/components/admin/PropositionPopup'));
 const CorrectAnswersPopup = dynamic(() => import('@/components/admin/CorrectAnswersPopup'));
 const TipTapEditor = dynamic(() => import('@/components/admin/TipTapEditor'));
+const EnoncePopup = dynamic(() => import('@/components/admin/EnoncePopup'));
 const EditLogPanel = dynamic(() => import('@/components/admin/EditLogPanel'));
 const CorbeillePanel = dynamic(() => import('@/components/admin/CorbeillePanel'));
 const TopicManagerPanel = dynamic(() => import('@/components/admin/TopicManagerPanel'));
@@ -54,6 +56,28 @@ const TAB_TO_TYPE: Record<string, MaterialType> = {
   videos: 'video',
   fichiers: 'fiche',
 };
+
+/** Map raw RPC rows to typed AdminQuestionRow[]. */
+function mapRpcToAdminRows(data: Record<string, unknown>[]): AdminQuestionRow[] {
+  return data.map((q) => ({
+    question_id: q.question_id as string,
+    question_number: q.question_number as number | null,
+    question_text: q.question_text as string,
+    topic_id: q.topic_id as string,
+    topic_title: q.topic_title as string,
+    parent_topic_title: (q.parent_topic_title as string | null) ?? null,
+    difficulty: q.difficulty as AdminQuestionRow['difficulty'],
+    is_active: q.is_active as boolean,
+    correct_labels: (q.correct_labels as string) ?? '',
+    has_explanation: (q.has_explanation as boolean) ?? false,
+    explanation_html: (q.explanation_html as string | null) ?? null,
+    all_choices: (q.all_choices as AdminQuestionRow['all_choices']) ?? [],
+    total_attempts: Number(q.total_attempts),
+    avg_score: Number(q.avg_score),
+    is_draft: (q.is_draft as boolean) ?? false,
+    needs_review: (q.needs_review as boolean) ?? false,
+  }));
+}
 
 export default function AdminDatabasePage() {
   const searchParams = useSearchParams();
@@ -123,6 +147,13 @@ export default function AdminDatabasePage() {
   const [corbeilleCount, setCorbeilleCount] = useState(0);
   const [showActionsMenu, setShowActionsMenu] = useState(false);
 
+  // Duplicate detection mode
+  const [dupeResult, setDupeResult] = useState<DuplicateResult | null>(null);
+  const [dupeAllQuestions, setDupeAllQuestions] = useState<AdminQuestionRow[] | null>(null);
+  const [dupeLoading, setDupeLoading] = useState(false);
+  const [dupeToast, setDupeToast] = useState<string | null>(null);
+  const dupeModeRef = useRef(false);
+
   // Topic management modal
   const [topicModal, setTopicModal] = useState<{
     editId: string | null;
@@ -170,24 +201,7 @@ export default function AdminDatabasePage() {
       return;
     }
 
-    const rows: AdminQuestionRow[] = (data ?? []).map((q: Record<string, unknown>) => ({
-      question_id: q.question_id as string,
-      question_number: q.question_number as number | null,
-      question_text: q.question_text as string,
-      topic_id: q.topic_id as string,
-      topic_title: q.topic_title as string,
-      parent_topic_title: (q.parent_topic_title as string | null) ?? null,
-      difficulty: q.difficulty as AdminQuestionRow['difficulty'],
-      is_active: q.is_active as boolean,
-      correct_labels: (q.correct_labels as string) ?? '',
-      has_explanation: (q.has_explanation as boolean) ?? false,
-      explanation_html: (q.explanation_html as string | null) ?? null,
-      all_choices: (q.all_choices as AdminQuestionRow['all_choices']) ?? [],
-      total_attempts: Number(q.total_attempts),
-      avg_score: Number(q.avg_score),
-      is_draft: (q.is_draft as boolean) ?? false,
-      needs_review: (q.needs_review as boolean) ?? false,
-    }));
+    const rows = mapRpcToAdminRows((data ?? []) as Record<string, unknown>[]);
 
     setQuestions(rows);
     setLoading(false);
@@ -272,12 +286,36 @@ export default function AdminDatabasePage() {
     fetchQuestions();
   }, [fetchQuestions]);
 
+  // Keep ref in sync with dupe mode state
+  useEffect(() => {
+    dupeModeRef.current = dupeResult !== null && dupeAllQuestions !== null;
+  }, [dupeResult, dupeAllQuestions]);
+
   const handleRefresh = useCallback(async () => {
     setSelectedIds(new Set());
     await fetchQuestions();
     fetchTopics();
     refreshDraftCount();
     refreshCorbeilleCount();
+
+    // If dupe mode is active, re-run detection on fresh data to avoid ghost rows
+    if (dupeModeRef.current) {
+      const supabase = createClient();
+      const { data } = await supabase.rpc('get_admin_question_database_v2', {
+        p_topic_id: null, p_search: null, p_active_filter: null, p_difficulty_filter: null,
+      });
+      if (data) {
+        const freshRows = mapRpcToAdminRows(data as Record<string, unknown>[]);
+        const freshResult = findDuplicates(freshRows);
+        if (freshResult.groupCount === 0) {
+          setDupeResult(null);
+          setDupeAllQuestions(null);
+        } else {
+          setDupeResult(freshResult);
+          setDupeAllQuestions(freshRows);
+        }
+      }
+    }
   }, [fetchQuestions, fetchTopics, refreshDraftCount, refreshCorbeilleCount]);
 
   // Lightweight refresh — only update draft count, no full data reload
@@ -299,6 +337,17 @@ export default function AdminDatabasePage() {
   const handleExplanationSave = useCallback(async (html: string) => {
     if (!popup) return;
     const result = await saveQuestionField(popup.questionId, 'explanation_html', popup.data.explanation_html, html);
+    if (result.success) {
+      handlePopupSaved();
+    } else {
+      setError(result.error ?? 'Erreur lors de l\'enregistrement.');
+      setPopup(null);
+    }
+  }, [popup, handlePopupSaved]);
+
+  const handleEnonceSave = useCallback(async (text: string) => {
+    if (!popup) return;
+    const result = await saveQuestionField(popup.questionId, 'question_text', popup.data.question_text, text);
     if (result.success) {
       handlePopupSaved();
     } else {
@@ -419,6 +468,75 @@ export default function AdminDatabasePage() {
     fetchQuestions();
   }, [topicModal, fetchTopics, fetchQuestions]);
 
+  // Duplicate detection — fetches ALL questions globally, ignoring current filters
+  const handleDetectDuplicates = useCallback(async () => {
+    setDupeLoading(true);
+    setShowActionsMenu(false);
+    const supabase = createClient();
+
+    const { data, error: rpcErr } = await supabase.rpc('get_admin_question_database_v2', {
+      p_topic_id: null,
+      p_search: null,
+      p_active_filter: null,
+      p_difficulty_filter: null,
+    });
+
+    if (rpcErr || !data) {
+      setError(rpcErr?.message ?? 'Erreur lors du chargement des questions.');
+      setDupeLoading(false);
+      return;
+    }
+
+    const allRows = mapRpcToAdminRows(data as Record<string, unknown>[]);
+
+    const result = findDuplicates(allRows);
+    setDupeLoading(false);
+
+    if (result.groupCount === 0) {
+      setDupeToast('Aucun doublon détecté');
+      setTimeout(() => setDupeToast(null), 3500);
+      return;
+    }
+
+    setDupeResult(result);
+    setDupeAllQuestions(allRows);
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleDismissDupeMode = useCallback(() => {
+    setDupeResult(null);
+    setDupeAllQuestions(null);
+  }, []);
+
+  // Derive dupe mode display data
+  const dupeMode = dupeResult !== null && dupeAllQuestions !== null;
+  const dupeDisplayQuestions = useMemo(() => {
+    if (!dupeMode || !dupeAllQuestions || !dupeResult) return null;
+    return dupeAllQuestions.filter((q) => dupeResult.duplicateIds.has(q.question_id));
+  }, [dupeMode, dupeAllQuestions, dupeResult]);
+  const dupeGroupLookup = useMemo(() => {
+    if (!dupeResult) return undefined;
+    return buildGroupLookup(dupeResult.groups);
+  }, [dupeResult]);
+  // Live count: recompute from current data (handles deletions via refresh)
+  const dupeLiveCount = dupeDisplayQuestions?.length ?? 0;
+  const dupeLiveGroupCount = useMemo(() => {
+    if (!dupeGroupLookup || !dupeDisplayQuestions) return 0;
+    const seen = new Set<number>();
+    for (const q of dupeDisplayQuestions) {
+      const g = dupeGroupLookup.get(q.question_id);
+      if (g) seen.add(g);
+    }
+    return seen.size;
+  }, [dupeGroupLookup, dupeDisplayQuestions]);
+
+  // Auto-dismiss dupe mode when no dupes remain
+  useEffect(() => {
+    if (dupeMode && dupeLiveCount === 0) {
+      handleDismissDupeMode();
+    }
+  }, [dupeMode, dupeLiveCount, handleDismissDupeMode]);
+
   return (
     <div className={`flex h-full ${panelId ? 'gap-0' : ''}`}>
       {/* Main content */}
@@ -466,7 +584,7 @@ export default function AdminDatabasePage() {
           </div>
           {/* Tab toggle */}
           <div className="mt-2 overflow-x-auto">
-            <PillToggle options={TAB_OPTIONS} active={activeTab} onChange={setActiveTab} />
+            <PillToggle options={TAB_OPTIONS} active={activeTab} onChange={(tab) => { setActiveTab(tab); if (tab !== 'questions') handleDismissDupeMode(); }} />
           </div>
 
           {activeTab === 'questions' ? (
@@ -502,6 +620,15 @@ export default function AdminDatabasePage() {
                   <button type="button" onClick={() => { setShowCorbeille(true); setShowActionsMenu(false); }} className="w-full px-3 py-2 text-left text-xs text-neutral-700 hover:bg-white/50">
                     Corbeille{corbeilleCount > 0 ? ` (${corbeilleCount})` : ''}
                   </button>
+                  <hr className="my-1 border-neutral-200" />
+                  <button
+                    type="button"
+                    onClick={handleDetectDuplicates}
+                    disabled={dupeLoading}
+                    className="w-full px-3 py-2 text-left text-xs text-neutral-700 hover:bg-white/50 disabled:opacity-50"
+                  >
+                    {dupeLoading ? 'Analyse en cours...' : 'Détecter les doublons'}
+                  </button>
                 </div>
               )}
             </div>
@@ -510,10 +637,12 @@ export default function AdminDatabasePage() {
           {/* Row 3 — Filters (single row) */}
           <div className="mt-3 flex items-center gap-1.5">
             <select
-              value={chapterFilter}
+              value={dupeMode ? '' : chapterFilter}
               onChange={(e) => { setChapterFilter(e.target.value); setSubchapterFilter(''); }}
+              disabled={dupeMode}
+              title={dupeMode ? 'Désactiver le mode doublons pour filtrer' : undefined}
               aria-label="Filtrer par chapitre"
-              className="h-7 w-28 shrink-0 truncate rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-7 w-28 shrink-0 truncate rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">Chapitre</option>
               {activeChapters.map((t) => (
@@ -522,10 +651,12 @@ export default function AdminDatabasePage() {
             </select>
 
             <select
-              value={subchapterFilter}
+              value={dupeMode ? '' : subchapterFilter}
               onChange={(e) => setSubchapterFilter(e.target.value)}
+              disabled={dupeMode}
+              title={dupeMode ? 'Désactiver le mode doublons pour filtrer' : undefined}
               aria-label="Filtrer par sous-chapitre"
-              className="h-7 w-32 shrink-0 truncate rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-7 w-32 shrink-0 truncate rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <option value="">Sous-chapitre</option>
               {activeSubchapters
@@ -537,11 +668,13 @@ export default function AdminDatabasePage() {
 
             <input
               type="search"
-              value={search}
+              value={dupeMode ? '' : search}
               onChange={(e) => setSearch(e.target.value)}
+              disabled={dupeMode}
+              title={dupeMode ? 'Désactiver le mode doublons pour filtrer' : undefined}
               placeholder="Rechercher..."
               aria-label="Rechercher une question"
-              className="h-7 min-w-0 flex-1 rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+              className="h-7 min-w-0 flex-1 rounded-lg border border-neutral-300 px-1.5 text-xs focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary disabled:opacity-40 disabled:cursor-not-allowed"
             />
 
             {chapterFilter && (
@@ -571,6 +704,28 @@ export default function AdminDatabasePage() {
           </div>
 
 
+          {/* Duplicate detection banner */}
+          {dupeMode && (
+            <div className="mt-3 flex items-center gap-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+              <span className="text-xs font-semibold text-amber-800">
+                {dupeLiveCount} doublon{dupeLiveCount !== 1 ? 's' : ''} détecté{dupeLiveCount !== 1 ? 's' : ''} ({dupeLiveGroupCount} groupe{dupeLiveGroupCount !== 1 ? 's' : ''})
+              </span>
+              <button
+                type="button"
+                onClick={handleDismissDupeMode}
+                className="ml-auto rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800 hover:bg-amber-200"
+              >
+                Retirer le filtre
+              </button>
+            </div>
+          )}
+          {/* Toast for "no dupes" */}
+          {dupeToast && (
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-3 py-2 animate-fade-in">
+              <span className="text-xs font-medium text-green-700">✓ {dupeToast}</span>
+            </div>
+          )}
+
           {error && <p role="alert" className="mt-3 text-sm text-error">{error}</p>}
 
           {/* Bulk actions bar */}
@@ -579,7 +734,7 @@ export default function AdminDatabasePage() {
               <BulkActions
                 selectedIds={selectedIds}
                 topics={topics}
-                questions={questions}
+                questions={dupeMode && dupeDisplayQuestions ? dupeDisplayQuestions : questions}
                 onDone={handleRefresh}
                 onClear={() => setSelectedIds(new Set())}
               />
@@ -592,12 +747,13 @@ export default function AdminDatabasePage() {
               <GridSkeleton />
             ) : (
               <QuestionGrid
-                questions={questions}
+                questions={dupeMode && dupeDisplayQuestions ? dupeDisplayQuestions : questions}
                 topics={topics}
                 selectedIds={selectedIds}
                 onSelectionChanged={setSelectedIds}
                 onDraftChanged={handleDraftChanged}
                 onPopupOpen={setPopup}
+                duplicateGroupLookup={dupeGroupLookup}
               />
             )}
           </div>
@@ -676,6 +832,15 @@ export default function AdminDatabasePage() {
         <TipTapEditor
           value={popup.data.explanation_html ?? ''}
           onSave={handleExplanationSave}
+          onClose={() => setPopup(null)}
+        />
+      )}
+
+      {popup?.type === 'enonce' && (
+        <EnoncePopup
+          questionId={popup.questionId}
+          value={popup.data.question_text}
+          onSave={handleEnonceSave}
           onClose={() => setPopup(null)}
         />
       )}

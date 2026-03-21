@@ -132,6 +132,13 @@
 - Padding: `space-4` (mobile), `space-6` (desktop)
 - Shadow: `shadow-md`
 
+### Glassmorphism
+| Token | Background | Backdrop blur | Border | Usage |
+|-------|-----------|---------------|--------|-------|
+| `glass-card` | `rgba(255,255,255, 0.78)` | `blur(16px)` | `1px solid rgba(255,255,255, 0.8)` | Main content cards |
+| `glass-card-inner` | `rgba(255,255,255, 0.40)` | `blur(6px)` | `1px solid rgba(255,255,255, 0.4)` | Stat cards, inner elements |
+| `glass-btn-secondary` | `rgba(255,255,255, 0.65)` | `blur(8px)` | `1px solid rgba(255,255,255, 0.6)` | Secondary buttons |
+
 ### Quiz-specific
 | Element | Correct | Incorrect | Partial | Unselected |
 |---------|---------|-----------|---------|------------|

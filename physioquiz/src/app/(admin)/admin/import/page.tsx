@@ -1,22 +1,23 @@
 'use client';
 
-import { FileDoc, CheckCircle, SpinnerGap, UploadSimple, VideoCamera, Notebook, ListChecks, LinkSimple } from '@phosphor-icons/react';
+import { FileDoc, CheckCircle, SpinnerGap, UploadSimple, VideoCamera, LinkSimple } from '@phosphor-icons/react';
 import { useCallback, useState } from 'react';
 import { parseWordFile, type ImportParseResult } from '@/lib/importWord';
 import { parseWordToHtml, extractYouTubeId } from '@/lib/importLearningMaterial';
 import { createClient } from '@/lib/supabase/client';
 import DOMPurify from 'dompurify';
+import PillToggle from '@/components/ui/PillToggle';
 
 // ─── Types ───
 
 type ImportTab = 'questions' | 'resumes' | 'videos' | 'fiches';
 type ImportStep = 'idle' | 'parsing' | 'preview' | 'importing' | 'done' | 'error';
 
-const TABS: { key: ImportTab; label: string; icon: React.ReactNode; accept: string; description: string }[] = [
-  { key: 'questions', label: 'Questions', icon: <FileDoc size={18} />, accept: '.docx', description: '.docx uniquement (.doc et PDF non supportés)' },
-  { key: 'resumes', label: 'Résumés', icon: <Notebook size={18} />, accept: '.docx', description: '.docx uniquement (.doc et PDF non supportés)' },
-  { key: 'videos', label: 'Vidéos', icon: <VideoCamera size={18} />, accept: '.mp4,.mov,.webm', description: 'Fichier vidéo (max 50 Mo)' },
-  { key: 'fiches', label: 'Fiches', icon: <ListChecks size={18} />, accept: '.docx', description: '.docx uniquement (.doc et PDF non supportés)' },
+const TAB_OPTIONS = [
+  { key: 'questions', label: 'Questions' },
+  { key: 'resumes', label: 'Résumés' },
+  { key: 'videos', label: 'Vidéos' },
+  { key: 'fiches', label: 'Fiches' },
 ];
 
 // ─── Main Page ───
@@ -32,22 +33,8 @@ export default function AdminImportPage() {
       </p>
 
       {/* Tabs */}
-      <div className="mt-4 flex gap-1 rounded-lg bg-white/40 backdrop-blur-sm border border-white/40 p-1">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            type="button"
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-md py-2 text-xs font-medium transition-colors ${
-              activeTab === tab.key
-                ? 'bg-white text-primary shadow-sm'
-                : 'text-neutral-500 hover:text-neutral-700'
-            }`}
-          >
-            {tab.icon}
-            <span className="hidden sm:inline">{tab.label}</span>
-          </button>
-        ))}
+      <div className="mt-4 overflow-x-auto">
+        <PillToggle options={TAB_OPTIONS} active={activeTab} onChange={(key) => setActiveTab(key as ImportTab)} />
       </div>
 
       {/* Tab content */}
@@ -111,7 +98,7 @@ function QuestionImportSection() {
   }, []);
 
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card-inner p-6">
       {(step === 'idle' || step === 'error') && (
         <>
           <DropZone accept=".docx" description="Fichier .docx standardisé" onFile={handleFileChange} />
@@ -125,10 +112,10 @@ function QuestionImportSection() {
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
             <StatCard label="Questions" value={parseResult.stats.totalQuestions} />
             <StatCard label="Actives" value={parseResult.stats.activeQuestions} color="text-secondary-500" />
-            <StatCard label="Désactivées" value={parseResult.stats.inactiveQuestions} color="text-warning" />
+            <StatCard label="Sous-chapitres" value={parseResult.stats.totalSubchapters} />
             <StatCard label="Avec explication" value={parseResult.stats.withExplanation} />
             <StatCard label="Images" value={parseResult.stats.totalImages} />
-            <StatCard label="Chapitres" value={parseResult.stats.totalTopics} />
+            <StatCard label="Chapitres" value={parseResult.stats.totalChapters} />
           </div>
           {parseResult.errors.length > 0 && <WarningList items={parseResult.errors} />}
           <p className="mt-4 text-xs text-neutral-400">
@@ -217,7 +204,7 @@ function MaterialImportSection({ materialType, label }: { materialType: 'resume'
   }, []);
 
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card-inner p-6">
       {(step === 'idle' || step === 'error') && (
         <>
           <DropZone accept=".docx" description=".docx uniquement (.doc et PDF non supportés)" onFile={handleFileChange} />
@@ -328,7 +315,7 @@ function VideoImportSection() {
   }, []);
 
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card-inner p-6">
       {step === 'idle' && !mode && (
         <div className="flex flex-col gap-3 sm:flex-row">
           <button

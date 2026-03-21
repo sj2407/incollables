@@ -296,6 +296,9 @@ def is_chapter_title(para, text: str) -> bool:
     all_bold = all(r.bold is True for r in runs_with_text)
     if not all_bold:
         return False
+    # Structural detection: bold paragraph starting with "Chapitre" or "Sous chapitre"
+    if re.match(r'^(Sous\s+)?Chapitre\b', text, re.IGNORECASE):
+        return True
     # Additional filter: must contain a counter like (30) OR be a known section pattern
     # (short title, no punctuation except colon, no proposition-like text)
     has_counter = bool(re.search(r'\(\d+\)', text))
@@ -475,6 +478,10 @@ def parse_question_block(paragraphs, start_i: int, end_i: int,
         if state == 'explanation':
             # We're past the answer line — collect all until end of question block.
             # The end_i boundary (next question start) prevents bleeding.
+            # Skip chapter markers — they are structural, not explanation content.
+            if is_chapter_title(para, text):
+                i += 1
+                continue
             explanation_parts.append(text)
             question.explanation_para_indices.append(i)
             i += 1

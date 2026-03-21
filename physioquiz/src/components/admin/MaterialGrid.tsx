@@ -1,12 +1,12 @@
 'use client';
 
-import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { AgGridReact } from 'ag-grid-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AgGridReact, useGridFilter } from 'ag-grid-react';
 import {
   type ColDef,
   type CellValueChangedEvent,
   type ICellRendererParams,
-  type IFilterParams,
+  type IDoesFilterPassParams,
 } from 'ag-grid-community';
 import { saveMaterialField } from '@/lib/adminMaterialActions';
 import type { AdminMaterialRow, TopicOption } from '@/types/admin';
@@ -94,21 +94,28 @@ function ReviewToggleRenderer(props: ICellRendererParams<AdminMaterialRow>) {
   );
 }
 
-const SelectFilter = forwardRef((props: IFilterParams & { options: { value: string; label: string }[] }, ref) => {
-  const [value, setValue] = useState('');
-  useImperativeHandle(ref, () => ({
-    isFilterActive: () => value !== '',
-    doesFilterPass: (params: { data: Record<string, unknown> }) => {
+function SelectFilter(props: {
+  model: { value: string } | null;
+  onModelChange: (model: { value: string } | null) => void;
+  options: { value: string; label: string }[];
+  colDef: { field?: string };
+}) {
+  const value = props.model?.value ?? '';
+  const field = props.colDef.field ?? '';
+
+  const doesFilterPass = useCallback(
+    (params: IDoesFilterPassParams<AdminMaterialRow>) => {
       if (!value) return true;
-      const field = (props as unknown as { colDef: { field: string } }).colDef.field;
-      return String(params.data[field]) === value;
+      return String((params.data as unknown as Record<string, unknown>)[field]) === value;
     },
-    getModel: () => (value ? { value } : null),
-    setModel: (model: { value: string } | null) => setValue(model?.value ?? ''),
-  }));
+    [value, field],
+  );
+
+  useGridFilter({ doesFilterPass });
+
   const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setValue(e.target.value);
-    (props as unknown as { filterChangedCallback: () => void }).filterChangedCallback();
+    const v = e.target.value;
+    props.onModelChange(v ? { value: v } : null);
   };
   return (
     <div className="p-2">
@@ -118,8 +125,7 @@ const SelectFilter = forwardRef((props: IFilterParams & { options: { value: stri
       </select>
     </div>
   );
-});
-SelectFilter.displayName = 'SelectFilter';
+}
 
 function DateRenderer(props: ICellRendererParams<AdminMaterialRow>) {
   const iso = props.value as string;

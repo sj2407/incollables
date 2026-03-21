@@ -1,14 +1,14 @@
 'use client';
 
 import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { AgGridReact } from 'ag-grid-react';
+import { AgGridReact, useGridFilter } from 'ag-grid-react';
 import {
   type ColDef,
   type CellClickedEvent,
   type CellValueChangedEvent,
   type ICellRendererParams,
   type ICellEditorParams,
-  type IFilterParams,
+  type IDoesFilterPassParams,
   ModuleRegistry,
   AllCommunityModule,
 } from 'ag-grid-community';
@@ -101,21 +101,28 @@ function ReviewToggleRenderer(props: ICellRendererParams<AdminQuestionRow>) {
   );
 }
 
-const SelectFilter = forwardRef((props: IFilterParams & { options: { value: string; label: string }[] }, ref) => {
-  const [value, setValue] = useState('');
-  useImperativeHandle(ref, () => ({
-    isFilterActive: () => value !== '',
-    doesFilterPass: (params: { data: Record<string, unknown> }) => {
+function SelectFilter(props: {
+  model: { value: string } | null;
+  onModelChange: (model: { value: string } | null) => void;
+  options: { value: string; label: string }[];
+  colDef: { field?: string };
+}) {
+  const value = props.model?.value ?? '';
+  const field = props.colDef.field ?? '';
+
+  const doesFilterPass = useCallback(
+    (params: IDoesFilterPassParams<AdminQuestionRow>) => {
       if (!value) return true;
-      const field = (props as unknown as { colDef: { field: string } }).colDef.field;
-      return String(params.data[field]) === value;
+      return String((params.data as unknown as Record<string, unknown>)[field]) === value;
     },
-    getModel: () => (value ? { value } : null),
-    setModel: (model: { value: string } | null) => setValue(model?.value ?? ''),
-  }));
+    [value, field],
+  );
+
+  useGridFilter({ doesFilterPass });
+
   const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setValue(e.target.value);
-    (props as unknown as { filterChangedCallback: () => void }).filterChangedCallback();
+    const v = e.target.value;
+    props.onModelChange(v ? { value: v } : null);
   };
   return (
     <div className="p-2">
@@ -125,8 +132,7 @@ const SelectFilter = forwardRef((props: IFilterParams & { options: { value: stri
       </select>
     </div>
   );
-});
-SelectFilter.displayName = 'SelectFilter';
+}
 
 function DifficultyRenderer(props: ICellRendererParams<AdminQuestionRow>) {
   const d = props.value as string;
@@ -174,6 +180,22 @@ function AllChoicesRenderer(props: ICellRendererParams<AdminQuestionRow>) {
       onClick={(e) => e.stopPropagation()}
     >
       {choices.length === 0 ? '0 prop.' : choices.map((c) => c.label).join(', ')}
+    </button>
+  );
+}
+
+function EnonceRenderer(props: ICellRendererParams<AdminQuestionRow>) {
+  const text = (props.value as string) ?? '';
+  // Strip HTML tags if present (backward compat with old imported HTML data)
+  const clean = text.replace(/<[^>]*>/g, '').trim();
+  return (
+    <button
+      type="button"
+      className="w-full cursor-pointer truncate text-left hover:text-primary"
+      title={clean}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {clean || <span className="text-neutral-300">—</span>}
     </button>
   );
 }
@@ -237,7 +259,7 @@ const DifficultyEditor = forwardRef(function DifficultyEditor(
 
 /* ---------- main grid component ---------- */
 
-export type PopupType = 'propositions' | 'correct_answers' | 'explanation';
+export type PopupType = 'propositions' | 'correct_answers' | 'explanation' | 'enonce';
 
 export interface PopupRequest {
   type: PopupType;
@@ -252,6 +274,8 @@ interface QuestionGridProps {
   onSelectionChanged: (ids: Set<string>) => void;
   onDraftChanged: () => void;
   onPopupOpen: (req: PopupRequest) => void;
+  /** When set, shows a "Groupe" column and alternating row tints per duplicate group. */
+  duplicateGroupLookup?: Map<string, number>;
 }
 
 export default function QuestionGrid({
@@ -261,6 +285,7 @@ export default function QuestionGrid({
   onSelectionChanged,
   onDraftChanged,
   onPopupOpen,
+  duplicateGroupLookup,
 }: QuestionGridProps) {
   const gridRef = useRef<AgGridReact<AdminQuestionRow>>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -305,6 +330,23 @@ export default function QuestionGrid({
       sortable: false,
       resizable: false,
     },
+    // "Groupe" column — only visible during duplicate detection mode
+    ...(duplicateGroupLookup ? [{
+      headerName: 'Groupe',
+      colId: 'dupe_group',
+      valueGetter: (params: { data?: AdminQuestionRow }) =>
+        params.data ? (duplicateGroupLookup.get(params.data.question_id) ?? '') : '',
+      width: 75,
+      maxWidth: 75,
+      filter: false,
+      sortable: true,
+      sort: 'asc' as const,
+      cellStyle: (params: { value?: number }) => {
+        if (!params.value) return undefined;
+        const isEven = params.value % 2 === 0;
+        return { backgroundColor: isEven ? '#eff6ff' : '#f0fdf4', fontWeight: 600, textAlign: 'center' as const };
+      },
+    }] as ColDef<AdminQuestionRow>[] : []),
     {
       headerName: 'Chapitre',
       colId: 'chapter',
@@ -353,11 +395,8 @@ export default function QuestionGrid({
       flex: 1,
       minWidth: 250,
       filter: 'agTextColumnFilter',
-      tooltipField: 'question_text',
-      editable: true,
-      cellEditor: 'agLargeTextCellEditor',
-      cellEditorParams: { maxLength: 5000, rows: 5, cols: 60 },
-      cellEditorPopup: true,
+      cellRenderer: EnonceRenderer,
+      colId: 'enonce_popup',
     },
     {
       headerName: 'Propositions',
@@ -423,7 +462,8 @@ export default function QuestionGrid({
       filter: SelectFilter,
       filterParams: { options: [{ value: 'true', label: 'À vérifier' }, { value: 'false', label: 'Vérifié' }] },
     },
-  ], [topics]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- topics used in onCellValueChanged, not in column defs
+  ], [duplicateGroupLookup]);
 
   const showSaveStatus = useCallback((status: SaveStatus, error?: string) => {
     setSaveStatus(status);
@@ -563,6 +603,8 @@ export default function QuestionGrid({
       onPopupOpen({ type: 'correct_answers', questionId: event.data.question_id, data: event.data });
     } else if (colId === 'explanation_popup') {
       onPopupOpen({ type: 'explanation', questionId: event.data.question_id, data: event.data });
+    } else if (colId === 'enonce_popup') {
+      onPopupOpen({ type: 'enonce', questionId: event.data.question_id, data: event.data });
     }
   }, [onPopupOpen]);
 

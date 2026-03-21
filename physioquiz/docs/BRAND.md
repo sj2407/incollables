@@ -168,7 +168,7 @@ Used for: sub-chapter items, review question rows, false certainty items, alert 
 
 ```css
 .glass-card-inner {
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.40);
   -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
   border: 1px solid rgba(255, 255, 255, 0.4);
