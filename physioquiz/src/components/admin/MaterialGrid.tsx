@@ -9,7 +9,7 @@ import {
   type IDoesFilterPassParams,
 } from 'ag-grid-community';
 import { saveMaterialField } from '@/lib/adminMaterialActions';
-import type { AdminMaterialRow, TopicOption } from '@/types/admin';
+import type { AdminMaterialRow } from '@/types/admin';
 
 /* ---------- save status indicator ---------- */
 
@@ -141,7 +141,6 @@ function DateRenderer(props: ICellRendererParams<AdminMaterialRow>) {
 
 interface MaterialGridProps {
   materials: AdminMaterialRow[];
-  topics: TopicOption[];
   selectedIds: Set<string>;
   onSelectionChanged: (ids: Set<string>) => void;
   onDraftChanged: () => void;
@@ -149,7 +148,6 @@ interface MaterialGridProps {
 
 export default function MaterialGrid({
   materials,
-  topics: _topics,
   selectedIds,
   onSelectionChanged,
   onDraftChanged,

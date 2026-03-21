@@ -254,7 +254,6 @@ export default function MaterialList({ materialType, onDraftCountChanged }: Mate
         ) : (
           <MaterialGrid
             materials={materials}
-            topics={topics}
             selectedIds={selectedIds}
             onSelectionChanged={setSelectedIds}
             onDraftChanged={handleDraftChanged}
