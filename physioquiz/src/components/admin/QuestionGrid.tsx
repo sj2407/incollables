@@ -459,6 +459,8 @@ export default function QuestionGrid({
       field: 'needs_review',
       cellRenderer: ReviewToggleRenderer,
       width: 90,
+      sort: 'desc' as const,
+      sortIndex: 0,
       filter: SelectFilter,
       filterParams: { options: [{ value: 'true', label: 'À vérifier' }, { value: 'false', label: 'Vérifié' }] },
     },
