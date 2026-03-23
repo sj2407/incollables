@@ -38,6 +38,9 @@
 
 ### What's broken right now
 - **BUG 2**: Drag-to-fill requires AG Grid Enterprise (we have Community)
+- **BUG 3 (ASAP)**: `get_weak_questions` RPC (`030_weak_questions_add_topic_id.sql:33`) joins on `sessions.topic_id` (historical) instead of `questions.topic_id` (current). After admin moves questions to a new chapter/sub-chapter, weak questions still display under the OLD topic in student stats. Fix: change `JOIN topics t ON t.id = s.topic_id` to `JOIN topics t ON t.id = q.topic_id` and group by `q.topic_id` instead of `s.topic_id`.
+- **BUG 4**: `get_topics_with_counts` RPC is called by `TopicManagerPanel.tsx:31` but is NOT defined in any migration file. It likely exists only in the live Supabase DB. If the DB is reset from migrations alone, "Gérer chapitres" panel will break. Needs a migration to add this RPC to source control.
+- **BUG 5**: Topic hard-delete in "Gérer chapitres" is blocked if ANY student sessions reference that topic (`TopicManagerPanel.tsx:44-52`), even after all questions have been moved away. `sessions.topic_id` is never updated when questions move, so old sessions orphan the topic and prevent cleanup. This causes clutter over time as admin reorganizes chapters. Needs a solution: either (a) update `sessions.topic_id` when questions are bulk-moved, (b) allow deletion and reassign sessions to the new topic, or (c) change the FK from `ON DELETE CASCADE` to `ON DELETE SET NULL` and allow deletion without destroying session history.
 
 ### Known security items (deferred)
 - **`safe_choices` view**: Created with `SECURITY DEFINER` (migration 011). Needs to be changed to `SECURITY INVOKER`. Deferred because student quiz/exam flow depends on it — needs careful testing before changing. Supabase Security Advisor flags this as ERROR.
