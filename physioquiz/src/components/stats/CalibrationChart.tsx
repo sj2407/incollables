@@ -490,9 +490,10 @@ export default memo(function CalibrationChart({
                 data={treemapData}
                 dataKey="size"
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                content={((props: any) => <CalibrationTreemapCell {...props} onCellClick={(topicId: string, name: string, score: number) => {
+                content={((props: any) => <CalibrationTreemapCell {...props} onCellClick={(topicId: string) => {
                   const topic = brierByTopic.find(t => t.topic_id === topicId);
                   if (topic && onTopicSelect) onTopicSelect(topic);
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 }} />) as any}
                 isAnimationActive={true}
                 animationDuration={600}
