@@ -9,6 +9,8 @@ import { MetricCard, ChartIcon, SessionsIcon, TimerIcon, FlaskIcon } from '@/com
 import { WeakQuestionsSection, type WeakQuestion } from '@/components/stats/WeakQuestions';
 import type { HeatmapNode } from '@/components/stats/Heatmap';
 import { TopicDetailPanel, fetchTopicDetailStats, type TopicDetailStats } from '@/components/stats/Heatmap';
+import type { BrierWeekPoint, BrierTopicPoint, TopicCalibrationDetail } from '@/components/stats/CalibrationChart';
+import { CalibrationTopicDetailPanel } from '@/components/stats/CalibrationChart';
 import ScoreCircle from '@/components/ui/ScoreCircle';
 import StaggerList from '@/components/ui/StaggerList';
 import TiltCard from '@/components/ui/TiltCard';
@@ -38,9 +40,18 @@ interface ProgressPoint {
   question_count?: number;
 }
 
+interface FalseCertainty {
+  question_id: string;
+  question_text: string;
+  question_number: number | null;
+  topic_title: string;
+  score_percent: number;
+}
+
 interface CalibrationData {
   levels: { confidence_level: number; total_answers: number; correct_answers: number; success_rate: number }[] | null;
-  false_certainties: { question_id: string; question_text: string; question_number: number | null; topic_title: string; score_percent: number }[] | null;
+  false_certainties: FalseCertainty[] | null;
+  confidence_fill_rate_alltime: number;
 }
 
 interface CalibrationAnswer {
@@ -69,6 +80,15 @@ export default function StatsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [progressView, setProgressView] = useState<'chart' | 'calendar'>('chart');
+  const [calibrationView, setCalibrationView] = useState<'scatter' | 'evolution' | 'topics'>('scatter');
+  const [brierWeekly, setBrierWeekly] = useState<BrierWeekPoint[]>([]);
+  const [brierByTopic, setBrierByTopic] = useState<BrierTopicPoint[]>([]);
+  const [fcTimeFilter, setFcTimeFilter] = useState<'7' | '30' | 'all'>('30');
+  const [falseCertitudes, setFalseCertitudes] = useState<FalseCertainty[]>([]);
+  const [confidenceFillRateAllTime, setConfidenceFillRateAllTime] = useState(0);
+  const [calSelectedTopic, setCalSelectedTopic] = useState<BrierTopicPoint | null>(null);
+  const [calTopicDetails, setCalTopicDetails] = useState<TopicCalibrationDetail[] | null>(null);
+  const [calTopicLoading, setCalTopicLoading] = useState(false);
 
   // Page-level type filter
   const [filterType, setFilterType] = useState<string>('all');
@@ -91,6 +111,27 @@ export default function StatsPage() {
     setHeatmapDetailStats(stats);
     setHeatmapDetailLoading(false);
   }, []);
+
+  const handleCalTopicSelect = useCallback(async (topic: BrierTopicPoint | null) => {
+    if (!topic) {
+      setCalSelectedTopic(null);
+      setCalTopicDetails(null);
+      return;
+    }
+    setCalSelectedTopic(topic);
+    setCalTopicLoading(true);
+    setCalTopicDetails(null);
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { setCalTopicLoading(false); return; }
+    const rpcType = filterType === 'all' ? null : filterType;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const params: Record<string, any> = { p_user_id: user.id, p_topic_id: topic.topic_id };
+    if (rpcType) params.p_session_type = rpcType;
+    const { data } = await supabase.rpc('get_topic_calibration_detail', params);
+    setCalTopicDetails(data as TopicCalibrationDetail[] | null);
+    setCalTopicLoading(false);
+  }, [filterType]);
 
   // Session history controls
   const [showAllSessions, setShowAllSessions] = useState(false);
@@ -157,16 +198,18 @@ export default function StatsPage() {
     const rpcParams = (base: Record<string, any>) =>
       rpcType ? { ...base, p_session_type: rpcType } : base;
 
-    const [statsResult, prevWeekResult, progressResult, calibrationResult, masteryResult, weakResult, sessionResult, calibAnswersResult] =
+    const [statsResult, prevWeekResult, progressResult, calibrationResult, masteryResult, weakResult, sessionResult, calibAnswersResult, brierWeeklyResult, brierByTopicResult] =
       await Promise.all([
         supabase.rpc('get_dashboard_stats', rpcParams({ p_user_id: user.id })),
         supabase.rpc('get_dashboard_stats_prev_week', rpcParams({ p_user_id: user.id })),
         progressQuery,
-        supabase.rpc('get_calibration_data', rpcParams({ p_user_id: user.id })),
+        supabase.rpc('get_calibration_data', rpcParams({ p_user_id: user.id, p_fc_days: fcTimeFilter === 'all' ? null : parseInt(fcTimeFilter) })),
         supabase.rpc('get_topic_mastery_detailed', rpcParams({ p_user_id: user.id })),
         supabase.rpc('get_weak_questions', rpcParams({ p_user_id: user.id })),
         sessionQuery,
         calibAnswersQuery,
+        supabase.rpc('get_brier_score_by_week', rpcParams({ p_user_id: user.id })),
+        supabase.rpc('get_brier_score_by_topic', rpcParams({ p_user_id: user.id })),
       ]);
 
     // Stats
@@ -220,9 +263,12 @@ export default function StatsPage() {
       setProgress(points);
     }
 
-    // Calibration (aggregated for false certainties)
+    // Calibration (aggregated for false certainties + fill rate)
     if (calibrationResult.data && !calibrationResult.error) {
-      setCalibration(calibrationResult.data as CalibrationData);
+      const calData = calibrationResult.data as CalibrationData;
+      setCalibration(calData);
+      setConfidenceFillRateAllTime(calData.confidence_fill_rate_alltime ?? 0);
+      setFalseCertitudes(calData.false_certainties ?? []);
     }
 
     // Calibration individual answers
@@ -232,6 +278,14 @@ export default function StatsPage() {
         confidence: Number(a.confidence),
         score_percent: Number(a.score_percent),
       })));
+    }
+
+    // Brier score data
+    if (brierWeeklyResult.data && !brierWeeklyResult.error) {
+      setBrierWeekly(brierWeeklyResult.data as BrierWeekPoint[]);
+    }
+    if (brierByTopicResult.data && !brierByTopicResult.error) {
+      setBrierByTopic(brierByTopicResult.data as BrierTopicPoint[]);
     }
 
     // Topic mastery (filter to attempted only)
@@ -291,9 +345,10 @@ export default function StatsPage() {
     }
 
     setLoading(false);
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fcTimeFilter]);
 
-  // Re-fetch everything when filter changes
+  // Re-fetch everything when filter or FC time filter changes
   useEffect(() => {
     fetchData(filterType);
   }, [fetchData, filterType]);
@@ -490,35 +545,77 @@ export default function StatsPage() {
 
       {/* 4. Calibration */}
       <section className="mt-6" aria-labelledby="calibration-heading">
-        <h2 id="calibration-heading" className="mb-1 text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]" title="Chaque point = une réponse individuelle. Si vous répondez à la même question deux fois, elle apparaît deux fois.">
-          Calibration
-        </h2>
-        <p className="mb-3 text-xs text-neutral-500">
-          Votre taux de réussite réel vs votre confiance déclarée
-          <span className="ml-1 inline-flex align-middle text-neutral-400" title="Chaque point = une réponse individuelle (non moyennée par question)"><InfoIcon /></span>
-        </p>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <div>
+            <h2 id="calibration-heading" className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
+              Calibration
+            </h2>
+            <p className="text-xs text-neutral-500">
+              Votre taux de réussite réel vs votre confiance déclarée
+              <span className="ml-1 inline-flex align-middle text-neutral-400" title="Chaque point = une réponse individuelle (non moyennée par question)"><InfoIcon /></span>
+            </p>
+          </div>
+          <PillToggle
+            options={[
+              { key: 'scatter', label: 'Points' },
+              { key: 'evolution', label: 'Courbe' },
+              { key: 'topics', label: 'Thèmes' },
+            ]}
+            active={calibrationView}
+            onChange={(key) => {
+              setCalibrationView(key as 'scatter' | 'evolution' | 'topics');
+              if (key !== 'topics') { setCalSelectedTopic(null); setCalTopicDetails(null); }
+            }}
+          />
+        </div>
         <TiltCard className="glass-card-inner p-4 sm:p-6" tiltDeg={1.5} gentle>
           <CalibrationChart
-            data={calibration ?? { levels: null, false_certainties: null }}
+            data={calibration ?? { levels: null, false_certainties: null, confidence_fill_rate_alltime: 0 }}
             answers={calibrationAnswers}
             confidenceFillRate={stats?.confidence_fill_rate ?? 0}
+            confidenceFillRateAllTime={confidenceFillRateAllTime}
+            view={calibrationView}
+            brierWeekly={brierWeekly}
+            brierByTopic={brierByTopic}
+            onTopicSelect={handleCalTopicSelect}
           />
         </TiltCard>
+        {calSelectedTopic && (
+          <CalibrationTopicDetailPanel
+            topic={calSelectedTopic}
+            details={calTopicDetails}
+            loading={calTopicLoading}
+            onClose={() => { setCalSelectedTopic(null); setCalTopicDetails(null); }}
+          />
+        )}
       </section>
 
       {/* 4b. False certainties */}
-      {calibration?.false_certainties && calibration.false_certainties.length > 0 && (
+      {falseCertitudes.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
-            Fausses certitudes ({calibration.false_certainties.length})
-          </h2>
-          <p className="mt-1 text-xs text-neutral-400">
-            Questions où vous étiez sûr mais la réponse était fausse
-          </p>
-          <div className="relative mt-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <div>
+              <h2 className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
+                Fausses certitudes ({falseCertitudes.length})
+              </h2>
+              <p className="mt-1 text-xs text-neutral-400">
+                Questions où vous étiez sûr mais la réponse était fausse
+              </p>
+            </div>
+            <PillToggle
+              options={[
+                { key: '7', label: '7j' },
+                { key: '30', label: '30j' },
+                { key: 'all', label: 'Tout' },
+              ]}
+              active={fcTimeFilter}
+              onChange={(key) => setFcTimeFilter(key as '7' | '30' | 'all')}
+            />
+          </div>
+          <div className="relative">
             <div className="max-h-[230px] overflow-y-auto rounded-xl">
               <StaggerList className="flex flex-col gap-2 p-1" staggerDelay={0.08} duration={0.4}>
-                {calibration.false_certainties.map((fc) => (
+                {falseCertitudes.map((fc) => (
                   <div
                     key={fc.question_id}
                     className="flex items-center gap-3 glass-card-scroll border-l-4 border-l-warning p-2.5"

@@ -9,7 +9,8 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-primary/10 bg-background-light/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
-        <Link href="/practice" className="text-xl font-bold tracking-tight text-primary md:text-2xl">
+        <Link href="/practice" className="flex items-center gap-2 text-xl font-bold tracking-tight text-primary md:text-2xl">
+          <img src="/logo-v2.png" alt="Logo" className="h-14 w-auto object-contain" />
           Les Incollables
         </Link>
 

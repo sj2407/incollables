@@ -17,7 +17,7 @@ export default function PillToggle({ options, active, onChange }: PillToggleProp
   const activeIndex = options.findIndex((o) => o.key === active);
 
   return (
-    <div className="relative inline-grid rounded-full bg-white/40 backdrop-blur-sm border border-white/40 p-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}>
+    <div className="relative inline-grid shrink-0 rounded-full bg-white/40 backdrop-blur-sm border border-white/40 p-1" style={{ gridTemplateColumns: `repeat(${options.length}, minmax(min-content, 1fr))` }}>
       {/* Sliding pill */}
       <motion.div
         className="absolute inset-y-1 rounded-full bg-primary shadow-md"
@@ -36,7 +36,7 @@ export default function PillToggle({ options, active, onChange }: PillToggleProp
           key={option.key}
           type="button"
           onClick={() => onChange(option.key)}
-          className={`relative z-10 rounded-full px-4 py-1.5 text-center text-xs font-medium transition-colors duration-200 ${
+          className={`relative z-10 whitespace-nowrap rounded-full px-3 py-1.5 text-center text-xs font-medium transition-colors duration-200 ${
             active === option.key
               ? 'text-white'
               : 'text-neutral-500 hover:text-neutral-700'

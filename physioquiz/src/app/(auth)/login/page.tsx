@@ -47,7 +47,10 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-page-gradient px-5 py-8">
       <div className="w-full max-w-md glass-card p-6 sm:p-8">
-        <h1 className="mb-2 text-center text-2xl font-bold text-neutral-900">Les Incollables</h1>
+        <div className="mb-2 flex items-center justify-center gap-2">
+          <img src="/logo-v2.png" alt="Logo" className="h-10 w-10 object-contain" />
+          <h1 className="text-2xl font-bold text-neutral-900">Les Incollables</h1>
+        </div>
         <p className="mb-8 text-center text-sm text-neutral-500">
           Connectez-vous pour continuer
         </p>
