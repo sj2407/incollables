@@ -94,7 +94,7 @@ export default function RegisterPage() {
               autoComplete="name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full glass-input px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full glass-input px-4 py-3 text-base sm:text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Votre nom"
             />
           </div>
@@ -110,7 +110,7 @@ export default function RegisterPage() {
               autoComplete="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full glass-input px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full glass-input px-4 py-3 text-base sm:text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="votre@email.com"
             />
           </div>
@@ -127,7 +127,7 @@ export default function RegisterPage() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full glass-input px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full glass-input px-4 py-3 text-base sm:text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Minimum 6 caract&egrave;res"
             />
           </div>
@@ -145,7 +145,7 @@ export default function RegisterPage() {
               autoComplete="organization"
               value={university}
               onChange={(e) => setUniversity(e.target.value)}
-              className="w-full glass-input px-4 py-3 text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full glass-input px-4 py-3 text-base sm:text-sm text-neutral-900 placeholder-neutral-400 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
               placeholder="Facult&eacute; de m&eacute;decine de..."
             />
           </div>
@@ -161,7 +161,7 @@ export default function RegisterPage() {
               id="yearOfStudy"
               value={yearOfStudy}
               onChange={(e) => setYearOfStudy(e.target.value)}
-              className="w-full glass-input px-4 py-3 text-sm text-neutral-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="w-full glass-input px-4 py-3 text-base sm:text-sm text-neutral-900 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             >
               <option value="">S&eacute;lectionnez</option>
               <option value="1">1&egrave;re ann&eacute;e</option>
