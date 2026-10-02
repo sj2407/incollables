@@ -59,6 +59,66 @@ interface CalibrationAnswer {
   score_percent: number;
 }
 
+// Row shapes returned by the Supabase RPCs / queries used on this page (see supabase/migrations)
+type RpcParams = Record<string, string | number | null>;
+
+interface DashboardStatsRow {
+  avg_score_this_week: number | null;
+  total_sessions_this_week: number | null;
+  total_study_time_seconds: number | null;
+  partial_answer_count: number | null;
+  confidence_fill_rate: number | null;
+}
+
+interface PrevWeekStatsRow {
+  avg_score: number | null;
+  total_sessions: number | null;
+  total_study_time_seconds: number | null;
+  partial_answer_count: number | null;
+}
+
+interface TopicMasteryRow {
+  topic_id: string;
+  topic_title: string | null;
+  topic_level: number | null;
+  parent_id: string | null;
+  question_count: number | null;
+  questions_attempted: number | null;
+  coverage: number | null;
+  mastery_percent: number | null;
+}
+
+interface WeakQuestionRow {
+  question_id: string;
+  question_text: string;
+  question_number: number | null;
+  topic_title: string;
+  topic_id: string;
+  avg_score: number;
+  attempt_count: number;
+}
+
+interface ProgressSessionRow {
+  completed_at: string;
+  score_percent: number | null;
+  session_type: string | null;
+  question_count: number | null;
+}
+
+interface CalibrationAnswerRow {
+  confidence: number;
+  score_percent: number;
+}
+
+interface SessionHistoryRow {
+  id: string;
+  score_percent: number | null;
+  completed_at: string | null;
+  question_count: number;
+  session_type: string | null;
+  topics: { title: string } | { title: string }[] | null;
+}
+
 interface SessionHistory {
   id: string;
   topic_title: string;
@@ -125,11 +185,11 @@ export default function StatsPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setCalTopicLoading(false); return; }
     const rpcType = filterType === 'all' ? null : filterType;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const params: Record<string, any> = { p_user_id: user.id, p_topic_id: topic.topic_id };
+    const params: RpcParams = { p_user_id: user.id, p_topic_id: topic.topic_id };
     if (rpcType) params.p_session_type = rpcType;
     const { data } = await supabase.rpc('get_topic_calibration_detail', params);
-    setCalTopicDetails(data as TopicCalibrationDetail[] | null);
+    const details: TopicCalibrationDetail[] | null = data;
+    setCalTopicDetails(details);
     setCalTopicLoading(false);
   }, [filterType]);
 
@@ -194,8 +254,7 @@ export default function StatsPage() {
       calibAnswersQuery = calibAnswersQuery.in('sessions.session_type', typeValues);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rpcParams = (base: Record<string, any>) =>
+    const rpcParams = (base: RpcParams): RpcParams =>
       rpcType ? { ...base, p_session_type: rpcType } : base;
 
     const [statsResult, prevWeekResult, progressResult, calibrationResult, masteryResult, weakResult, sessionResult, calibAnswersResult, brierWeeklyResult, brierByTopicResult] =
@@ -214,7 +273,8 @@ export default function StatsPage() {
 
     // Stats
     if (statsResult.data && !statsResult.error) {
-      const s = Array.isArray(statsResult.data) ? statsResult.data[0] : statsResult.data;
+      const rows: DashboardStatsRow[] | DashboardStatsRow = statsResult.data;
+      const s = Array.isArray(rows) ? rows[0] : rows;
       if (s) {
         setStats({
           avg_score_this_week: s.avg_score_this_week != null ? Number(s.avg_score_this_week) : null,
@@ -228,7 +288,8 @@ export default function StatsPage() {
 
     // Previous week stats (for WoW trends)
     if (prevWeekResult.data && !prevWeekResult.error) {
-      const pw = Array.isArray(prevWeekResult.data) ? prevWeekResult.data[0] : prevWeekResult.data;
+      const rows: PrevWeekStatsRow[] | PrevWeekStatsRow = prevWeekResult.data;
+      const pw = Array.isArray(rows) ? rows[0] : rows;
       if (pw) {
         setPrevWeekStats({
           avg_score: pw.avg_score != null ? Number(pw.avg_score) : null,
@@ -243,8 +304,7 @@ export default function StatsPage() {
 
     // Progress — group by day with weighted average by question count
     if (progressResult.data && !progressResult.error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const raw = progressResult.data as any[];
+      const raw: ProgressSessionRow[] = progressResult.data;
       const dailyMap = new Map<string, { totalWeightedScore: number; totalQuestions: number; isoDate: string }>();
       for (const d of raw) {
         const day = new Date(d.completed_at).toISOString().slice(0, 10);
@@ -265,7 +325,7 @@ export default function StatsPage() {
 
     // Calibration (aggregated for false certainties + fill rate)
     if (calibrationResult.data && !calibrationResult.error) {
-      const calData = calibrationResult.data as CalibrationData;
+      const calData: CalibrationData = calibrationResult.data;
       setCalibration(calData);
       setConfidenceFillRateAllTime(calData.confidence_fill_rate_alltime ?? 0);
       setFalseCertitudes(calData.false_certainties ?? []);
@@ -273,8 +333,8 @@ export default function StatsPage() {
 
     // Calibration individual answers
     if (calibAnswersResult.data && !calibAnswersResult.error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setCalibrationAnswers((calibAnswersResult.data as any[]).map((a) => ({
+      const answerRows: CalibrationAnswerRow[] = calibAnswersResult.data;
+      setCalibrationAnswers(answerRows.map((a) => ({
         confidence: Number(a.confidence),
         score_percent: Number(a.score_percent),
       })));
@@ -282,22 +342,24 @@ export default function StatsPage() {
 
     // Brier score data
     if (brierWeeklyResult.data && !brierWeeklyResult.error) {
-      setBrierWeekly(brierWeeklyResult.data as BrierWeekPoint[]);
+      const weekly: BrierWeekPoint[] = brierWeeklyResult.data;
+      setBrierWeekly(weekly);
     }
     if (brierByTopicResult.data && !brierByTopicResult.error) {
-      setBrierByTopic(brierByTopicResult.data as BrierTopicPoint[]);
+      const byTopic: BrierTopicPoint[] = brierByTopicResult.data;
+      setBrierByTopic(byTopic);
     }
 
     // Topic mastery (filter to attempted only)
     if (masteryResult.data && !masteryResult.error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allMastery = (masteryResult.data as any[]).map((t) => ({
+      const masteryRows: TopicMasteryRow[] = masteryResult.data;
+      const allMastery = masteryRows.map((t) => ({
         topic_id: t.topic_id,
-        title: t.title ?? t.topic_title ?? '',
+        title: t.topic_title ?? '',
         mastery_percent: t.mastery_percent != null ? Number(t.mastery_percent) : null,
-        coverage_percent: Number(t.coverage ?? t.coverage_percent ?? 0),
-        total_questions: Number(t.question_count ?? t.total_questions ?? 0),
-        attempted_questions: Number(t.questions_attempted ?? t.attempted_questions ?? 0),
+        coverage_percent: Number(t.coverage ?? 0),
+        total_questions: Number(t.question_count ?? 0),
+        attempted_questions: Number(t.questions_attempted ?? 0),
       }));
 
       const attempted = allMastery.filter((t) => t.attempted_questions > 0);
@@ -314,9 +376,9 @@ export default function StatsPage() {
 
     // Weak questions
     if (weakResult.data && !weakResult.error) {
+      const weakRows: WeakQuestionRow[] = weakResult.data;
       setWeakQuestions(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (weakResult.data as any[]).map((q) => ({
+        weakRows.map((q) => ({
           question_id: q.question_id,
           question_text: q.question_text,
           question_number: q.question_number,
@@ -330,9 +392,9 @@ export default function StatsPage() {
 
     // Session history
     if (sessionResult.data && !sessionResult.error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setSessions((sessionResult.data as any[]).map((s) => {
-        const topicData = (Array.isArray(s.topics) ? s.topics[0] : s.topics) as { title: string } | null;
+      const sessionRows: SessionHistoryRow[] = sessionResult.data;
+      setSessions(sessionRows.map((s) => {
+        const topicData = Array.isArray(s.topics) ? s.topics[0] : s.topics;
         return {
           id: s.id,
           topic_title: topicData?.title ?? 'Sans cours',
