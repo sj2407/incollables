@@ -24,8 +24,13 @@ export default function ExamResultsPage({ params }: ExamResultsPageProps) {
 
     const supabase = createClient();
 
+    const fail = (message: string) => {
+      setError(message);
+      setLoading(false);
+    };
+
     // Fetch session metadata
-    const { data: session } = await supabase
+    const { data: session, error: sessionError } = await supabase
       .from('sessions')
       .select(
         'id, topic_id, session_type, is_completed, question_count, correct_count, wrong_count, partial_count, score_percent, duration_seconds, time_limit_seconds',
@@ -33,54 +38,71 @@ export default function ExamResultsPage({ params }: ExamResultsPageProps) {
       .eq('id', sessionId)
       .single();
 
-    if (!session) {
-      setError('Session introuvable.');
-      setLoading(false);
+    if (sessionError || !session) {
+      fail('Session introuvable.');
       return;
     }
 
     if (session.session_type !== 'exam') {
-      setError('Cette session n\u2019est pas un examen.');
-      setLoading(false);
+      fail('Cette session n\u2019est pas un examen.');
       return;
     }
 
     if (!session.is_completed) {
-      setError('Cet examen n\u2019est pas encore termin\u00e9.');
-      setLoading(false);
+      fail('Cet examen n\u2019est pas encore termin\u00e9.');
       return;
     }
 
     setTopicId(session.topic_id);
 
     // Fetch answers
-    const { data: answers } = await supabase
+    const { data: answers, error: answersError } = await supabase
       .from('session_answers')
       .select('id, question_id, is_correct, is_partially_correct, score_percent, is_flagged')
       .eq('session_id', sessionId);
 
+    if (answersError || !answers) {
+      fail('Impossible de charger les r\u00e9ponses.');
+      return;
+    }
+
     // Fetch session questions for ordering
-    const { data: sessionQuestions } = await supabase
+    const { data: sessionQuestions, error: sessionQuestionsError } = await supabase
       .from('session_questions')
       .select('question_id, sort_order')
       .eq('session_id', sessionId)
       .order('sort_order');
 
-    const questionIds = (sessionQuestions ?? []).map((sq) => sq.question_id);
+    if (sessionQuestionsError || !sessionQuestions) {
+      fail('Impossible de charger les questions.');
+      return;
+    }
+
+    const questionIds = sessionQuestions.map((sq) => sq.question_id);
 
     // Fetch question data
-    const { data: questions } = await supabase
+    const { data: questions, error: questionsError } = await supabase
       .from('published_questions')
       .select('id, question_number, question_text, explanation_html')
       .in('id', questionIds);
 
+    if (questionsError || !questions) {
+      fail('Impossible de charger les questions.');
+      return;
+    }
+
     // Fetch choices (with is_correct — session is completed, OK to reveal)
-    const { data: choicesResult } = await supabase
+    const { data: choicesResult, error: choicesError } = await supabase
       .rpc('get_session_choices', { p_session_id: sessionId });
+
+    if (choicesError || !choicesResult) {
+      fail('Impossible de charger les corrections.');
+      return;
+    }
 
     // Build choices by question
     const choicesByQuestion: Record<string, { id: string; label: string; choice_text: string; is_correct: boolean; sort_order: number }[]> = {};
-    for (const c of choicesResult ?? []) {
+    for (const c of choicesResult) {
       if (!choicesByQuestion[c.question_id]) {
         choicesByQuestion[c.question_id] = [];
       }
@@ -94,14 +116,19 @@ export default function ExamResultsPage({ params }: ExamResultsPageProps) {
     }
 
     // Fetch answer choices
-    const answerIds = (answers ?? []).map((a) => a.id);
-    const { data: answerChoices } = await supabase
+    const answerIds = answers.map((a) => a.id);
+    const { data: answerChoices, error: answerChoicesError } = await supabase
       .from('session_answer_choices')
       .select('session_answer_id, choice_id')
       .in('session_answer_id', answerIds.length > 0 ? answerIds : ['__none__']);
 
+    if (answerChoicesError || !answerChoices) {
+      fail('Impossible de charger les r\u00e9ponses.');
+      return;
+    }
+
     const selectedByAnswer: Record<string, string[]> = {};
-    for (const ac of answerChoices ?? []) {
+    for (const ac of answerChoices) {
       if (!selectedByAnswer[ac.session_answer_id]) {
         selectedByAnswer[ac.session_answer_id] = [];
       }
@@ -110,10 +137,10 @@ export default function ExamResultsPage({ params }: ExamResultsPageProps) {
 
     // Build question results in order
     const answerByQuestion = new Map(
-      (answers ?? []).map((a) => [a.question_id, a]),
+      answers.map((a) => [a.question_id, a]),
     );
     const questionMap = new Map(
-      (questions ?? []).map((q) => [q.id, q]),
+      questions.map((q) => [q.id, q]),
     );
 
     let unansweredCount = 0;
