@@ -24,6 +24,11 @@ export async function saveMaterialField(
   oldValue: string | null,
   newValue: string | null,
 ): Promise<{ success: boolean; error?: string }> {
+  const dbField = mapMaterialFieldToColumn(field);
+  if (!dbField) {
+    return { success: false, error: `Champ inconnu : ${field}` };
+  }
+
   const supabase = createClient();
 
   let dbValue: string | boolean | null = newValue;
@@ -31,7 +36,7 @@ export async function saveMaterialField(
 
   const { error } = await supabase
     .from('learning_materials')
-    .update({ [field]: dbValue, is_draft: true })
+    .update({ [dbField]: dbValue, is_draft: true })
     .eq('id', materialId);
 
   if (error) return { success: false, error: error.message };
@@ -169,4 +174,14 @@ export async function bulkMoveMaterials(
   });
 
   return { success: true };
+}
+
+/** Map grid field names to learning_materials column names (allowlist) */
+function mapMaterialFieldToColumn(field: string): string | null {
+  const map: Record<string, string> = {
+    title: 'title',
+    is_active: 'is_active',
+    needs_review: 'needs_review',
+  };
+  return map[field] ?? null;
 }
