@@ -355,18 +355,9 @@ export default memo(function Heatmap({ data, compact = false, onNodeSelect }: He
   const fetchTopicDetail = useCallback(async (topicId: string) => {
     setDetailLoading(true);
     setDetailStats(null);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setDetailLoading(false);
-      return;
-    }
-    const { data: result } = await supabase.rpc('get_topic_detail_stats', {
-      p_user_id: user.id,
-      p_topic_id: topicId,
-    });
-    if (result) {
-      setDetailStats(result as TopicDetailStats);
+    const stats = await fetchTopicDetailStats(topicId);
+    if (stats) {
+      setDetailStats(stats);
     }
     setDetailLoading(false);
   }, []);
