@@ -2,11 +2,9 @@
 """
 preprocessing_json.py — JSON output wrapper for preprocessing.py.
 
-Called by /api/parse-word to parse raw .docx files server-side.
-Outputs ImportParseResult-compatible JSON to stdout.
-
-Usage:
-    python3 preprocessing_json.py <path-to-docx>
+Shared by the Railway parse server (app.py, behind /api/parse-word) and the
+local CLI (scripts/preprocessing_json.py). Exposes parse_docx_to_json(), which
+returns an ImportParseResult-compatible dict.
 
 Pipeline:
   1. python-docx for structure (questions, propositions, answers, chapters, bold detection)
@@ -16,7 +14,6 @@ Pipeline:
 
 import base64
 import io
-import json
 import re
 import sys
 import tempfile
@@ -498,28 +495,3 @@ def parse_docx_to_json(docx_path: str) -> dict:
 
     return {'questions': questions_json, 'topics': topics, 'stats': result_stats, 'errors': errors}
 
-
-# ---------------------------------------------------------------------------
-# CLI entry point (kept for local dev)
-# ---------------------------------------------------------------------------
-
-def main():
-    if len(sys.argv) < 2:
-        print(json.dumps({'error': 'Usage: preprocessing_json.py <path-to-docx>'}))
-        sys.exit(1)
-
-    docx_path = sys.argv[1]
-    if not Path(docx_path).exists():
-        print(json.dumps({'error': f'File not found: {docx_path}'}))
-        sys.exit(1)
-
-    try:
-        result = parse_docx_to_json(docx_path)
-        json.dump(result, sys.stdout, ensure_ascii=False)
-    except Exception as e:
-        print(json.dumps({'error': str(e)}, ensure_ascii=False))
-        sys.exit(1)
-
-
-if __name__ == '__main__':
-    main()
