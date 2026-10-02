@@ -160,20 +160,36 @@ Deno.serve(async (req: Request) => {
 
     if (existing) {
       // Update existing answer: update flag, delete old choices, insert new
-      await supabaseAdmin
+      const { error: updateError } = await supabaseAdmin
         .from('session_answers')
         .update({ is_flagged })
         .eq('id', existing.id);
 
+      if (updateError) {
+        console.error('Failed to update answer:', updateError.message);
+        return new Response(
+          JSON.stringify({ error: 'Failed to save answer' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Delete old choices
-      await supabaseAdmin
+      const { error: deleteError } = await supabaseAdmin
         .from('session_answer_choices')
         .delete()
         .eq('session_answer_id', existing.id);
 
+      if (deleteError) {
+        console.error('Failed to delete answer choices:', deleteError.message);
+        return new Response(
+          JSON.stringify({ error: 'Failed to save answer choices' }),
+          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+
       // Insert new choices
       if (selected_choice_ids.length > 0) {
-        await supabaseAdmin
+        const { error: choicesError } = await supabaseAdmin
           .from('session_answer_choices')
           .insert(
             selected_choice_ids.map((cid) => ({
@@ -181,6 +197,14 @@ Deno.serve(async (req: Request) => {
               choice_id: cid,
             }))
           );
+
+        if (choicesError) {
+          console.error('Failed to save answer choices:', choicesError.message);
+          return new Response(
+            JSON.stringify({ error: 'Failed to save answer choices' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
     } else {
       // Insert new answer — during exam, scoring fields are placeholders
@@ -210,7 +234,7 @@ Deno.serve(async (req: Request) => {
 
       // Insert choices
       if (selected_choice_ids.length > 0) {
-        await supabaseAdmin
+        const { error: choicesError } = await supabaseAdmin
           .from('session_answer_choices')
           .insert(
             selected_choice_ids.map((cid) => ({
@@ -218,6 +242,14 @@ Deno.serve(async (req: Request) => {
               choice_id: cid,
             }))
           );
+
+        if (choicesError) {
+          console.error('Failed to save answer choices:', choicesError.message);
+          return new Response(
+            JSON.stringify({ error: 'Failed to save answer choices' }),
+            { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
       }
     }
 

@@ -74,6 +74,9 @@ export interface ExamState {
   examResults: ExamResults | null;
 }
 
+const SAVE_ERROR_MESSAGE =
+  "Une réponse n'a pas pu être enregistrée. Vérifiez votre connexion puis réessayez.";
+
 // --- Hook ---
 
 export function useExam(sessionId: string) {
@@ -270,7 +273,7 @@ export function useExam(sessionId: string) {
         const isFlagged = current.flaggedIds.has(questionId);
 
         const supabase = createClient();
-        await supabase.functions.invoke('save-exam-answer', {
+        const { error: saveError } = await supabase.functions.invoke('save-exam-answer', {
           body: {
             session_id: sessionId,
             question_id: questionId,
@@ -280,6 +283,16 @@ export function useExam(sessionId: string) {
         });
 
         saveTimeoutRef.current.delete(questionId);
+
+        if (saveError) {
+          console.error('Failed to save exam answer:', saveError.message);
+          setState((prev) => ({ ...prev, error: SAVE_ERROR_MESSAGE }));
+        } else {
+          // Clear a previous save warning once a save succeeds again
+          setState((prev) =>
+            prev.error === SAVE_ERROR_MESSAGE ? { ...prev, error: null } : prev,
+          );
+        }
       }, 500);
 
       saveTimeoutRef.current.set(questionId, timeout);
@@ -363,20 +376,40 @@ export function useExam(sessionId: string) {
       return hasAnswers || isFlagged;
     });
 
-    const savePromises = touchedQuestions.map((q) => {
-      const selectedIds = current.answersMap.get(q.id);
-      const isFlagged = current.flaggedIds.has(q.id);
-      return supabase.functions.invoke('save-exam-answer', {
-        body: {
-          session_id: sessionId,
-          question_id: q.id,
-          selected_choice_ids: selectedIds ? Array.from(selectedIds) : [],
-          is_flagged: isFlagged,
-        },
-      });
-    });
+    // Past the time limit the server rejects new saves; submit what was stored
+    const timeExpired =
+      current.timeLimitSeconds != null &&
+      current.startedAt != null &&
+      (Date.now() - new Date(current.startedAt).getTime()) / 1000 >
+        current.timeLimitSeconds;
 
-    await Promise.all(savePromises);
+    if (!timeExpired) {
+      const saveResults = await Promise.all(
+        touchedQuestions.map((q) => {
+          const selectedIds = current.answersMap.get(q.id);
+          const isFlagged = current.flaggedIds.has(q.id);
+          return supabase.functions.invoke('save-exam-answer', {
+            body: {
+              session_id: sessionId,
+              question_id: q.id,
+              selected_choice_ids: selectedIds ? Array.from(selectedIds) : [],
+              is_flagged: isFlagged,
+            },
+          });
+        }),
+      );
+      const failedSave = saveResults.find((r) => r.error);
+
+      if (failedSave) {
+        console.error('Failed to flush exam answers before submit:', failedSave.error?.message);
+        setState((prev) => ({
+          ...prev,
+          isSubmitting: false,
+          error: SAVE_ERROR_MESSAGE,
+        }));
+        return;
+      }
+    }
 
     // Now submit for scoring
     const { data, error: fnError } = await supabase.functions.invoke('submit-exam', {
