@@ -821,6 +821,115 @@ def count_topics(nodes: list) -> int:
     return total
 
 
+def process_and_insert_question(supabase, question: ParsedQuestion, doc: Document,
+                                doc_path: str, all_images: dict, topic_mapping: dict,
+                                stats: dict, default_topic_id=None):
+    """Resolve the topic, upload images, build the explanation HTML and insert
+    one question with its choices and images. Updates `stats` in place.
+
+    Returns the 'Non classé' default topic ID (created lazily on first use),
+    to be passed back in for the next question.
+    """
+    # Find topic ID
+    topic_id = None
+    if question.chapter_path:
+        # Try to find the most specific topic
+        for depth in range(len(question.chapter_path), 0, -1):
+            path_key = tuple(question.chapter_path[:depth])
+            if path_key in topic_mapping:
+                topic_id = topic_mapping[path_key]
+                break
+
+    if topic_id is None:
+        # Create a default "Non classé" topic if needed
+        if default_topic_id is None:
+            default_topic_id = str(uuid.uuid4())
+            supabase.table('topics').insert({
+                'id': default_topic_id,
+                'parent_id': None,
+                'title': 'Non classé',
+                'level': 1,
+                'sort_order': 999,
+                'is_active': True,
+            }).execute()
+            topic_mapping[('Non classé',)] = default_topic_id
+            print("  Created 'Non classé' topic for uncategorized questions")
+        topic_id = default_topic_id
+        stats['no_topic'] += 1
+
+    # Upload images for this question
+    image_url_map = {}  # rel_id → public URL
+    image_records = []  # (storage_path, original_name, sort_order) — stem only
+
+    # Gather image rel_ids separately for stem and explanation
+    stem_img_rel_ids = set()
+    if question.stem_para_indices:
+        for rel_id, _ in get_image_rel_ids_for_paragraphs(doc, question.stem_para_indices):
+            stem_img_rel_ids.add(rel_id)
+
+    all_para_indices = question.stem_para_indices + question.explanation_para_indices
+    img_rel_ids = get_image_rel_ids_for_paragraphs(doc, all_para_indices)
+
+    for rel_id, sort_order in img_rel_ids:
+        if rel_id in all_images:
+            img_bytes, content_type, ext = all_images[rel_id]
+            try:
+                storage_path = upload_image_to_storage(
+                    supabase, img_bytes, content_type, ext,
+                    question.sequential_number, sort_order
+                )
+                public_url = get_public_url(supabase, storage_path)
+                image_url_map[rel_id] = public_url
+                # Only add stem images to question_images table;
+                # explanation images are embedded in explanation_html
+                if rel_id in stem_img_rel_ids:
+                    image_records.append((storage_path, f"img_{sort_order}.{ext}", sort_order))
+                stats['images_uploaded'] += 1
+            except Exception as e:
+                print(f"    WARNING: Failed to upload image for Q{question.sequential_number}: {e}")
+
+    # Convert explanation to HTML
+    explanation_html = ""
+    if question.explanation_para_indices:
+        try:
+            explanation_html = convert_explanation_to_html(
+                doc, doc_path, question.explanation_para_indices, image_url_map
+            )
+            if explanation_html:
+                stats['with_explanation'] += 1
+        except Exception as e:
+            print(f"    WARNING: Failed to convert explanation for Q{question.sequential_number}: {e}")
+            # Fallback: plain text
+            paragraphs = doc.paragraphs
+            texts = []
+            for pi in question.explanation_para_indices:
+                if pi < len(paragraphs):
+                    t = paragraphs[pi].text.strip()
+                    if t:
+                        texts.append(f"<p>{html_module.escape(t)}</p>")
+            explanation_html = "\n".join(texts)
+
+    # Insert question
+    question_id = insert_question(supabase, question, topic_id, explanation_html)
+
+    # Insert choices
+    insert_choices(supabase, question_id, question)
+
+    # Insert question images
+    if image_records:
+        insert_question_images(supabase, question_id, image_records)
+
+    # Track stats
+    stats['inserted'] += 1
+    is_active = not question.answer_missing and question.has_propositions
+    if is_active:
+        stats['active'] += 1
+    else:
+        stats['inactive'] += 1
+
+    return default_topic_id
+
+
 def run_import(questions: list, topic_roots: list, doc: Document, doc_path: str):
     """Full import pipeline."""
     supabase = get_supabase_client()
@@ -867,102 +976,10 @@ def run_import(questions: list, topic_roots: list, doc: Document, doc_path: str)
         if (qi + 1) % 50 == 0 or qi == 0:
             print(f"  Processing question {qi + 1}/{len(questions)}...")
 
-        # Find topic ID
-        topic_id = None
-        if question.chapter_path:
-            # Try to find the most specific topic
-            for depth in range(len(question.chapter_path), 0, -1):
-                path_key = tuple(question.chapter_path[:depth])
-                if path_key in topic_mapping:
-                    topic_id = topic_mapping[path_key]
-                    break
-
-        if topic_id is None:
-            # Create a default "Non classé" topic if needed
-            if default_topic_id is None:
-                default_topic_id = str(uuid.uuid4())
-                supabase.table('topics').insert({
-                    'id': default_topic_id,
-                    'parent_id': None,
-                    'title': 'Non classé',
-                    'level': 1,
-                    'sort_order': 999,
-                    'is_active': True,
-                }).execute()
-                topic_mapping[('Non classé',)] = default_topic_id
-                print("  Created 'Non classé' topic for uncategorized questions")
-            topic_id = default_topic_id
-            stats['no_topic'] += 1
-
-        # Upload images for this question
-        image_url_map = {}  # rel_id → public URL
-        image_records = []  # (storage_path, original_name, sort_order) — stem only
-
-        # Gather image rel_ids separately for stem and explanation
-        stem_img_rel_ids = set()
-        if question.stem_para_indices:
-            for rel_id, _ in get_image_rel_ids_for_paragraphs(doc, question.stem_para_indices):
-                stem_img_rel_ids.add(rel_id)
-
-        all_para_indices = question.stem_para_indices + question.explanation_para_indices
-        img_rel_ids = get_image_rel_ids_for_paragraphs(doc, all_para_indices)
-
-        for rel_id, sort_order in img_rel_ids:
-            if rel_id in all_images:
-                img_bytes, content_type, ext = all_images[rel_id]
-                try:
-                    storage_path = upload_image_to_storage(
-                        supabase, img_bytes, content_type, ext,
-                        question.sequential_number, sort_order
-                    )
-                    public_url = get_public_url(supabase, storage_path)
-                    image_url_map[rel_id] = public_url
-                    # Only add stem images to question_images table;
-                    # explanation images are embedded in explanation_html
-                    if rel_id in stem_img_rel_ids:
-                        image_records.append((storage_path, f"img_{sort_order}.{ext}", sort_order))
-                    stats['images_uploaded'] += 1
-                except Exception as e:
-                    print(f"    WARNING: Failed to upload image for Q{question.sequential_number}: {e}")
-
-        # Convert explanation to HTML
-        explanation_html = ""
-        if question.explanation_para_indices:
-            try:
-                explanation_html = convert_explanation_to_html(
-                    doc, doc_path, question.explanation_para_indices, image_url_map
-                )
-                if explanation_html:
-                    stats['with_explanation'] += 1
-            except Exception as e:
-                print(f"    WARNING: Failed to convert explanation for Q{question.sequential_number}: {e}")
-                # Fallback: plain text
-                paragraphs = doc.paragraphs
-                texts = []
-                for pi in question.explanation_para_indices:
-                    if pi < len(paragraphs):
-                        t = paragraphs[pi].text.strip()
-                        if t:
-                            texts.append(f"<p>{html_module.escape(t)}</p>")
-                explanation_html = "\n".join(texts)
-
-        # Insert question
-        question_id = insert_question(supabase, question, topic_id, explanation_html)
-
-        # Insert choices
-        insert_choices(supabase, question_id, question)
-
-        # Insert question images
-        if image_records:
-            insert_question_images(supabase, question_id, image_records)
-
-        # Track stats
-        stats['inserted'] += 1
-        is_active = not question.answer_missing and question.has_propositions
-        if is_active:
-            stats['active'] += 1
-        else:
-            stats['inactive'] += 1
+        default_topic_id = process_and_insert_question(
+            supabase, question, doc, doc_path, all_images,
+            topic_mapping, stats, default_topic_id,
+        )
 
     # --- Post-import safety checks ---
     print("\nRunning post-import safety checks...")

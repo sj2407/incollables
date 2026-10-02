@@ -21,18 +21,10 @@ from import_to_db import (
     count_topics,
     run_dry_run,
     get_supabase_client,
-    insert_choices,
-    insert_question,
-    insert_question_images,
-    upload_image_to_storage,
-    get_public_url,
     extract_images_from_doc,
-    get_image_rel_ids_for_paragraphs,
-    convert_explanation_to_html,
-    ParsedTopic,
+    process_and_insert_question,
 )
 
-import html as html_module
 import uuid
 
 
@@ -132,7 +124,6 @@ def run_selective_restore(questions, topic_roots, doc, doc_path):
         'images_uploaded': 0,
         'with_explanation': 0,
         'no_topic': 0,
-        'skipped': 0,
     }
 
     default_topic_id = None
@@ -141,97 +132,10 @@ def run_selective_restore(questions, topic_roots, doc, doc_path):
         if (qi + 1) % 50 == 0 or qi == 0:
             print(f"  Processing Q{question.sequential_number} ({qi + 1}/{len(to_restore)})...")
 
-        # Find topic ID
-        topic_id = None
-        if question.chapter_path:
-            for depth in range(len(question.chapter_path), 0, -1):
-                path_key = tuple(question.chapter_path[:depth])
-                if path_key in topic_mapping:
-                    topic_id = topic_mapping[path_key]
-                    break
-
-        if topic_id is None:
-            if default_topic_id is None:
-                default_topic_id = str(uuid.uuid4())
-                supabase.table('topics').insert({
-                    'id': default_topic_id,
-                    'parent_id': None,
-                    'title': 'Non classé',
-                    'level': 1,
-                    'sort_order': 999,
-                    'is_active': True,
-                }).execute()
-                topic_mapping[('Non classé',)] = default_topic_id
-                print("  Created 'Non classé' topic for uncategorized questions")
-            topic_id = default_topic_id
-            stats['no_topic'] += 1
-
-        # Upload images
-        image_url_map = {}
-        image_records = []
-
-        # Track which images belong to the stem vs explanation
-        stem_img_rel_ids = set()
-        if question.stem_para_indices:
-            for rel_id, _ in get_image_rel_ids_for_paragraphs(doc, question.stem_para_indices):
-                stem_img_rel_ids.add(rel_id)
-
-        all_para_indices = question.stem_para_indices + question.explanation_para_indices
-        img_rel_ids = get_image_rel_ids_for_paragraphs(doc, all_para_indices)
-
-        for rel_id, sort_order in img_rel_ids:
-            if rel_id in all_images:
-                img_bytes, content_type, ext = all_images[rel_id]
-                try:
-                    storage_path = upload_image_to_storage(
-                        supabase, img_bytes, content_type, ext,
-                        question.sequential_number, sort_order
-                    )
-                    public_url = get_public_url(supabase, storage_path)
-                    image_url_map[rel_id] = public_url
-                    # Only add stem images to question_images table
-                    if rel_id in stem_img_rel_ids:
-                        image_records.append((storage_path, f"img_{sort_order}.{ext}", sort_order))
-                    stats['images_uploaded'] += 1
-                except Exception as e:
-                    print(f"    WARNING: Failed to upload image for Q{question.sequential_number}: {e}")
-
-        # Convert explanation to HTML
-        explanation_html = ""
-        if question.explanation_para_indices:
-            try:
-                explanation_html = convert_explanation_to_html(
-                    doc, doc_path, question.explanation_para_indices, image_url_map
-                )
-                if explanation_html:
-                    stats['with_explanation'] += 1
-            except Exception as e:
-                print(f"    WARNING: Failed to convert explanation for Q{question.sequential_number}: {e}")
-                paragraphs = doc.paragraphs
-                texts = []
-                for pi in question.explanation_para_indices:
-                    if pi < len(paragraphs):
-                        t = paragraphs[pi].text.strip()
-                        if t:
-                            texts.append(f"<p>{html_module.escape(t)}</p>")
-                explanation_html = "\n".join(texts)
-
-        # Insert question
-        question_id = insert_question(supabase, question, topic_id, explanation_html)
-
-        # Insert choices
-        insert_choices(supabase, question_id, question)
-
-        # Insert question images
-        if image_records:
-            insert_question_images(supabase, question_id, image_records)
-
-        stats['inserted'] += 1
-        is_active = not question.answer_missing and question.has_propositions
-        if is_active:
-            stats['active'] += 1
-        else:
-            stats['inactive'] += 1
+        default_topic_id = process_and_insert_question(
+            supabase, question, doc, doc_path, all_images,
+            topic_mapping, stats, default_topic_id,
+        )
 
     # Post-import safety checks (only for newly inserted questions)
     print("\nRunning post-import safety checks on restored questions...")

@@ -13,6 +13,11 @@ Tests cover:
 
 import unittest
 from pathlib import Path
+from unittest import mock
+
+from docx import Document
+
+import import_to_db
 
 from import_to_db import (
     is_question_heading,
@@ -25,6 +30,7 @@ from import_to_db import (
     build_topic_tree,
     parse_standardized_docx,
     count_topics,
+    process_and_insert_question,
     ParsedQuestion,
     ParsedProposition,
     ParsedTopic,
@@ -256,6 +262,85 @@ class TestCountTopics(unittest.TestCase):
 
     def test_empty(self):
         self.assertEqual(count_topics([]), 0)
+
+
+class TestProcessAndInsertQuestion(unittest.TestCase):
+    def setUp(self):
+        self.supabase = mock.MagicMock()
+        self.stats = {
+            'inserted': 0, 'active': 0, 'inactive': 0,
+            'images_uploaded': 0, 'with_explanation': 0, 'no_topic': 0,
+        }
+        patchers = {
+            'insert_question': mock.patch.object(import_to_db, 'insert_question', return_value='q-id'),
+            'insert_choices': mock.patch.object(import_to_db, 'insert_choices'),
+            'insert_question_images': mock.patch.object(import_to_db, 'insert_question_images'),
+            'convert_explanation_to_html': mock.patch.object(import_to_db, 'convert_explanation_to_html'),
+        }
+        self.mocks = {name: p.start() for name, p in patchers.items()}
+        for p in patchers.values():
+            self.addCleanup(p.stop)
+
+    def _make_question(self, **kwargs):
+        q = ParsedQuestion(sequential_number=1, stem_text="Stem")
+        q.propositions = [ParsedProposition('A', 'a'), ParsedProposition('B', 'b')]
+        q.answer_letters = ['A']
+        for k, v in kwargs.items():
+            setattr(q, k, v)
+        return q
+
+    def test_uses_most_specific_topic(self):
+        mapping = {('Ch1',): 't1', ('Ch1', 'Sub'): 't2'}
+        q = self._make_question(chapter_path=['Ch1', 'Sub', 'Unknown'])
+        default_id = process_and_insert_question(
+            self.supabase, q, Document(), 'doc.docx', {}, mapping, self.stats)
+        self.assertIsNone(default_id)
+        self.mocks['insert_question'].assert_called_once_with(self.supabase, q, 't2', "")
+        self.mocks['insert_choices'].assert_called_once_with(self.supabase, 'q-id', q)
+        self.mocks['insert_question_images'].assert_not_called()
+        self.assertEqual(self.stats['inserted'], 1)
+        self.assertEqual(self.stats['active'], 1)
+        self.assertEqual(self.stats['no_topic'], 0)
+        self.supabase.table.assert_not_called()
+
+    def test_creates_default_topic_once(self):
+        mapping = {}
+        doc = Document()
+        q1 = self._make_question()
+        default_id = process_and_insert_question(
+            self.supabase, q1, doc, 'doc.docx', {}, mapping, self.stats)
+        self.assertIsNotNone(default_id)
+        self.assertEqual(mapping[('Non classé',)], default_id)
+        self.supabase.table.assert_called_once_with('topics')
+
+        q2 = self._make_question(sequential_number=2, answer_missing=True)
+        second_id = process_and_insert_question(
+            self.supabase, q2, doc, 'doc.docx', {}, mapping, self.stats, default_id)
+        self.assertEqual(second_id, default_id)
+        self.supabase.table.assert_called_once_with('topics')
+        self.assertEqual(self.stats['no_topic'], 2)
+        self.assertEqual(self.stats['active'], 1)
+        self.assertEqual(self.stats['inactive'], 1)
+
+    def test_explanation_html_counted(self):
+        self.mocks['convert_explanation_to_html'].return_value = "<p>Expl</p>"
+        q = self._make_question(chapter_path=['Ch1'], explanation_para_indices=[0])
+        process_and_insert_question(
+            self.supabase, q, Document(), 'doc.docx', {}, {('Ch1',): 't1'}, self.stats)
+        self.mocks['insert_question'].assert_called_once_with(self.supabase, q, 't1', "<p>Expl</p>")
+        self.assertEqual(self.stats['with_explanation'], 1)
+
+    def test_explanation_falls_back_to_escaped_text(self):
+        self.mocks['convert_explanation_to_html'].side_effect = RuntimeError("boom")
+        doc = Document()
+        doc.add_paragraph("A < B")
+        doc.add_paragraph("   ")
+        q = self._make_question(chapter_path=['Ch1'], explanation_para_indices=[0, 1, 99])
+        process_and_insert_question(
+            self.supabase, q, doc, 'doc.docx', {}, {('Ch1',): 't1'}, self.stats)
+        self.mocks['insert_question'].assert_called_once_with(
+            self.supabase, q, 't1', "<p>A &lt; B</p>")
+        self.assertEqual(self.stats['with_explanation'], 0)
 
 
 # ---------------------------------------------------------------------------
