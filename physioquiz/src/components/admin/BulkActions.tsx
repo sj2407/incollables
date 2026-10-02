@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '@/lib/supabase/client';
+import { logEdit } from '@/lib/adminAutoSave';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import UndoToast from '@/components/ui/UndoToast';
@@ -84,13 +85,11 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
         return;
       }
       // Log
-      supabase.rpc('log_admin_edit', {
+      logEdit(supabase, 'log_admin_edit', {
         p_question_id: null,
         p_field: 'bulk_activate',
         p_old: `${ids.length} questions`,
         p_new: 'active',
-      }).then(({ error: logError }) => {
-        if (logError) console.error('Failed to log bulk action:', logError.message);
       });
       onDone();
     } else if (confirmAction === 'delete') {
@@ -106,13 +105,11 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
         setError(err.message);
         return;
       }
-      supabase.rpc('log_admin_edit', {
+      logEdit(supabase, 'log_admin_edit', {
         p_question_id: null,
         p_field: 'bulk_deactivate',
         p_old: `${ids.length} questions`,
         p_new: 'désactivées',
-      }).then(({ error: logError }) => {
-        if (logError) console.error('Failed to log bulk delete:', logError.message);
       });
       setUndoState({
         message: `${count} question${count > 1 ? 's' : ''} désactivée${count > 1 ? 's' : ''}`,
@@ -133,13 +130,11 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
         setError(err.message);
         return;
       }
-      supabase.rpc('log_admin_edit', {
+      logEdit(supabase, 'log_admin_edit', {
         p_question_id: null,
         p_field: 'bulk_delete',
         p_old: `${ids.length} questions`,
         p_new: 'mises à la corbeille',
-      }).then(({ error: logError }) => {
-        if (logError) console.error('Failed to log bulk delete:', logError.message);
       });
       onDone();
     }
@@ -204,13 +199,11 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
         };
       }),
     });
-    supabase.rpc('log_admin_edit', {
+    logEdit(supabase, 'log_admin_edit', {
       p_question_id: null,
       p_field: 'bulk_move',
       p_old: logPayload,
       p_new: topic?.title ?? topicId,
-    }).then(({ error: logError }) => {
-      if (logError) console.error('Failed to log bulk move:', logError.message);
     });
 
     // Enter pending state — admin must Valider or Annuler
@@ -256,13 +249,11 @@ export default function BulkActions({ selectedIds, topics, questions, onDone, on
     }
 
     // Log the revert
-    supabase.rpc('log_admin_edit', {
+    logEdit(supabase, 'log_admin_edit', {
       p_question_id: null,
       p_field: 'bulk_move_revert',
       p_old: pendingRevert.destinationTopicTitle,
       p_new: `${pendingRevert.entries.length} questions restaurées`,
-    }).then(({ error: logError }) => {
-      if (logError) console.error('Failed to log revert:', logError.message);
     });
 
     setLoading(false);

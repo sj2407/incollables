@@ -1,5 +1,25 @@
 import { createClient } from '@/lib/supabase/client';
 
+type SupabaseClient = ReturnType<typeof createClient>;
+
+interface EditLogRpcParams {
+  log_admin_edit: { p_question_id: string | null; p_field: string; p_old: string; p_new: string };
+  log_material_edit: { p_material_id: string | null; p_field: string; p_old: string; p_new: string };
+}
+
+/**
+ * Best-effort, non-blocking audit-log write. Failures are reported to the console only.
+ */
+export function logEdit<R extends keyof EditLogRpcParams>(
+  supabase: SupabaseClient,
+  rpcName: R,
+  params: EditLogRpcParams[R],
+): void {
+  supabase.rpc(rpcName, params).then(({ error }) => {
+    if (error) console.error(`Failed to ${rpcName}:`, error.message);
+  });
+}
+
 /**
  * Auto-save a single field on a question.
  * Saves to DB and logs the edit to admin_edit_log.
@@ -35,13 +55,11 @@ export async function saveQuestionField(
   }
 
   // Log the edit (don't block on this, but log errors)
-  supabase.rpc('log_admin_edit', {
+  logEdit(supabase, 'log_admin_edit', {
     p_question_id: questionId,
     p_field: field,
     p_old: oldValue ?? '',
     p_new: newValue ?? '',
-  }).then(({ error: logError }) => {
-    if (logError) console.error('Failed to log admin edit:', logError.message);
   });
 
   return { success: true };
@@ -69,13 +87,11 @@ export async function saveQuestionTopic(
   }
 
   // Log the edit
-  supabase.rpc('log_admin_edit', {
+  logEdit(supabase, 'log_admin_edit', {
     p_question_id: questionId,
     p_field: 'topic_id',
     p_old: oldTopicTitle,
     p_new: newTopicTitle,
-  }).then(({ error: logError }) => {
-    if (logError) console.error('Failed to log admin edit:', logError.message);
   });
 
   return { success: true };
