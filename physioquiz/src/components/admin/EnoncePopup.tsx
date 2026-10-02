@@ -34,6 +34,7 @@ export default function EnoncePopup({ questionId, value, onSave, onClose }: Enon
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Batched operations — only executed on Save
   const [pendingUploads, setPendingUploads] = useState<PendingUpload[]>([]);
@@ -45,13 +46,15 @@ export default function EnoncePopup({ questionId, value, onSave, onClose }: Enon
   useEffect(() => {
     async function fetchImages() {
       const supabase = createClient();
-      const { data } = await supabase
+      const { data, error: fetchError } = await supabase
         .from('question_images')
         .select('id, storage_path, original_name, sort_order')
         .eq('question_id', questionId)
         .order('sort_order');
 
-      if (data && data.length > 0) {
+      if (fetchError) {
+        setError(`Impossible de charger les images : ${fetchError.message}`);
+      } else if (data && data.length > 0) {
         const withUrls = data.map((img) => {
           const { data: urlData } = supabase.storage
             .from('question-images')
@@ -106,6 +109,7 @@ export default function EnoncePopup({ questionId, value, onSave, onClose }: Enon
   // Save: execute all batched operations + save text
   const handleSave = useCallback(async () => {
     setSaving(true);
+    setError(null);
     const supabase = createClient();
     let imageChanged = false;
 
@@ -119,9 +123,22 @@ export default function EnoncePopup({ questionId, value, onSave, onClose }: Enon
           // Delete from storage (best-effort)
           await supabase.storage.from('question-images').remove([img.storage_path]);
           // Delete from DB
-          await supabase.from('question_images').delete().eq('id', imageId);
+          const { error: deleteError } = await supabase
+            .from('question_images')
+            .delete()
+            .eq('id', imageId);
+          if (deleteError) {
+            throw new Error(`Suppression de l'image impossible : ${deleteError.message}`);
+          }
+
+          imageChanged = true;
+          setImages((prev) => prev.filter((i) => i.id !== imageId));
+          setPendingDeletes((prev) => {
+            const next = new Set(prev);
+            next.delete(imageId);
+            return next;
+          });
         }
-        imageChanged = true;
       }
 
       // 2. Upload new images
@@ -132,7 +149,8 @@ export default function EnoncePopup({ questionId, value, onSave, onClose }: Enon
           : 0;
 
         for (let i = 0; i < pendingUploads.length; i++) {
-          const { file } = pendingUploads[i];
+          const pending = pendingUploads[i];
+          const { file } = pending;
           const ext = file.name.split('.').pop() ?? 'png';
           const storagePath = `${questionId}/img_${Date.now()}_${i}.${ext}`;
 
@@ -144,38 +162,53 @@ export default function EnoncePopup({ questionId, value, onSave, onClose }: Enon
             });
 
           if (uploadError) {
-            console.error('Image upload failed:', uploadError.message);
-            continue;
+            throw new Error(`Envoi de l'image impossible : ${uploadError.message}`);
           }
 
-          await supabase.from('question_images').insert({
-            question_id: questionId,
-            storage_path: storagePath,
-            original_name: file.name,
-            sort_order: maxSort + i,
-          });
+          const { data: inserted, error: insertError } = await supabase
+            .from('question_images')
+            .insert({
+              question_id: questionId,
+              storage_path: storagePath,
+              original_name: file.name,
+              sort_order: maxSort + i,
+            })
+            .select('id, storage_path, original_name, sort_order')
+            .single();
+
+          if (insertError) {
+            await supabase.storage.from('question-images').remove([storagePath]);
+            throw new Error(`Enregistrement de l'image impossible : ${insertError.message}`);
+          }
+
+          imageChanged = true;
+          const { data: urlData } = supabase.storage
+            .from('question-images')
+            .getPublicUrl(inserted.storage_path);
+          setImages((prev) => [...prev, { ...inserted, publicUrl: urlData?.publicUrl ?? '' }]);
+          setPendingUploads((prev) => prev.filter((pu) => pu !== pending));
+          URL.revokeObjectURL(pending.previewUrl);
         }
-        imageChanged = true;
         setUploading(false);
       }
 
       // 3. If images changed, touch updated_at to trigger draft detection
       if (imageChanged) {
-        await supabase
+        const { error: touchError } = await supabase
           .from('questions')
           .update({ updated_at: new Date().toISOString() })
           .eq('id', questionId);
+        if (touchError) {
+          throw new Error(`Mise à jour de la question impossible : ${touchError.message}`);
+        }
       }
 
-      // 4. Clean up blob URLs
-      for (const pu of pendingUploads) {
-        URL.revokeObjectURL(pu.previewUrl);
-      }
-
-      // 5. Save text
+      // 4. Save text
       onSave(text);
     } catch (err) {
       console.error('EnoncePopup save error:', err);
+      setError(err instanceof Error ? err.message : "Erreur lors de l'enregistrement");
+      setUploading(false);
       setSaving(false);
     }
   }, [text, images, pendingDeletes, pendingUploads, questionId, onSave]);
@@ -195,6 +228,8 @@ export default function EnoncePopup({ questionId, value, onSave, onClose }: Enon
 
   return (
     <Modal onClose={onClose} title="Modifier l'énoncé" maxWidth="max-w-2xl">
+      {error && <p role="alert" className="mb-3 text-sm text-error">{error}</p>}
+
       {/* Text editor */}
       <textarea
         value={text}
