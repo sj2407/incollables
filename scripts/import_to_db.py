@@ -412,8 +412,8 @@ def extract_images_from_doc(doc: Document) -> dict:
                 content_type = rel.target_part.content_type
                 ext = str(rel.target_part.partname).rsplit('.', 1)[-1].lower()
                 images[rel_id] = (blob, content_type, ext)
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"    WARNING: Failed to extract image {rel_id}: {e}")
     return images
 
 

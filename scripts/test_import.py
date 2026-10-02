@@ -11,8 +11,11 @@ Tests cover:
   - Full document parsing (against standardized .docx)
 """
 
+import contextlib
+import io
 import unittest
 from pathlib import Path
+from types import SimpleNamespace
 
 from import_to_db import (
     is_question_heading,
@@ -25,6 +28,7 @@ from import_to_db import (
     build_topic_tree,
     parse_standardized_docx,
     count_topics,
+    extract_images_from_doc,
     ParsedQuestion,
     ParsedProposition,
     ParsedTopic,
@@ -263,6 +267,29 @@ class TestCountTopics(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 STANDARDIZED_DOC = Path(__file__).resolve().parent.parent / "PCEM II s def3_standardise.docx"
+
+
+class TestExtractImages(unittest.TestCase):
+    def test_unreadable_image_skipped_with_warning(self):
+        class BrokenPart:
+            @property
+            def blob(self):
+                raise ValueError("corrupt")
+
+        good = SimpleNamespace(
+            reltype="http://schemas/image",
+            target_part=SimpleNamespace(blob=b"png", content_type="image/png", partname="/word/media/image1.PNG"),
+        )
+        bad = SimpleNamespace(reltype="http://schemas/image", target_part=BrokenPart())
+        doc = SimpleNamespace(part=SimpleNamespace(rels={"rId1": good, "rId2": bad}))
+
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            images = extract_images_from_doc(doc)
+
+        self.assertEqual(images, {"rId1": (b"png", "image/png", "png")})
+        self.assertIn("rId2", out.getvalue())
+        self.assertIn("corrupt", out.getvalue())
 
 
 @unittest.skipUnless(STANDARDIZED_DOC.exists(), "Standardized doc not found")
