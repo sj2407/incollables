@@ -113,13 +113,12 @@ export default function AdminDashboardPage() {
     if (alertsResult.error) {
       errors.push(alertsResult.error.message);
     } else if (alertsResult.data) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setAlerts((alertsResult.data as any[]).map((a) => ({
-        question_id: a.question_id,
-        question_number: a.question_number,
-        question_text: a.question_text,
-        topic_title: a.topic_title,
-        alert_type: a.alert_type,
+      setAlerts((alertsResult.data as Record<string, unknown>[]).map((a) => ({
+        question_id: a.question_id as string,
+        question_number: a.question_number as number | null,
+        question_text: a.question_text as string,
+        topic_title: a.topic_title as string,
+        alert_type: a.alert_type as string,
         error_rate: Number(a.error_rate),
         attempt_count: Number(a.attempt_count),
       })));
@@ -128,9 +127,8 @@ export default function AdminDashboardPage() {
     if (dailyResult.error) {
       errors.push(dailyResult.error.message);
     } else if (dailyResult.data) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setDailyData((dailyResult.data as any[]).map((d) => ({
-        day: d.day,
+      setDailyData((dailyResult.data as Record<string, unknown>[]).map((d) => ({
+        day: d.day as string,
         session_count: Number(d.session_count),
         avg_score: Number(d.avg_score),
       })));
@@ -139,10 +137,9 @@ export default function AdminDashboardPage() {
     if (chapterResult.error) {
       errors.push(chapterResult.error.message);
     } else if (chapterResult.data) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setChapterScores((chapterResult.data as any[]).map((c) => ({
-        topic_id: c.topic_id,
-        topic_title: c.topic_title,
+      setChapterScores((chapterResult.data as Record<string, unknown>[]).map((c) => ({
+        topic_id: c.topic_id as string,
+        topic_title: c.topic_title as string,
         avg_score: Number(c.avg_score),
         session_count: Number(c.session_count),
         coverage_percent: Number(c.coverage_percent ?? 0),
