@@ -1,131 +1,22 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AgGridReact, useGridFilter } from 'ag-grid-react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import { AgGridReact } from 'ag-grid-react';
 import {
   type ColDef,
   type CellValueChangedEvent,
   type ICellRendererParams,
-  type IDoesFilterPassParams,
 } from 'ag-grid-community';
 import { saveMaterialField } from '@/lib/adminMaterialActions';
 import type { AdminMaterialRow } from '@/types/admin';
-
-/* ---------- save status indicator ---------- */
-
-type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
-
-function SaveIndicator({ status, errorMsg }: { status: SaveStatus; errorMsg: string | null }) {
-  if (status === 'idle') return null;
-  return (
-    <div className="absolute right-4 top-2 z-10 flex items-center gap-2 rounded-lg border bg-white px-3 py-1.5 text-xs shadow-md animate-fade-in">
-      {status === 'saving' && <span className="text-neutral-500">Enregistrement...</span>}
-      {status === 'saved' && <span className="text-secondary-500">✓ Enregistré</span>}
-      {status === 'error' && <span className="text-error">✗ {errorMsg ?? 'Erreur'}</span>}
-    </div>
-  );
-}
+import { SaveIndicator, SelectFilter, createToggleRenderers, useSaveStatus } from './grid';
 
 /* ---------- cell renderers ---------- */
 
-function ActiveToggleRenderer(props: ICellRendererParams<AdminMaterialRow>) {
-  const active = props.value as boolean;
-  const materialId = props.data?.id;
-  const onDraftChanged = (props.context as { onDraftChanged?: () => void })?.onDraftChanged;
-
-  const handleToggle = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!materialId) return;
-    const newValue = !active;
-    const result = await saveMaterialField(materialId, 'is_active', String(active), String(newValue));
-    if (result.success && props.node) {
-      props.node.setDataValue('is_active', newValue);
-      onDraftChanged?.();
-    }
-  }, [active, materialId, props.node, onDraftChanged]);
-
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={active}
-      aria-label={active ? 'Désactiver' : 'Activer'}
-      className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center"
-      onClick={handleToggle}
-    >
-      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-        active ? 'bg-green-100 text-green-700' : 'bg-neutral-200 text-neutral-500'
-      }`}>
-        {active ? 'Actif' : 'Inactif'}
-      </span>
-    </button>
-  );
-}
-
-function ReviewToggleRenderer(props: ICellRendererParams<AdminMaterialRow>) {
-  const needsReview = props.value as boolean;
-  const materialId = props.data?.id;
-  const onDraftChanged = (props.context as { onDraftChanged?: () => void })?.onDraftChanged;
-
-  const handleToggle = useCallback(async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!materialId) return;
-    const newValue = !needsReview;
-    const result = await saveMaterialField(materialId, 'needs_review', String(needsReview), String(newValue));
-    if (result.success && props.node) {
-      props.node.setDataValue('needs_review', newValue);
-      onDraftChanged?.();
-    }
-  }, [needsReview, materialId, props.node, onDraftChanged]);
-
-  return (
-    <button
-      type="button"
-      aria-label={needsReview ? 'Marquer comme vérifié' : 'Marquer à vérifier'}
-      className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center"
-      onClick={handleToggle}
-    >
-      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-        needsReview ? 'bg-orange-100 text-orange-700' : 'bg-green-100 text-green-700'
-      }`}>
-        {needsReview ? 'À vérifier' : 'Vérifié'}
-      </span>
-    </button>
-  );
-}
-
-function SelectFilter(props: {
-  model: { value: string } | null;
-  onModelChange: (model: { value: string } | null) => void;
-  options: { value: string; label: string }[];
-  colDef: { field?: string };
-}) {
-  const value = props.model?.value ?? '';
-  const field = props.colDef.field ?? '';
-
-  const doesFilterPass = useCallback(
-    (params: IDoesFilterPassParams<AdminMaterialRow>) => {
-      if (!value) return true;
-      return String((params.data as unknown as Record<string, unknown>)[field]) === value;
-    },
-    [value, field],
-  );
-
-  useGridFilter({ doesFilterPass });
-
-  const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const v = e.target.value;
-    props.onModelChange(v ? { value: v } : null);
-  };
-  return (
-    <div className="p-2">
-      <select value={value} onChange={onChange} className="h-8 w-full rounded-lg border border-neutral-300 px-2 text-xs">
-        <option value="">Tous</option>
-        {props.options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-      </select>
-    </div>
-  );
-}
+const { ActiveToggleRenderer, ReviewToggleRenderer } = createToggleRenderers<AdminMaterialRow>({
+  getId: (row) => row.id,
+  saveField: saveMaterialField,
+});
 
 function DateRenderer(props: ICellRendererParams<AdminMaterialRow>) {
   const iso = props.value as string;
@@ -153,15 +44,7 @@ export default function MaterialGrid({
   onDraftChanged,
 }: MaterialGridProps) {
   const gridRef = useRef<AgGridReact<AdminMaterialRow>>(null);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, []);
+  const { saveStatus, saveError, showSaveStatus } = useSaveStatus();
 
   const getRowId = useCallback((params: { data: AdminMaterialRow }) => params.data.id, []);
 
@@ -248,15 +131,6 @@ export default function MaterialGrid({
       filterParams: { options: [{ value: 'true', label: 'À vérifier' }, { value: 'false', label: 'Vérifié' }] },
     },
   ], []);
-
-  const showSaveStatus = useCallback((status: SaveStatus, error?: string) => {
-    setSaveStatus(status);
-    setSaveError(error ?? null);
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    if (status === 'saved' || status === 'error') {
-      saveTimerRef.current = setTimeout(() => setSaveStatus('idle'), status === 'saved' ? 2000 : 5000);
-    }
-  }, []);
 
   const onCellValueChanged = useCallback(async (event: CellValueChangedEvent<AdminMaterialRow>) => {
     const { data, colDef, oldValue, newValue } = event;
