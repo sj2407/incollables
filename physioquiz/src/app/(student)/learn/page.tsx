@@ -2,7 +2,7 @@
 
 import { Notebook, VideoCamera, ListChecks, CaretRight } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 // Topic tree will be used once chapter assignment is implemented
 import DOMPurify from 'dompurify';
 import { extractYouTubeId } from '@/lib/importLearningMaterial';
@@ -33,23 +33,32 @@ const TAB_CONFIG: { key: MaterialTab; label: string; icon: React.ReactNode }[] =
 export default function LearnPage() {
   const [materials, setMaterials] = useState<LearningMaterial[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MaterialTab>('resume');
   const [selectedMaterial, setSelectedMaterial] = useState<LearningMaterial | null>(null);
 
-  useEffect(() => {
-    async function fetchMaterials() {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from('learning_materials')
-        .select('id, material_type, title, content_html, video_url, video_storage_path, topic_id, created_at')
-        .eq('is_active', true)
-        .order('sort_order')
-        .order('created_at', { ascending: false });
-      setMaterials(data ?? []);
+  const fetchMaterials = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    const supabase = createClient();
+    const { data, error: fetchError } = await supabase
+      .from('learning_materials')
+      .select('id, material_type, title, content_html, video_url, video_storage_path, topic_id, created_at')
+      .eq('is_active', true)
+      .order('sort_order')
+      .order('created_at', { ascending: false });
+    if (fetchError) {
+      setError('Impossible de charger les contenus.');
       setLoading(false);
+      return;
     }
-    fetchMaterials();
+    setMaterials(data ?? []);
+    setLoading(false);
   }, []);
+
+  useEffect(() => {
+    fetchMaterials();
+  }, [fetchMaterials]);
 
   const filtered = materials.filter((m) => m.material_type === activeTab);
   const counts = {
@@ -115,6 +124,17 @@ export default function LearnPage() {
             {[1, 2, 3].map((i) => (
               <div key={i} className="h-16 animate-pulse rounded-xl border border-neutral-200 bg-neutral-100" />
             ))}
+          </div>
+        ) : error ? (
+          <div role="alert" className="flex items-center gap-3">
+            <p className="text-sm text-error">{error}</p>
+            <button
+              type="button"
+              onClick={fetchMaterials}
+              className="min-h-[44px] rounded-2xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
+            >
+              Réessayer
+            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/40 bg-white/40 backdrop-blur-sm p-8 text-center">
