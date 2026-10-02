@@ -828,27 +828,18 @@ def run_import(questions: list, topic_roots: list, doc: Document, doc_path: str)
     # Step 1: Clear existing data
     clear_existing_data(supabase)
 
-    # Step 2: Clear storage bucket
-    print("  Clearing storage bucket...")
-    try:
-        files = supabase.storage.from_('question-images').list()
-        # List is top-level; we need to handle folders
-        # Actually, let's just proceed — upsert=true handles overwrites
-    except Exception:
-        pass
-
-    # Step 3: Insert topics
+    # Step 2: Insert topics
     print("\nInserting topics...")
     topic_count = count_topics(topic_roots)
     topic_mapping = insert_topics(supabase, topic_roots)
     print(f"  Inserted {topic_count} topics")
 
-    # Step 4: Extract all images from document
+    # Step 3: Extract all images from document
     print("\nExtracting images from document...")
     all_images = extract_images_from_doc(doc)
     print(f"  Found {len(all_images)} images in document")
 
-    # Step 5: Process each question
+    # Step 4: Process each question
     print(f"\nProcessing {len(questions)} questions...")
 
     stats = {
