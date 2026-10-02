@@ -1,24 +1,17 @@
 'use client';
 
+import {
+  buildQuestionsWithImages,
+  getQuestionImagesBaseUrl,
+  PUBLISHED_QUESTION_SELECT,
+} from '@/lib/question-assembly';
+import type { AssembledQuestion, PublishedQuestionRow } from '@/lib/question-assembly';
 import { createClient } from '@/lib/supabase/client';
-import type { SafeChoice } from '@/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // --- Types ---
 
-export interface ExamQuestion {
-  id: string;
-  question_number: number | null;
-  question_text: string;
-  topic_id: string;
-  question_images: {
-    id: string;
-    storage_path: string;
-    original_name: string | null;
-    sort_order: number;
-  }[];
-  choices: SafeChoice[];
-}
+export type ExamQuestion = AssembledQuestion;
 
 export interface ExamQuestionResult {
   question_id: string;
@@ -155,8 +148,9 @@ export function useExam(sessionId: string) {
     const [questionsResult, choicesResult, existingAnswersResult] = await Promise.all([
       supabase
         .from('published_questions')
-        .select('id, question_number, question_text, topic_id, published_question_images (id, storage_path, original_name, sort_order)')
-        .in('id', questionIds),
+        .select(PUBLISHED_QUESTION_SELECT)
+        .in('id', questionIds)
+        .overrideTypes<PublishedQuestionRow[], { merge: false }>(),
       supabase
         .from('safe_choices')
         .select('id, question_id, label, choice_text, sort_order')
@@ -173,43 +167,12 @@ export function useExam(sessionId: string) {
       return;
     }
 
-    // Group choices by question
-    const choicesByQuestion: Record<string, SafeChoice[]> = {};
-    for (const c of choicesResult.data) {
-      if (!choicesByQuestion[c.question_id]) {
-        choicesByQuestion[c.question_id] = [];
-      }
-      choicesByQuestion[c.question_id].push(c);
-    }
-    for (const qId of Object.keys(choicesByQuestion)) {
-      choicesByQuestion[qId].sort((a, b) => a.sort_order - b.sort_order);
-    }
-
-    // Resolve image URLs
-    const storageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/question-images/`;
-
-    // Build ordered question list
-    const questionMap = new Map(questionsResult.data.map((q) => [q.id, q]));
-    const orderedQuestions: ExamQuestion[] = questionIds
-      .map((qId) => {
-        const q = questionMap.get(qId);
-        if (!q) return null;
-        const rawImages = (q as Record<string, unknown>).published_question_images ?? (q as Record<string, unknown>).question_images ?? [];
-        const images = [...(rawImages as { sort_order: number; storage_path: string }[])].sort((a, b) => a.sort_order - b.sort_order);
-        for (const img of images) {
-          if (!img.storage_path.startsWith('http')) {
-            img.storage_path = storageBaseUrl + img.storage_path;
-          }
-        }
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { published_question_images: _pqi, ...rest } = q as Record<string, unknown> & typeof q;
-        return {
-          ...rest,
-          question_images: images,
-          choices: choicesByQuestion[qId] ?? [],
-        } as ExamQuestion;
-      })
-      .filter((q): q is ExamQuestion => q !== null);
+    const orderedQuestions = buildQuestionsWithImages(
+      questionIds,
+      questionsResult.data,
+      choicesResult.data,
+      getQuestionImagesBaseUrl(),
+    );
 
     // Restore saved answers (page refresh)
     const answersMap = new Map<string, Set<string>>();

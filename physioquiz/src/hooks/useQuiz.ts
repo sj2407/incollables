@@ -1,25 +1,19 @@
 'use client';
 
 import { isAbandoned, pauseSession, resumeSession } from '@/lib/pause-manager';
+import {
+  buildQuestionsWithImages,
+  getQuestionImagesBaseUrl,
+  PUBLISHED_QUESTION_SELECT,
+} from '@/lib/question-assembly';
+import type { AssembledQuestion, PublishedQuestionRow } from '@/lib/question-assembly';
 import { createClient } from '@/lib/supabase/client';
-import type { SafeChoice, SessionType } from '@/types';
+import type { SessionType } from '@/types';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 // --- Types ---
 
-export interface QuizQuestion {
-  id: string;
-  question_number: number | null;
-  question_text: string;
-  topic_id: string;
-  question_images: {
-    id: string;
-    storage_path: string;
-    original_name: string | null;
-    sort_order: number;
-  }[];
-  choices: SafeChoice[];
-}
+export type QuizQuestion = AssembledQuestion;
 
 export interface CorrectionData {
   is_correct: boolean;
@@ -178,11 +172,9 @@ export function useQuiz(sessionId: string) {
     const [questionsResult, choicesResult, answeredResult] = await Promise.all([
       supabase
         .from('published_questions')
-        .select(
-          `id, question_number, question_text, topic_id,
-          published_question_images (id, storage_path, original_name, sort_order)`,
-        )
-        .in('id', questionIds),
+        .select(PUBLISHED_QUESTION_SELECT)
+        .in('id', questionIds)
+        .overrideTypes<PublishedQuestionRow[], { merge: false }>(),
       supabase
         .from('safe_choices')
         .select('id, question_id, label, choice_text, sort_order')
@@ -217,52 +209,17 @@ export function useQuiz(sessionId: string) {
       return;
     }
 
-    // Group choices by question, pre-sorted
-    const choicesByQuestion: Record<string, SafeChoice[]> = {};
-    for (const c of choices) {
-      if (!choicesByQuestion[c.question_id]) {
-        choicesByQuestion[c.question_id] = [];
-      }
-      choicesByQuestion[c.question_id].push(c);
-    }
-    for (const qId of Object.keys(choicesByQuestion)) {
-      choicesByQuestion[qId].sort((a, b) => a.sort_order - b.sort_order);
-    }
-
-    // Build ordered question list with pre-sorted images
-    const questionMap = new Map(questions.map((q) => [q.id, q]));
-    const orderedQuestions: QuizQuestion[] = questionIds
-      .map((qId) => {
-        const q = questionMap.get(qId);
-        if (!q) return null;
-        const rawImages = (q as Record<string, unknown>).published_question_images ?? (q as Record<string, unknown>).question_images ?? [];
-        const images = [...(rawImages as { sort_order: number }[])].sort(
-          (a, b) => a.sort_order - b.sort_order,
-        );
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const { published_question_images: _pqi, ...rest } = q as Record<string, unknown> & typeof q;
-        return {
-          ...rest,
-          question_images: images,
-          choices: choicesByQuestion[qId] ?? [],
-        } as QuizQuestion;
-      })
-      .filter((q): q is QuizQuestion => q !== null);
+    const orderedQuestions = buildQuestionsWithImages(
+      questionIds,
+      questions,
+      choices,
+      getQuestionImagesBaseUrl(),
+    );
 
     const startIndex = Math.min(
       answeredCount ?? 0,
       orderedQuestions.length - 1,
     );
-
-    // Resolve image URLs from Supabase Storage using a single base URL
-    const storageBaseUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/question-images/`;
-    for (const q of orderedQuestions) {
-      for (const img of q.question_images) {
-        if (!img.storage_path.startsWith('http')) {
-          img.storage_path = storageBaseUrl + img.storage_path;
-        }
-      }
-    }
 
     setState((prev) => ({
       ...prev,
