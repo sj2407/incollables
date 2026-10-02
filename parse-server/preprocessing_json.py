@@ -17,6 +17,7 @@ Pipeline:
 import base64
 import io
 import json
+import logging
 import re
 import sys
 import tempfile
@@ -36,6 +37,8 @@ from docx import Document  # noqa: E402
 from docx.oxml.ns import qn  # noqa: E402
 
 import mammoth  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -195,9 +198,11 @@ def extract_stem_images(doc, question) -> list:
                     'sortOrder': sort_order,
                 })
                 sort_order += 1
-            except Exception:
-                # Skip images that can't be extracted
-                pass
+            except Exception as e:
+                logger.warning(
+                    'Skipping stem image rel %s for Q%s: %s',
+                    r_embed, question.sequential_number, e,
+                )
 
     return images
 
