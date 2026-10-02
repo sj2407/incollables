@@ -32,11 +32,16 @@ export default function LoginPage() {
     // Redirect based on role
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('role')
         .eq('id', user.id)
         .single();
+      if (profileError) {
+        setError(profileError.message);
+        setLoading(false);
+        return;
+      }
       router.push(profile?.role === 'admin' ? '/admin' : '/practice');
     } else {
       router.push('/practice');
