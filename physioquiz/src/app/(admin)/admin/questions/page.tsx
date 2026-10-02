@@ -211,10 +211,14 @@ export default function AdminDatabasePage() {
 
   const fetchTopics = useCallback(async () => {
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error: tError } = await supabase
       .from('topics')
       .select('id, title, level, parent_id, description, is_active')
       .order('sort_order');
+    if (tError) {
+      setError(tError.message);
+      return;
+    }
     if (data) {
       setTopics(data.map((t) => ({
         id: t.id, title: t.title, level: t.level, parent_id: t.parent_id,
@@ -264,7 +268,11 @@ export default function AdminDatabasePage() {
 
   const refreshCorbeilleCount = useCallback(async () => {
     const supabase = createClient();
-    const { data } = await supabase.rpc('get_deleted_questions');
+    const { data, error: cError } = await supabase.rpc('get_deleted_questions');
+    if (cError) {
+      setError(cError.message);
+      return;
+    }
     setCorbeilleCount(Array.isArray(data) ? data.length : 0);
   }, []);
 
@@ -301,10 +309,12 @@ export default function AdminDatabasePage() {
     // If dupe mode is active, re-run detection on fresh data to avoid ghost rows
     if (dupeModeRef.current) {
       const supabase = createClient();
-      const { data } = await supabase.rpc('get_admin_question_database_v2', {
+      const { data, error: dError } = await supabase.rpc('get_admin_question_database_v2', {
         p_topic_id: null, p_search: null, p_active_filter: null, p_difficulty_filter: null,
       });
-      if (data) {
+      if (dError) {
+        setError(dError.message);
+      } else if (data) {
         const freshRows = mapRpcToAdminRows(data as Record<string, unknown>[]);
         const freshResult = findDuplicates(freshRows);
         if (freshResult.groupCount === 0) {
@@ -558,7 +568,11 @@ export default function AdminDatabasePage() {
                     onClick={async () => {
                       if (isQ) {
                         const supabase = createClient();
-                        const { data } = await supabase.rpc('get_sync_diff');
+                        const { data, error: diffError } = await supabase.rpc('get_sync_diff');
+                        if (diffError) {
+                          setError(diffError.message);
+                          return;
+                        }
                         setSyncDiffList((data as typeof syncDiffList) ?? []);
                       } else {
                         const diff = await getMaterialSyncDiff(TAB_TO_TYPE[activeTab]);
