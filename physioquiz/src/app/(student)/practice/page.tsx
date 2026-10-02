@@ -14,9 +14,11 @@ export default function PracticePage() {
   const { topics, loading: topicsLoading, error: topicsError, retry: retryTopics } = useTopics();
   const [paused, setPaused] = useState<PausedSession[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pausedError, setPausedError] = useState<string | null>(null);
 
   const fetchPaused = useCallback(async () => {
     setLoading(true);
+    setPausedError(null);
     const supabase = createClient();
     const {
       data: { user },
@@ -27,13 +29,19 @@ export default function PracticePage() {
       return;
     }
 
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('sessions')
       .select('id, topic_id, question_count, correct_count, wrong_count, partial_count, paused_at, is_paused, topics(title)')
       .eq('user_id', user.id)
       .eq('is_paused', true)
       .eq('is_completed', false)
       .order('paused_at', { ascending: false });
+
+    if (error) {
+      setPausedError('Impossible de charger les sessions en cours.');
+      setLoading(false);
+      return;
+    }
 
     const sessions: PausedSession[] = (data ?? []).map((s) => {
       const answeredCount = (s.correct_count ?? 0) + (s.wrong_count ?? 0) + (s.partial_count ?? 0);
@@ -103,7 +111,19 @@ export default function PracticePage() {
       </p>
 
       {/* Paused sessions */}
-      {paused.length > 0 && (
+      {pausedError && (
+        <div role="alert" className="mt-6 flex items-center gap-3">
+          <p className="text-sm text-error">{pausedError}</p>
+          <button
+            type="button"
+            onClick={fetchPaused}
+            className="min-h-[44px] rounded-2xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
+      {!pausedError && paused.length > 0 && (
         <section className="mt-6" aria-labelledby="paused-heading">
           <h2 id="paused-heading" className="text-[1.125rem] font-semibold text-neutral-900 md:text-[1.375rem]">
             Sessions en cours
