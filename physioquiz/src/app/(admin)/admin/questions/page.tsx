@@ -57,6 +57,9 @@ const TAB_TO_TYPE: Record<string, MaterialType> = {
   fichiers: 'fiche',
 };
 
+const PUBLISH_SUCCESS_TOAST_MS = 3000;
+const DUPE_TOAST_MS = 3500;
+
 /** Map raw RPC rows to typed AdminQuestionRow[]. */
 function mapRpcToAdminRows(data: Record<string, unknown>[]): AdminQuestionRow[] {
   return data.map((q) => ({
@@ -242,7 +245,7 @@ export default function AdminDatabasePage() {
       if (result.success) {
         const total = (result.questionCount ?? 0) + (result.topicCount ?? 0);
         setPublishSuccess(`${total} modification${total !== 1 ? 's' : ''} publiée${total !== 1 ? 's' : ''}`);
-        setTimeout(() => setPublishSuccess(null), 3000);
+        setTimeout(() => setPublishSuccess(null), PUBLISH_SUCCESS_TOAST_MS);
         setDraftCount(0);
         fetchQuestions();
         fetchTopics();
@@ -256,7 +259,7 @@ export default function AdminDatabasePage() {
       setPublishing(false);
       if (result.success) {
         setPublishSuccess(`${result.count} modification${result.count !== 1 ? 's' : ''} publiée${result.count !== 1 ? 's' : ''}`);
-        setTimeout(() => setPublishSuccess(null), 3000);
+        setTimeout(() => setPublishSuccess(null), PUBLISH_SUCCESS_TOAST_MS);
         setMaterialDraftCount(0);
       }
     }
@@ -494,7 +497,7 @@ export default function AdminDatabasePage() {
 
     if (result.groupCount === 0) {
       setDupeToast('Aucun doublon détecté');
-      setTimeout(() => setDupeToast(null), 3500);
+      setTimeout(() => setDupeToast(null), DUPE_TOAST_MS);
       return;
     }
 
