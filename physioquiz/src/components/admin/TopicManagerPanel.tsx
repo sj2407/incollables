@@ -41,10 +41,16 @@ export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPa
     const supabase = createClient();
 
     // Check for sessions referencing this topic (CASCADE danger)
-    const { count: sessionCount } = await supabase
+    const { count: sessionCount, error: cErr } = await supabase
       .from('sessions')
       .select('id', { count: 'exact', head: true })
       .eq('topic_id', topicId);
+
+    if (cErr) {
+      setError(cErr.message);
+      setDeleting(null);
+      return;
+    }
 
     if ((sessionCount ?? 0) > 0) {
       setError('Ce chapitre a des sessions associées. Désactivez-le plutôt.');
