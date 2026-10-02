@@ -22,12 +22,20 @@ export default function CorbeillePanel({ onClose, onRestored }: CorbeillePanelPr
   const [items, setItems] = useState<DeletedQuestion[]>([]);
   const [loading, setLoading] = useState(true);
   const [restoring, setRestoring] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
 
   const fetchDeleted = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     const supabase = createClient();
-    const { data } = await supabase.rpc('get_deleted_questions');
-    setItems((data as DeletedQuestion[]) ?? []);
+    const { data, error } = await supabase.rpc('get_deleted_questions');
+    if (error) {
+      setItems([]);
+      setLoadError(error.message);
+    } else {
+      setItems((data as DeletedQuestion[]) ?? []);
+    }
     setLoading(false);
   }, []);
 
@@ -35,9 +43,14 @@ export default function CorbeillePanel({ onClose, onRestored }: CorbeillePanelPr
 
   const handleRestore = useCallback(async (questionId: string) => {
     setRestoring(questionId);
+    setRestoreError(null);
     const supabase = createClient();
-    await supabase.from('questions').update({ deleted_at: null }).eq('id', questionId);
+    const { error } = await supabase.from('questions').update({ deleted_at: null }).eq('id', questionId);
     setRestoring(null);
+    if (error) {
+      setRestoreError(`Échec de la restauration : ${error.message}`);
+      return;
+    }
     fetchDeleted();
     onRestored();
   }, [fetchDeleted, onRestored]);
@@ -52,8 +65,20 @@ export default function CorbeillePanel({ onClose, onRestored }: CorbeillePanelPr
 
   return (
     <Modal onClose={onClose} title={`Corbeille (${items.length})`} maxWidth="max-w-lg">
+      {restoreError && <p role="alert" className="mb-3 text-sm text-error">{restoreError}</p>}
       {loading ? (
         <p className="text-sm text-neutral-400">Chargement...</p>
+      ) : loadError ? (
+        <div role="alert" className="text-sm text-error">
+          <p>Impossible de charger la corbeille : {loadError}</p>
+          <button
+            type="button"
+            onClick={fetchDeleted}
+            className="mt-2 text-xs font-semibold underline hover:no-underline"
+          >
+            Réessayer
+          </button>
+        </div>
       ) : items.length === 0 ? (
         <p className="text-sm text-neutral-400">La corbeille est vide.</p>
       ) : (
