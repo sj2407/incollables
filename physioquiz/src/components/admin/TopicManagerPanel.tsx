@@ -18,7 +18,6 @@ interface TopicManagerPanelProps {
   onChanged: () => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPanelProps) {
   const [topics, setTopics] = useState<TopicWithCount[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,7 +34,7 @@ export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPa
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleDelete = useCallback(async (topicId: string) => {
+  const handleDelete = useCallback(async (topicId: string): Promise<boolean> => {
     setDeleting(topicId);
     setError(null);
     const supabase = createClient();
@@ -49,7 +48,7 @@ export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPa
     if ((sessionCount ?? 0) > 0) {
       setError('Ce chapitre a des sessions associées. Désactivez-le plutôt.');
       setDeleting(null);
-      return;
+      return false;
     }
 
     // Safe to delete (no questions, no sessions — CASCADE won't fire)
@@ -57,10 +56,11 @@ export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPa
     setDeleting(null);
     if (dErr) {
       setError(dErr.message);
-      return;
+      return false;
     }
     // Remove from local state (no flash, no re-fetch)
     setTopics((prev) => prev.filter((t) => t.id !== topicId));
+    return true;
   }, []);
 
   const chapters = topics.filter((t) => t.level === 1);
@@ -95,8 +95,10 @@ export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPa
                       onClick={() => {
                         // Delete sub-chapters first, then chapter
                         (async () => {
-                          for (const s of subs) await handleDelete(s.id);
-                          await handleDelete(ch.id);
+                          let changed = false;
+                          for (const s of subs) changed = (await handleDelete(s.id)) || changed;
+                          changed = (await handleDelete(ch.id)) || changed;
+                          if (changed) onChanged();
                         })();
                       }}
                       disabled={deleting !== null}
@@ -120,7 +122,9 @@ export default function TopicManagerPanel({ onClose, onChanged }: TopicManagerPa
                         {sub.question_count === 0 ? (
                           <button
                             type="button"
-                            onClick={() => handleDelete(sub.id)}
+                            onClick={async () => {
+                              if (await handleDelete(sub.id)) onChanged();
+                            }}
                             disabled={deleting !== null}
                             className="ml-2 shrink-0 rounded px-2 py-1 text-[10px] font-medium text-error hover:bg-red-50 disabled:opacity-50"
                           >
