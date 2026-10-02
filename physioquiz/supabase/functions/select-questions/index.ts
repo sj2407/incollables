@@ -8,104 +8,12 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
-
-// --- Scoring/selection logic (inlined from quiz-engine.ts for Deno) ---
-
-interface QuestionStat {
-  question_id: string;
-  topic_id: string;
-  attempts: number;
-  success_rate: number;
-  days_since_last: number;
-  avg_confidence: number | null;
-  confidence_count: number;
-  last_was_false_certainty: boolean | null;
-}
-
-interface QuestionWeight {
-  question_id: string;
-  weight: number;
-}
-
-function calculateWeights(questions: QuestionStat[]): QuestionWeight[] {
-  return questions.map((q) => {
-    if (!q.attempts || q.attempts === 0) {
-      return { question_id: q.question_id, weight: 0.7 };
-    }
-
-    const successRate = q.success_rate ?? 0;
-    const difficulty = 1 - successRate;
-    const halfLife = 5 + 3 * q.attempts * successRate;
-    const daysSince = q.days_since_last ?? 0;
-    const forgetting = 1 - Math.exp(-daysSince / halfLife);
-
-    let weight: number;
-
-    if (q.confidence_count && q.confidence_count > 0) {
-      const uncertainty = 1 - (q.avg_confidence ?? 0);
-      weight = 0.4 * difficulty + 0.35 * forgetting + 0.25 * uncertainty;
-    } else {
-      weight = 0.53 * difficulty + 0.47 * forgetting;
-    }
-
-    if (q.last_was_false_certainty) {
-      weight = Math.min(weight * 1.5, 1.0);
-    }
-
-    return { question_id: q.question_id, weight };
-  });
-}
-
-function weightedSampleWithoutReplacement(
-  items: QuestionWeight[],
-  n: number
-): string[] {
-  const selected: string[] = [];
-  const remaining = items.map((item) => ({ ...item }));
-  const count = Math.min(n, remaining.length);
-
-  for (let i = 0; i < count; i++) {
-    const totalWeight = remaining.reduce((sum, item) => sum + item.weight, 0);
-
-    if (totalWeight <= 0) {
-      for (let j = 0; j < count - i && remaining.length > 0; j++) {
-        const idx = Math.floor(Math.random() * remaining.length);
-        selected.push(remaining[idx].question_id);
-        remaining.splice(idx, 1);
-      }
-      break;
-    }
-
-    let random = Math.random() * totalWeight;
-    let picked = false;
-    for (let j = 0; j < remaining.length; j++) {
-      random -= remaining[j].weight;
-      if (random <= 0) {
-        selected.push(remaining[j].question_id);
-        remaining.splice(j, 1);
-        picked = true;
-        break;
-      }
-    }
-    // Floating-point fallback: if rounding prevented selection, pick last item
-    if (!picked && remaining.length > 0) {
-      const lastIdx = remaining.length - 1;
-      selected.push(remaining[lastIdx].question_id);
-      remaining.splice(lastIdx, 1);
-    }
-  }
-
-  shuffleArray(selected);
-  return selected;
-}
-
-function shuffleArray<T>(array: T[]): T[] {
-  for (let i = array.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
-  }
-  return array;
-}
+import {
+  calculateWeights,
+  shuffleArray,
+  weightedSampleWithoutReplacement,
+  type QuestionWithStats,
+} from '../_shared/quiz-engine.ts';
 
 // --- Main handler ---
 
@@ -261,7 +169,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // Published tables only contain non-draft content — no filtering needed
-    const pool = questionStats as QuestionStat[];
+    const pool = questionStats as QuestionWithStats[];
     const totalAvailable = pool.length;
 
     if (totalAvailable === 0) {
