@@ -79,6 +79,7 @@ export default function StatsPage() {
   const [sessions, setSessions] = useState<SessionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [loadWarning, setLoadWarning] = useState<string | null>(null);
   const [progressView, setProgressView] = useState<'chart' | 'calendar'>('chart');
   const [calibrationView, setCalibrationView] = useState<'scatter' | 'evolution' | 'topics'>('scatter');
   const [brierWeekly, setBrierWeekly] = useState<BrierWeekPoint[]>([]);
@@ -141,6 +142,7 @@ export default function StatsPage() {
   const fetchData = useCallback(async (sessionType: string) => {
     setLoading(true);
     setError(null);
+    setLoadWarning(null);
     const supabase = createClient();
 
     const {
@@ -198,19 +200,24 @@ export default function StatsPage() {
     const rpcParams = (base: Record<string, any>) =>
       rpcType ? { ...base, p_session_type: rpcType } : base;
 
-    const [statsResult, prevWeekResult, progressResult, calibrationResult, masteryResult, weakResult, sessionResult, calibAnswersResult, brierWeeklyResult, brierByTopicResult] =
-      await Promise.all([
-        supabase.rpc('get_dashboard_stats', rpcParams({ p_user_id: user.id })),
-        supabase.rpc('get_dashboard_stats_prev_week', rpcParams({ p_user_id: user.id })),
-        progressQuery,
-        supabase.rpc('get_calibration_data', rpcParams({ p_user_id: user.id, p_fc_days: fcTimeFilter === 'all' ? null : parseInt(fcTimeFilter) })),
-        supabase.rpc('get_topic_mastery_detailed', rpcParams({ p_user_id: user.id })),
-        supabase.rpc('get_weak_questions', rpcParams({ p_user_id: user.id })),
-        sessionQuery,
-        calibAnswersQuery,
-        supabase.rpc('get_brier_score_by_week', rpcParams({ p_user_id: user.id })),
-        supabase.rpc('get_brier_score_by_topic', rpcParams({ p_user_id: user.id })),
-      ]);
+    const results = await Promise.all([
+      supabase.rpc('get_dashboard_stats', rpcParams({ p_user_id: user.id })),
+      supabase.rpc('get_dashboard_stats_prev_week', rpcParams({ p_user_id: user.id })),
+      progressQuery,
+      supabase.rpc('get_calibration_data', rpcParams({ p_user_id: user.id, p_fc_days: fcTimeFilter === 'all' ? null : parseInt(fcTimeFilter) })),
+      supabase.rpc('get_topic_mastery_detailed', rpcParams({ p_user_id: user.id })),
+      supabase.rpc('get_weak_questions', rpcParams({ p_user_id: user.id })),
+      sessionQuery,
+      calibAnswersQuery,
+      supabase.rpc('get_brier_score_by_week', rpcParams({ p_user_id: user.id })),
+      supabase.rpc('get_brier_score_by_topic', rpcParams({ p_user_id: user.id })),
+    ]);
+
+    const [statsResult, prevWeekResult, progressResult, calibrationResult, masteryResult, weakResult, sessionResult, calibAnswersResult, brierWeeklyResult, brierByTopicResult] = results;
+
+    if (results.some((result) => result.error)) {
+      setLoadWarning('Certaines données n’ont pas pu être chargées. Les résultats affichés peuvent être incomplets ou ne pas être à jour.');
+    }
 
     // Stats
     if (statsResult.data && !statsResult.error) {
@@ -450,6 +457,19 @@ export default function StatsPage() {
           <option value="exam">Examen</option>
         </select>
       </div>
+
+      {loadWarning && (
+        <div className="mt-4">
+          <p role="alert" className="text-sm text-error">{loadWarning}</p>
+          <button
+            type="button"
+            onClick={() => fetchData(filterType)}
+            className="mt-2 min-h-[44px] rounded-2xl px-3 py-2 text-sm font-medium text-primary hover:bg-primary-50"
+          >
+            Réessayer
+          </button>
+        </div>
+      )}
 
       {/* 1. Metric cards — 2×2 grid */}
       <div className="mt-4 grid grid-cols-2 gap-2.5">
