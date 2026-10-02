@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """
-Tests for preprocessing.py
+Tests for the shared parser in parse-server/ (preprocessing.py, preprocessing_json.py)
 """
 
 import hashlib
+import io
+import json
 import os
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
-# Add scripts dir to path
-sys.path.insert(0, str(Path(__file__).parent))
+PARSE_SERVER_DIR = Path(__file__).resolve().parent.parent / 'parse-server'
+sys.path.insert(0, str(PARSE_SERVER_DIR))
 
 from preprocessing import (
     parse_answer_letters,
@@ -247,6 +251,77 @@ class TestEndToEnd(unittest.TestCase):
         """Very few questions should have 0 propositions."""
         zero_prop = sum(1 for q in self.questions if len(q.propositions) == 0)
         self.assertLess(zero_prop, 15, f"{zero_prop} questions have 0 propositions")
+
+
+
+class TestJsonCli(unittest.TestCase):
+    """scripts/preprocessing_json.py runs the shared parse_docx_to_json()."""
+
+    CLI = Path(__file__).resolve().parent / 'preprocessing_json.py'
+
+    @classmethod
+    def setUpClass(cls):
+        from docx import Document
+        from PIL import Image
+
+        doc = Document()
+        doc.add_paragraph().add_run("Physiologie digestive (2)").bold = True
+        doc.add_paragraph("Question 1")
+        doc.add_paragraph("Quelle est la fonction de l'estomac ?")
+        img = io.BytesIO()
+        Image.new('RGB', (20, 20), 'red').save(img, 'PNG')
+        img.seek(0)
+        doc.add_picture(img)
+        for letter, text in zip("ABCDE", ["Digestion", "Respiration", "Stockage", "Vision", "Audition"]):
+            doc.add_paragraph(f"{letter}. {text}")
+        doc.add_paragraph("Réponse : A, C")
+        doc.add_paragraph("Explication: l'estomac digère et stocke.")
+        doc.add_paragraph("Question 2")
+        doc.add_paragraph("Deux propositions seulement")
+        doc.add_paragraph("A. Oui")
+        doc.add_paragraph("B. Non")
+        doc.add_paragraph("Réponse : B")
+
+        cls.tmpdir = tempfile.TemporaryDirectory()
+        cls.docx_path = Path(cls.tmpdir.name) / 'fixture.docx'
+        doc.save(str(cls.docx_path))
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.tmpdir.cleanup()
+
+    def run_cli(self, *args):
+        return subprocess.run(
+            [sys.executable, str(self.CLI), *args],
+            capture_output=True, text=True, encoding='utf-8',
+        )
+
+    def test_cli_output_matches_shared_parser(self):
+        from preprocessing_json import parse_docx_to_json
+
+        proc = self.run_cli(str(self.docx_path))
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(json.loads(proc.stdout), parse_docx_to_json(str(self.docx_path)))
+
+    def test_stats_and_warnings(self):
+        result = json.loads(self.run_cli(str(self.docx_path)).stdout)
+        self.assertEqual(result['stats']['totalQuestions'], 2)
+        self.assertEqual(result['stats']['activeQuestions'], 1)
+        self.assertEqual(result['stats']['withExplanation'], 1)
+        self.assertEqual(result['stats']['totalImages'], 1)
+        self.assertEqual(result['stats']['totalChapters'], 1)
+        self.assertEqual(result['errors'], ['Q2: seulement 2 propositions — désactivée'])
+        self.assertEqual(result['questions'][0]['answerLetters'], ['A', 'C'])
+
+    def test_usage_error(self):
+        proc = self.run_cli()
+        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(json.loads(proc.stdout), {'error': 'Usage: preprocessing_json.py <path-to-docx>'})
+
+    def test_missing_file(self):
+        proc = self.run_cli('does-not-exist.docx')
+        self.assertEqual(proc.returncode, 1)
+        self.assertEqual(json.loads(proc.stdout), {'error': 'File not found: does-not-exist.docx'})
 
 
 if __name__ == '__main__':
