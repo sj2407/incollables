@@ -2,6 +2,7 @@
 
 import { X } from '@phosphor-icons/react';
 import { createClient } from '@/lib/supabase/client';
+import { logEdit } from '@/lib/adminAutoSave';
 import DOMPurify from 'dompurify';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import QuestionEditorForm, { type QuestionFormData } from './QuestionEditorForm';
@@ -158,13 +159,11 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
       }
 
       // Audit log
-      supabase.rpc('log_admin_edit', {
+      logEdit(supabase, 'log_admin_edit', {
         p_question_id: newQ.id,
         p_field: 'question_created',
         p_old: '',
         p_new: data.question_text.slice(0, 200),
-      }).then(({ error: logError }) => {
-        if (logError) console.error('Failed to log admin edit:', logError.message);
       });
     } else {
       const { error: uError } = await supabase
@@ -205,13 +204,11 @@ export default function QuestionSidePanel({ questionId, onClose, onSaved }: Ques
       }
 
       // Audit log
-      supabase.rpc('log_admin_edit', {
+      logEdit(supabase, 'log_admin_edit', {
         p_question_id: questionId,
         p_field: 'question_updated',
         p_old: '',
         p_new: data.question_text.slice(0, 200),
-      }).then(({ error: logError }) => {
-        if (logError) console.error('Failed to log admin edit:', logError.message);
       });
     }
 

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client';
+import { logEdit } from '@/lib/adminAutoSave';
 import type { AdminMaterialRow, DeletedMaterial, MaterialSyncDiffItem, MaterialType } from '@/types/admin';
 
 /** Fetch materials of a given type with optional filters */
@@ -37,13 +38,11 @@ export async function saveMaterialField(
   if (error) return { success: false, error: error.message };
 
   // Log (fire-and-forget)
-  supabase.rpc('log_material_edit', {
+  logEdit(supabase, 'log_material_edit', {
     p_material_id: materialId,
     p_field: field,
     p_old: oldValue ?? '',
     p_new: newValue ?? '',
-  }).then(({ error: logErr }) => {
-    if (logErr) console.error('Failed to log material edit:', logErr.message);
   });
 
   return { success: true };
@@ -59,13 +58,11 @@ export async function softDeleteMaterials(ids: string[]): Promise<{ success: boo
 
   if (error) return { success: false, error: error.message };
 
-  supabase.rpc('log_material_edit', {
+  logEdit(supabase, 'log_material_edit', {
     p_material_id: null,
     p_field: 'bulk_delete',
     p_old: `${ids.length} éléments`,
     p_new: 'mis à la corbeille',
-  }).then(({ error: logErr }) => {
-    if (logErr) console.error('Failed to log material delete:', logErr.message);
   });
 
   return { success: true };
@@ -133,13 +130,11 @@ export async function bulkActivateMaterials(ids: string[], activate: boolean): P
 
   if (error) return { success: false, error: error.message };
 
-  supabase.rpc('log_material_edit', {
+  logEdit(supabase, 'log_material_edit', {
     p_material_id: null,
     p_field: activate ? 'bulk_activate' : 'bulk_deactivate',
     p_old: `${ids.length} éléments`,
     p_new: activate ? 'activés' : 'désactivés',
-  }).then(({ error: logErr }) => {
-    if (logErr) console.error('Failed to log bulk action:', logErr.message);
   });
 
   return { success: true };
@@ -159,13 +154,11 @@ export async function bulkMoveMaterials(
 
   if (error) return { success: false, error: error.message };
 
-  supabase.rpc('log_material_edit', {
+  logEdit(supabase, 'log_material_edit', {
     p_material_id: null,
     p_field: 'bulk_move',
     p_old: `${ids.length} éléments`,
     p_new: topicTitle,
-  }).then(({ error: logErr }) => {
-    if (logErr) console.error('Failed to log bulk move:', logErr.message);
   });
 
   return { success: true };

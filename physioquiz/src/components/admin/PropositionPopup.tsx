@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { logEdit } from '@/lib/adminAutoSave';
 import Modal from '@/components/ui/Modal';
 import PropositionEditor, { type Proposition } from './PropositionEditor';
 import type { ChoiceData } from '@/types/admin';
@@ -69,13 +70,11 @@ export default function PropositionPopup({
     // Choices trigger auto-updates current_hash on the parent question
 
     // Log edit
-    supabase.rpc('log_admin_edit', {
+    logEdit(supabase, 'log_admin_edit', {
       p_question_id: questionId,
       p_field: 'propositions',
       p_old: choices.map((c) => `${c.label}:${c.choice_text}`).join(' | '),
       p_new: propositions.map((p) => `${p.label}:${p.choice_text}`).join(' | '),
-    }).then(({ error: logError }) => {
-      if (logError) console.error('Failed to log admin edit:', logError.message);
     });
 
     setSaving(false);
