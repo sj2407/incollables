@@ -244,6 +244,7 @@ Deno.serve(async (req: Request) => {
     }
 
     const results: QuestionResult[] = [];
+    const failedScoreWrites: string[] = [];
 
     for (const questionId of questionIds) {
       const answer = answerMap.get(questionId);
@@ -272,7 +273,7 @@ Deno.serve(async (req: Request) => {
 
       // Update the session_answer row with correct scoring
       if (answer) {
-        await supabaseAdmin
+        const { error: scoreError } = await supabaseAdmin
           .from('session_answers')
           .update({
             is_correct: scoring.is_correct,
@@ -280,9 +281,14 @@ Deno.serve(async (req: Request) => {
             score_percent: scoring.score_percent,
           })
           .eq('id', answer.id);
+
+        if (scoreError) {
+          console.error(`Failed to record score for question ${questionId}:`, scoreError.message);
+          failedScoreWrites.push(questionId);
+        }
       } else {
         // Create a session_answer for unanswered questions
-        await supabaseAdmin
+        const { error: insertError } = await supabaseAdmin
           .from('session_answers')
           .insert({
             session_id,
@@ -294,6 +300,11 @@ Deno.serve(async (req: Request) => {
             time_spent_sec: null,
             is_flagged: false,
           });
+
+        if (insertError) {
+          console.error(`Failed to record answer for question ${questionId}:`, insertError.message);
+          failedScoreWrites.push(questionId);
+        }
       }
 
       // Tally counters
@@ -327,6 +338,16 @@ Deno.serve(async (req: Request) => {
           sort_order: c.sort_order,
         })),
       });
+    }
+
+    if (failedScoreWrites.length > 0) {
+      return new Response(
+        JSON.stringify({
+          error: 'Failed to record exam scores',
+          failed_question_ids: failedScoreWrites,
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // 9. Complete the session
